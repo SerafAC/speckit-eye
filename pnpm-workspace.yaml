@@ -1,0 +1,4 @@
+# @parcel/watcher (used by @tailwindcss/cli) ships prebuilt binaries as optional
+# dependencies; its install script only builds from source as a fallback.
+allowBuilds:
+  '@parcel/watcher': false
