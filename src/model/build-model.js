@@ -12,6 +12,8 @@ import {
   sortFeatureArtifacts,
   sortAssessmentArtifacts,
 } from "../project/artifacts.js";
+import { selectActive } from "./active.js";
+import { applyTaskStates } from "./task-state.js";
 
 /** @typedef {import("../project/scan.js").Warning} Warning */
 /** @typedef {import("../project/scan.js").ScanResult} ScanResult */
@@ -37,6 +39,7 @@ import {
  * @property {number} line
  * @property {string} key
  * @property {"completed" | "current" | "blocked" | "future" | null} state set by applyTaskStates
+ * @property {string} [sig] change signature, set by applyTaskStates
  */
 
 /**
@@ -46,6 +49,7 @@ import {
  * @property {Task[]} tasks
  * @property {Counts} counts
  * @property {string} key
+ * @property {string} [sig]
  */
 
 /**
@@ -58,6 +62,7 @@ import {
  * @property {StoryGroup[]} groups
  * @property {Counts} counts
  * @property {string} key
+ * @property {string} [sig]
  */
 
 /** @typedef {"empty" | "specified" | "planned" | "ready" | "in-progress" | "complete"} Stage */
@@ -73,6 +78,7 @@ import {
  * @property {Counts} counts
  * @property {Stage} stage
  * @property {Warning[]} warnings
+ * @property {string} [sig]
  */
 
 /**
@@ -89,9 +95,10 @@ import {
  * @property {Feature[]} features
  * @property {Artifact | null} constitution
  * @property {{slug: string, artifacts: Artifact[]}[]} assessments
- * @property {object | null} active set by selectActive
+ * @property {import("./active.js").ActiveSelection} active
  * @property {Totals} totals
  * @property {Warning[]} warnings
+ * @property {string} [sig]
  */
 
 /**
@@ -297,14 +304,20 @@ export function buildModel(scanResult) {
     ),
   }));
 
-  return {
+  /** @type {Project} */
+  const project = {
     name: scanResult.name,
     root: scanResult.root ?? null,
     features,
     constitution,
     assessments,
-    active: null,
+    active: /** @type {any} */ (null),
     totals: computeTotals(features),
     warnings: scanWarnings.filter((w) => !claimed.has(w)),
   };
+  project.active = selectActive(project, {
+    featureDirectory: scanResult.featureDirectory ?? null,
+    gitBranch: scanResult.gitBranch ?? null,
+  });
+  return applyTaskStates(project);
 }

@@ -204,12 +204,12 @@ describe("phases and story groups", () => {
     assert.deepEqual(f.warnings.map((w) => w.code), ["W4"]);
   });
 
-  test("tasks carry parsed fields, a key and no state yet", async () => {
+  test("tasks carry parsed fields, a key, a state and a sig", async () => {
     const f = (await model({ "specs/001-x/tasks.md": "## Phase 1: P\n- [ ] T001 [P] a\n- [x] no id depends on T001" }))
       .features[0];
     assert.deepEqual(f.phases[0].tasks, [
-      { id: "T001", done: false, parallel: true, story: null, description: "a", dependsOn: [], line: 2, key: "001-x/T001", state: null },
-      { id: null, done: true, parallel: false, story: null, description: "no id depends on T001", dependsOn: ["T001"], line: 3, key: "001-x/L3", state: null },
+      { id: "T001", done: false, parallel: true, story: null, description: "a", dependsOn: [], line: 2, key: "001-x/T001", state: "current", sig: "current:a" },
+      { id: null, done: true, parallel: false, story: null, description: "no id depends on T001", dependsOn: ["T001"], line: 3, key: "001-x/L3", state: "completed", sig: "completed" },
     ]);
   });
 });
@@ -280,7 +280,7 @@ describe("project", () => {
     });
     assert.equal(p.name, "proj");
     assert.equal(p.root, null);
-    assert.equal(p.active, null);
+    assert.deepEqual(p.active, { featureDir: null, phaseKey: null, storyLabel: null, nextTaskKey: null, source: "none" });
     assert.deepEqual(
       [p.constitution.kind, p.constitution.title, p.constitution.url],
       ["constitution", "Proj Constitution", "constitution.html"],
