@@ -26,3 +26,276 @@
     transition: none !important;
   }
 }
+
+/* ------------------------------------------------------------------------ */
+/* Page shell                                                                */
+/* ------------------------------------------------------------------------ */
+
+@layer base {
+  body {
+    @apply mx-auto max-w-7xl bg-white px-4 py-4 text-gray-900 antialiased md:px-8;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+
+  header[data-region="header"] {
+    @apply mb-4 flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-gray-200 pb-3;
+  }
+
+  header[data-region="header"] [data-region="project-name"] {
+    @apply text-xl font-semibold text-gray-900 no-underline;
+  }
+
+  header[data-region="header"] nav {
+    @apply flex flex-wrap gap-4 text-sm;
+  }
+
+  header[data-region="header"] nav a {
+    @apply text-gray-600 underline-offset-2 hover:text-gray-900 hover:underline;
+  }
+
+  footer {
+    @apply mt-8 border-t border-gray-200 pt-3 text-xs text-gray-500;
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Overview: progress section (FR-015)                                       */
+/* ------------------------------------------------------------------------ */
+
+[data-region="progress"] {
+  @apply mb-6;
+}
+
+[data-region="progress"] [data-part="summary"] {
+  @apply mb-1 text-lg font-semibold;
+}
+
+/* The bar is a native <progress>: no inline styles, so the serve-mode CSP holds. */
+[data-region="progress"] progress {
+  @apply block h-3 w-full overflow-hidden rounded-full;
+  appearance: none;
+  border: 0;
+  background-color: var(--color-gray-200);
+  color: var(--status-done);
+}
+
+[data-region="progress"] progress::-webkit-progress-bar {
+  @apply rounded-full;
+  background-color: var(--color-gray-200);
+}
+
+[data-region="progress"] progress::-webkit-progress-value {
+  @apply rounded-full;
+  background-color: var(--status-done);
+  transition: width 300ms ease-out;
+}
+
+[data-region="progress"] progress::-moz-progress-bar {
+  @apply rounded-full;
+  background-color: var(--status-done);
+}
+
+[data-region="progress"] [data-part="counters"] {
+  @apply mt-3 flex flex-wrap gap-3 text-sm;
+}
+
+[data-region="progress"] [data-counter] {
+  @apply rounded-md border border-gray-200 px-3 py-1;
+}
+
+[data-region="progress"] [data-counter] [data-part="label"] {
+  @apply text-gray-500;
+}
+
+[data-region="progress"] [data-counter] [data-part="value"] {
+  @apply font-semibold tabular-nums;
+}
+
+[data-region="progress"] [data-part="next"] {
+  @apply mt-3 rounded-md border-l-4 px-3 py-2;
+  border-color: var(--status-active);
+  background-color: color-mix(in srgb, var(--status-active) 12%, transparent);
+}
+
+[data-region="progress"] [data-part="complete"] {
+  @apply mt-3 font-semibold;
+  color: var(--status-done);
+}
+
+[data-region="progress"] [data-part="empty"] {
+  @apply mt-3 text-gray-600;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Overview: two columns, stacked tree-first below `md` (FR-015, FR-035)     */
+/* ------------------------------------------------------------------------ */
+
+[data-region="columns"] {
+  @apply grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)];
+}
+
+/* ------------------------------------------------------------------------ */
+/* Overview: feature tree (FR-015a, FR-019a)                                 */
+/* ------------------------------------------------------------------------ */
+
+[data-region="tree"] {
+  @apply min-w-0 text-sm;
+}
+
+[data-region="tree"] ul {
+  @apply m-0 list-none p-0;
+}
+
+[data-region="tree"] details {
+  --status-color: var(--status-not-started);
+  @apply my-1;
+}
+
+[data-region="tree"] details > :not(summary) {
+  @apply ml-4;
+}
+
+[data-region="tree"] details[data-status="started"] {
+  --status-color: var(--status-started);
+}
+
+[data-region="tree"] details[data-status="done"] {
+  --status-color: var(--status-done);
+}
+
+[data-region="tree"] summary {
+  @apply cursor-pointer rounded-md border-l-4 px-2 py-1 transition-colors;
+  border-color: var(--status-color);
+  color: var(--status-color);
+}
+
+[data-region="tree"] summary:hover {
+  @apply bg-gray-50;
+}
+
+[data-region="tree"] summary [data-part="title"] {
+  @apply font-medium;
+}
+
+[data-region="tree"] summary [data-part="count"] {
+  @apply tabular-nums;
+}
+
+/* Done mark: visible also when collapsed. */
+[data-region="tree"] details[data-status="done"] > summary::after {
+  content: " ✓";
+  @apply font-bold;
+}
+
+/* The active chain; combinable with `done` (a completed active feature, FR-018). */
+[data-region="tree"] details[data-active] > summary {
+  @apply font-semibold;
+  background-color: color-mix(in srgb, var(--status-active) 18%, transparent);
+  box-shadow: inset 0 0 0 1px var(--status-active);
+}
+
+[data-region="tree"] summary [data-part="warning-count"] {
+  @apply ml-1 rounded bg-amber-100 px-1.5 text-xs text-amber-900;
+}
+
+[data-region="tree"] [data-part="warnings"] {
+  @apply my-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900;
+}
+
+[data-region="tree"] [data-part="no-tasks"] {
+  @apply my-1 text-xs text-gray-500 italic;
+}
+
+[data-region="tree"] li[data-state] {
+  @apply flex items-baseline gap-2 py-0.5 pl-2;
+  --status-color: var(--status-not-started);
+}
+
+[data-region="tree"] li[data-state]::before {
+  content: "";
+  @apply inline-block size-2 shrink-0 rounded-sm;
+  background-color: var(--status-color);
+}
+
+[data-region="tree"] li[data-state="completed"] {
+  --status-color: var(--status-done);
+  @apply text-gray-500;
+}
+
+[data-region="tree"] li[data-state="current"] {
+  --status-color: var(--status-active);
+  @apply font-semibold;
+}
+
+[data-region="tree"] li[data-state="blocked"] {
+  --status-color: var(--status-blocked);
+}
+
+[data-region="tree"] li [data-part="id"] {
+  @apply font-mono text-xs;
+}
+
+[data-region="tree"] li [data-part="next"] {
+  @apply rounded px-1.5 text-xs font-semibold text-gray-900 uppercase;
+  background-color: var(--status-active);
+}
+
+/* Parents of the hovered grid square (src/client/overview.js). */
+[data-region="tree"] [data-highlight] > summary {
+  outline: 2px solid var(--status-active);
+  outline-offset: 1px;
+}
+
+/* Expand animation (FR-036); the global reduced-motion rule above turns it off. */
+@keyframes speckit-eye-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-region="tree"] details[open] > :not(summary) {
+    animation: speckit-eye-expand 180ms ease-out;
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Overview: task grid (FR-015b)                                             */
+/* ------------------------------------------------------------------------ */
+
+[data-region="grid"] {
+  @apply flex min-w-0 flex-wrap content-start gap-1;
+}
+
+[data-region="grid"] a {
+  --status-color: var(--status-not-started);
+  @apply block size-3 cursor-default rounded-sm transition-transform;
+  background-color: var(--status-color);
+}
+
+[data-region="grid"] a[data-state="completed"] {
+  --status-color: var(--status-done);
+}
+
+[data-region="grid"] a[data-state="current"] {
+  --status-color: var(--status-active);
+}
+
+[data-region="grid"] a[data-state="blocked"] {
+  --status-color: var(--status-blocked);
+}
+
+[data-region="grid"] a[data-state="future"] {
+  @apply opacity-60;
+}
+
+[data-region="grid"] a:hover,
+[data-region="grid"] a:focus-visible {
+  @apply scale-150 opacity-100;
+  outline: 1px solid var(--color-gray-900);
+}

@@ -75,7 +75,7 @@ describe("renderPage", () => {
   test("stylesheet and overview script", () => {
     const doc = page();
     assert.match(doc, /<link rel="stylesheet" href="\/assets\/styles.css">/);
-    assert.match(doc, /<script src="\/assets\/overview.js" defer><\/script>/);
+    assert.match(doc, /<script type="module" src="\/assets\/overview.js"><\/script>/);
   });
 
   test("main is inserted as trusted HTML (string or Raw)", () => {
