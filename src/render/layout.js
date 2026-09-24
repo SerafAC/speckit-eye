@@ -36,7 +36,7 @@ export function renderPage({ title, base, mode, project, main, version }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
 <link rel="stylesheet" href="${link("assets/styles.css")}">
-<script src="${link("assets/overview.js")}" defer></script>
+<script type="module" src="${link("assets/overview.js")}"></script>
 </head>
 <body data-mode="${mode}" data-version="${version}">
 <header data-region="header">
