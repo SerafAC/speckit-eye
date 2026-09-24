@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@source "../render";
+@source "../client";
+
+/*
+ * Status colors: the single definition used by the feature tree and the task
+ * grid (constitution §III, FR-015b, FR-019a). Do not repeat these values
+ * anywhere else.
+ */
+:root {
+  --status-done: #16a34a;        /* green: completed feature/phase/story/task */
+  --status-active: #f59e0b;      /* highlight: the active item and the next task */
+  --status-started: #2563eb;     /* blue: started but incomplete */
+  --status-not-started: #4b5563; /* dark grey: not started; also `future` tasks */
+  --status-blocked: #dc2626;     /* red: task waiting on an open dependency */
+}
+
+/* FR-036: honor the viewer's reduced-motion preference everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

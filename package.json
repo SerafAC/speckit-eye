@@ -1,0 +1,38 @@
+{
+  "name": "speckit-eye",
+  "version": "0.1.0",
+  "description": "Zero-setup progress dashboard for GitHub Spec Kit projects",
+  "type": "module",
+  "bin": {
+    "speckit-eye": "bin/speckit-eye.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "!src/styles/",
+    "dist/styles.css",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:css": "tailwindcss -i src/styles/input.css -o dist/styles.css --minify",
+    "prepack": "pnpm run build:css",
+    "test": "node --test \"tests/unit/**/*.test.js\"",
+    "test:coverage": "node --test --experimental-test-coverage \"tests/unit/**/*.test.js\"",
+    "test:e2e": "pnpm run build:css && playwright test"
+  },
+  "dependencies": {
+    "markdown-it": "^15"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63",
+    "@tailwindcss/cli": "^4",
+    "@tailwindcss/typography": "^0.5",
+    "tailwindcss": "^4"
+  },
+  "license": "MIT"
+}
