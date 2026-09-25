@@ -33,8 +33,9 @@ function selectWithin(feature, source) {
       pool = group.tasks;
     }
   }
-  const next = pool.find((t) => !t.done) ?? null;
-  return { featureDir: feature.dir, phaseKey: phase.key, storyLabel, nextTaskKey: next ? next.key : null, source };
+  // `phase` (or the chosen group) has open tasks, so an open task exists.
+  const next = /** @type {import("./build-model.js").Task} */ (pool.find((t) => !t.done));
+  return { featureDir: feature.dir, phaseKey: phase.key, storyLabel, nextTaskKey: next.key, source };
 }
 
 /**

@@ -118,6 +118,11 @@ describe("task lines", () => {
     ]);
   });
 
+  test("warnings are sorted by line, a warning without a line (W8) first", () => {
+    const { warnings } = parse(["# Tasks", "## Phase 1: A", "## Phase 1: B"]);
+    assert.deepEqual(brief(warnings), ["W8@null", "W12@3"]);
+  });
+
   test("W8 when there are no task lines", () => {
     for (const text of ["", "# Tasks\n\n## Phase 1: Setup\n", "```\n- [ ] T001 in code\n```"]) {
       const { phases, tasks, warnings } = parseTasks(text, FILE);

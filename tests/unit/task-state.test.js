@@ -90,6 +90,20 @@ describe("task states", () => {
     assert.equal(p.active.source, "none");
   });
 
+  test("W7 names a next task without an ID by its line", async () => {
+    const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] first depends on T002\n- [ ] T002 b" });
+    const w7 = p.features[0].warnings.filter((w) => w.code === "W7");
+    assert.deepEqual(w7.map((w) => w.message), ["next task L2 depends on open task T002"]);
+  });
+
+  test("a project without an active selection gets no current task", async () => {
+    const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a" });
+    delete p.active;
+    applyTaskStates(p);
+    assert.deepEqual(states(p.features[0]), [["T001", "future"]]);
+    assert.match(p.sig, /:-$/);
+  });
+
   test("applyTaskStates is idempotent (no duplicate W7)", async () => {
     const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a depends on T002\n- [ ] T002 b" });
     assert.equal(p.features[0].warnings.filter((w) => w.code === "W7").length, 1);

@@ -98,6 +98,16 @@ describe("writeSite (T053, FR-033)", () => {
     assert.match(result.error, /EACCES/);
   });
 
+  test("a thrown non-Error value is reported as text", async () => {
+    const fs = fakeFs();
+    fs.writeFile = async () => {
+      throw "disk on fire";
+    };
+    const result = await writeSite({ site: SITE, out: OUT, projectRoot: ROOT, fs });
+    assert.equal(result.code, 1);
+    assert.match(result.error, /disk on fire/);
+  });
+
   test("a read failure other than a missing folder returns exit code 1", async () => {
     const fs = fakeFs();
     fs.readdir = async () => {

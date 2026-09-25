@@ -370,6 +370,36 @@ describe("createLiveClient", () => {
     assert.equal(t.body.querySelector("main"), before);
   });
 
+  test("a page without <main> starts and ignores changes without fetching", async () => {
+    const t = setup({ main: el("section") });
+    t.client.start();
+    t.es().emit("change");
+    await t.flush();
+    assert.equal(t.server.requests.length, 0);
+  });
+
+  test("a response without <main> keeps the last content", async () => {
+    const t = setup();
+    t.client.start();
+    const before = t.body.querySelector("main");
+    t.respond(null);
+    t.es().emit("change");
+    await t.flush();
+    assert.equal(t.server.requests.length, 1);
+    assert.equal(t.body.querySelector("main"), before);
+  });
+
+  test("toggle events from non-details elements or details without data-key are ignored", () => {
+    const t = setup();
+    t.client.start();
+    t.toggle(null);
+    t.toggle({});
+    t.toggle(el("div", { "data-key": "x" }));
+    const unkeyed = el("details", { open: "" });
+    t.toggle(unkeyed);
+    assert.equal(t.client.toggles.size, 0);
+  });
+
   test("error shows the banner; the next hello hides it and fetches once", async () => {
     const t = setup();
     t.client.start();

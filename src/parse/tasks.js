@@ -135,8 +135,8 @@ export function parseTasks(text, file) {
     task.dependsOn = known;
   }
 
-  if (tasks.length === 0) warn("W8", null, MSG.W8());
-
-  warnings.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
+  // Every warning so far has a line; W8 (no line) goes first.
+  warnings.sort((a, b) => /** @type {number} */ (a.line) - /** @type {number} */ (b.line));
+  if (tasks.length === 0) warnings.unshift({ code: "W8", file, line: null, message: MSG.W8() });
   return { phases, tasks, warnings };
 }

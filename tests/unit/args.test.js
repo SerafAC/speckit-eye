@@ -43,6 +43,7 @@ describe("parseCliArgs: errors", () => {
     ["--serve with an empty value", ["--serve="]],
     ["--build without --out", ["--build", "p"]],
     ["--build with an empty --out", ["--build", "p", "--out="]],
+    ["--build with an empty value", ["--build=", "--out", "o"]],
     ["--out with serve", ["--serve", ".", "--out", "o"]],
     ["--base with serve", ["--serve", ".", "--base", "x"]],
     ["only --out", ["--out", "o"]],

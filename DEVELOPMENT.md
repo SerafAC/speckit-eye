@@ -51,3 +51,21 @@ _To be completed (T069)._
 ## Release process
 
 _To be completed (T069)._
+
+### Release checklist
+
+- [ ] **Package contents**: `npm pack --dry-run` (runs `prepack`, which builds
+  `dist/styles.css`) lists only `bin/`, `src/` without `src/styles/`,
+  `dist/styles.css`, `README.md`, `CHANGELOG.md`, `LICENSE`, and the
+  `package.json` that npm always adds.
+- [ ] **Installed tarball runs**: `npm pack`, install the tarball in an empty
+  temporary folder, and run `npx speckit-eye --serve <copy of tests/fixtures/projects/mixed>`.
+  It must print a `Local:` address that serves the overview
+  (`40 / 65 tasks (62 %)`) and `assets/styles.css`. `npm ls --all --omit=dev`
+  must show `markdown-it` as the only direct dependency.
+
+Last verified on 2026-09-25 with version 0.1.0 (Node 24.11.1, npm 11.6.2):
+30 files, 43.4 kB packed, 156.1 kB unpacked. The installed CLI served the
+`mixed` fixture, and the runtime tree was `markdown-it@15.0.2` with its own
+dependencies (`argparse`, `entities`, `linkify-it`, `mdurl`, `punycode.js`,
+`uc.micro`).

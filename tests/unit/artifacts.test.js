@@ -129,6 +129,10 @@ describe("sourceToUrl", () => {
   });
 });
 
+test("compareStrings returns 0 for equal strings", () => {
+  assert.equal(compareStrings("a", "a"), 0);
+});
+
 test("compareStrings is a plain code-unit compare", () => {
   assert.deepEqual(["b", "B", "a", "10", "9"].sort(compareStrings), ["10", "9", "B", "a", "b"]);
 });

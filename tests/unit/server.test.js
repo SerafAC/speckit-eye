@@ -93,4 +93,22 @@ describe("startServer", () => {
     assert.equal(fake.created[0].closed, true);
     assert.equal(fake.created[0].connectionsClosed, true);
   });
+
+  test("an IPv6 host is bracketed in the URL", async () => {
+    const fake = fakeCreateServer();
+    const s = await startServer({ handler, host: "::1", port: 8080, createServer: fake.createServer });
+    assert.equal(s.url, "http://[::1]:8080/");
+  });
+
+  test("falls back to the requested port when the address is not an object", async () => {
+    const fake = fakeCreateServer();
+    const createServer = (h) => {
+      const server = fake.createServer(h);
+      server.address = () => null;
+      return server;
+    };
+    const s = await startServer({ handler, port: 9090, createServer });
+    assert.equal(s.port, 9090);
+    assert.equal(s.url, "http://127.0.0.1:9090/");
+  });
 });

@@ -25,6 +25,18 @@ import { isValidName, compareStrings, CONSTITUTION_SOURCE } from "./artifacts.js
  * @property {Warning[]} warnings
  */
 
+/**
+ * Sort order for warnings: by file, then by line; a warning without a line
+ * comes first within its file.
+ * @param {Warning} a
+ * @param {Warning} b
+ * @returns {number}
+ */
+export function compareWarnings(a, b) {
+  if (a.file !== b.file) return compareStrings(a.file, b.file);
+  return (a.line ?? 0) - (b.line ?? 0);
+}
+
 export const MSG_W9 = "could not read file (skipped)";
 export const MSG_W10 = ".specify/feature.json does not name an existing feature (ignored)";
 export const MSG_W11 = "name not supported for a page (skipped)";

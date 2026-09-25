@@ -123,4 +123,18 @@ describe("createEventHub", () => {
     assert.equal(hub.size(), 0);
     hub.close();
   });
+
+  test("close ignores a stream whose end throws", () => {
+    make();
+    const res = fakeRes();
+    res.end = () => {
+      throw new Error("socket gone");
+    };
+    const ok = fakeRes();
+    hub.add(new EventEmitter(), res);
+    hub.add(new EventEmitter(), ok);
+    assert.doesNotThrow(() => hub.close());
+    assert.equal(ok.ended, true);
+    assert.equal(hub.size(), 0);
+  });
 });

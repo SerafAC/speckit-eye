@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { scan, isSpecKitProject, MSG_W9, MSG_W10, MSG_W11 } from "../../src/project/scan.js";
+import { scan, isSpecKitProject, MSG_W9, MSG_W10, MSG_W11, compareWarnings } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
 
 const codes = (warnings) => warnings.map((w) => `${w.code} ${w.file}`);
@@ -166,10 +166,36 @@ describe("scan", () => {
       assert.equal(result.gitDir, "/p/.git");
     });
 
+    test("a failing readGitHead gives null branch and gitDir", async () => {
+      const reader = createFakeReader({ "specs/001-x/spec.md": "" });
+      reader.readGitHead = async () => {
+        throw new Error("EACCES");
+      };
+      const result = await scan(reader, "p");
+      assert.equal(result.gitBranch, null);
+      assert.equal(result.gitDir, null);
+    });
+
     test("no repository gives null branch and gitDir", async () => {
       const result = await scan(createFakeReader({ "specs/001-x/spec.md": "" }), "p");
       assert.equal(result.gitBranch, null);
       assert.equal(result.gitDir, null);
     });
+  });
+});
+
+describe("compareWarnings", () => {
+  const w = (file, line) => ({ code: "W1", file, line, message: "m" });
+  test("orders by file, then line, with line-less warnings first in their file", () => {
+    const sorted = [w("b.md", 2), w("b.md", null), w("a.md", 5), w("b.md", 1), w("a.md", null)].sort(compareWarnings);
+    assert.deepEqual(sorted.map((x) => `${x.file}:${x.line}`), ["a.md:null", "a.md:5", "b.md:null", "b.md:1", "b.md:2"]);
+  });
+
+  test("covers every comparison direction", () => {
+    assert.ok(compareWarnings(w("a", 1), w("b", 1)) < 0);
+    assert.ok(compareWarnings(w("b", 1), w("a", 1)) > 0);
+    assert.ok(compareWarnings(w("a", null), w("a", 1)) < 0);
+    assert.ok(compareWarnings(w("a", 1), w("a", null)) > 0);
+    assert.equal(compareWarnings(w("a", 3), w("a", 3)), 0);
   });
 });

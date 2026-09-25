@@ -34,13 +34,14 @@ const ASSET_FILES = /** @type {Record<string, URL>} */ ({
 /**
  * Reads one packaged asset by name (`styles.css`, `overview.js`, `live.js`).
  * @param {string} name
+ * @param {(url: URL, encoding: "utf8") => Promise<string>} [readFile] injected for unit tests
  * @returns {Promise<string>}
  */
-export async function defaultReadAsset(name) {
+export async function defaultReadAsset(name, readFile = nodeFs.readFile) {
   const url = ASSET_FILES[name];
   if (!url) throw new Error(`unknown asset ${name}`);
   try {
-    return await nodeFs.readFile(url, "utf8");
+    return await readFile(url, "utf8");
   } catch (err) {
     if (name === "styles.css" && /** @type {{code?: string}} */ (err)?.code === "ENOENT") {
       throw new Error("dist/styles.css is missing; run `pnpm run build:css` first");
@@ -57,18 +58,20 @@ export const EXPOSURE_NOTE =
 /**
  * Calls `handler` once on SIGINT or SIGTERM.
  * @param {() => void} handler
+ * @param {{ on: (event: string, fn: () => void) => unknown, off: (event: string, fn: () => void) => unknown }} [proc]
+ *   the process to listen on, injected for unit tests
  */
-export function defaultOnSignal(handler) {
+export function defaultOnSignal(handler, proc = process) {
   let fired = false;
   const once = () => {
     if (fired) return;
     fired = true;
-    process.off("SIGINT", once);
-    process.off("SIGTERM", once);
+    proc.off("SIGINT", once);
+    proc.off("SIGTERM", once);
     handler();
   };
-  process.on("SIGINT", once);
-  process.on("SIGTERM", once);
+  proc.on("SIGINT", once);
+  proc.on("SIGTERM", once);
 }
 
 /**
@@ -128,7 +131,7 @@ export async function run(argv, deps = {}) {
   const {
     stdout = process.stdout,
     stderr = process.stderr,
-    createReader = (/** @type {string} */ root) => defaultCreateReader(root),
+    createReader = defaultCreateReader,
     startServer = defaultStartServer,
     readAsset = defaultReadAsset,
     onSignal = defaultOnSignal,

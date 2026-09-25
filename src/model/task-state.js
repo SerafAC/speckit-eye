@@ -3,6 +3,8 @@
  * "TaskState" and "Change signature"). Mutates the project in place.
  */
 
+import { compareWarnings } from "../project/scan.js";
+
 /** @typedef {import("./build-model.js").Project} Project */
 /** @typedef {import("./build-model.js").Feature} Feature */
 /** @typedef {import("./build-model.js").Counts} Counts */
@@ -79,9 +81,7 @@ export function applyTaskStates(project) {
     }
 
     if (w7.length > 0) {
-      feature.warnings = [...feature.warnings, ...w7].sort((a, b) =>
-        a.file === b.file ? (a.line ?? 0) - (b.line ?? 0) : a.file < b.file ? -1 : 1,
-      );
+      feature.warnings = [...feature.warnings, ...w7].sort(compareWarnings);
     }
 
     const featureActive = feature.dir === active.featureDir;

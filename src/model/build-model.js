@@ -12,6 +12,7 @@ import {
   sortFeatureArtifacts,
   sortAssessmentArtifacts,
 } from "../project/artifacts.js";
+import { compareWarnings } from "../project/scan.js";
 import { selectActive } from "./active.js";
 import { applyTaskStates } from "./task-state.js";
 
@@ -169,7 +170,8 @@ function buildFeature(dir, files, scanWarnings) {
   const repeated = (values) => {
     const seen = new Map();
     for (const v of values) seen.set(v, (seen.get(v) ?? 0) + 1);
-    return (/** @type {string | null} */ v) => (seen.get(v) ?? 0) > 1;
+    // Only called with values from `values`, so `seen` always has `v`.
+    return (/** @type {string | null} */ v) => /** @type {number} */ (seen.get(v)) > 1;
   };
   const idRepeated = repeated(parsed.tasks.map((t) => t.id).filter((id) => id !== null));
   const phaseRepeated = repeated(
@@ -235,9 +237,7 @@ function buildFeature(dir, files, scanWarnings) {
   const artifacts = sortFeatureArtifacts(
     [...files].map(([rel, content]) => makeArtifact(`specs/${dir}/${rel}`, content)),
   );
-  const warnings = [...scanWarnings, ...parsed.warnings, ...w4].sort(
-    (a, b) => (a.file === b.file ? (a.line ?? 0) - (b.line ?? 0) : a.file < b.file ? -1 : 1),
-  );
+  const warnings = [...scanWarnings, ...parsed.warnings, ...w4].sort(compareWarnings);
 
   return {
     dir,
