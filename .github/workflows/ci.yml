@@ -50,3 +50,33 @@ jobs:
           name: playwright-report-${{ matrix.os }}
           path: playwright-report/
           retention-days: 14
+
+  wsl:
+    # WSL is a supported platform, and the watcher only works there with the
+    # project on the Linux file system (research R2), so test that setup.
+    name: E2E live updates (WSL)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Vampire/setup-wsl@v5
+        with:
+          distribution: Ubuntu-24.04
+          wsl-version: 2
+          additional-packages: curl ca-certificates
+      - name: WSL version
+        shell: pwsh
+        run: wsl.exe --list --verbose
+      - name: Live-update E2E tests on the Linux file system
+        shell: wsl-bash {0}
+        run: |
+          set -euo pipefail
+          export CI=true
+          uname -r
+          cp -r "$(wslpath '${{ github.workspace }}')" ~/app
+          cd ~/app
+          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+          apt-get install -y nodejs
+          npm install -g pnpm@11
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm run test:e2e tests/e2e/us2-live.spec.js
