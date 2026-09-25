@@ -2,9 +2,10 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { readFileSync } from "node:fs";
-import { run, formatWarning, allWarnings, siteChanged, VERSION } from "../../src/cli/main.js";
+import { run, formatWarning, allWarnings, siteChanged, VERSION, EXPOSURE_NOTE } from "../../src/cli/main.js";
 import { USAGE } from "../../src/cli/args.js";
 import { createFakeReader } from "./fake-reader.js";
+import { fakeFs } from "./fake-fs.js";
 
 const pkgVersion = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).version;
 
@@ -205,6 +206,87 @@ describe("run: serve mode", () => {
     assert.equal(await run(["--serve", "proj"], f.deps), 1);
     assert.match(f.deps.stderr.text, /speckit-eye: boom/);
     assert.equal(f.calls.startServer.length, 0);
+  });
+});
+
+describe("run: build mode (US4, T055)", () => {
+  const NOW = new Date("2026-09-25T10:00:00.000Z");
+  const build = (argv, opts = {}, fs = fakeFs()) => {
+    const f = fakes(opts);
+    f.deps.fs = fs;
+    f.deps.now = () => NOW;
+    return { f, fs, result: run(argv, f.deps) };
+  };
+  const root = path.resolve("/work", "proj");
+  const out = path.resolve("/work", "site");
+
+  test("writes the static site and prints the summary and the exposure note (FR-003, FR-034)", async () => {
+    const { f, fs, result } = build(["--build", "proj", "--out", "site", "--base", "repo"]);
+    assert.equal(await result, 0);
+    assert.equal(
+      f.deps.stdout.text,
+      `speckit-eye ${pkgVersion} — building ${root} → site (base /repo/)\n` + "  wrote 4 pages\n" + EXPOSURE_NOTE,
+    );
+    assert.match(EXPOSURE_NOTE, /^  Note: this site includes every spec, plan, research note, the constitution and assessments\.\n {8}Anyone who can reach it can read them unless your host restricts access\.\n$/);
+    assert.equal(f.deps.stderr.text, "");
+    assert.equal(f.calls.startServer.length, 0);
+    assert.equal(f.calls.watchers.length, 0);
+    const index = fs.files.get(path.join(out, "index.html"));
+    assert.match(index, /<body data-mode="static"/);
+    assert.match(index, /href="\/repo\/assets\/styles\.css"/);
+    assert.match(index, /generated at <time datetime="2026-09-25T10:00:00\.000Z">/);
+    assert.doesNotMatch(index, /live\.js|__events/);
+    assert.ok(fs.files.has(path.join(out, "features", "001-a", "spec.html")));
+    assert.ok(fs.files.has(path.join(out, "constitution.html")));
+    assert.equal(fs.files.get(path.join(out, "assets", "styles.css")), "/* styles.css */");
+    assert.ok(!fs.files.has(path.join(out, "assets", "live.js")));
+    assert.ok(fs.files.has(path.join(out, ".speckit-eye-build")));
+  });
+
+  test("warnings go to stderr and are counted in the summary", async () => {
+    const { f, result } = build(["--build", "odd", "--out", "site"], { files: NONSTANDARD });
+    assert.equal(await result, 0);
+    assert.equal(f.deps.stderr.text, "warning: specs/001-odd/tasks.md:2 checkbox without a task ID (counted)\n");
+    assert.match(f.deps.stdout.text, /\n  wrote 2 pages\n  1 warning \(see above\)\n  Note:/);
+  });
+
+  test("a foreign non-empty --out returns 2 and writes nothing (FR-033)", async () => {
+    const fs = fakeFs({ [path.join(out, "keep.txt")]: "mine" });
+    const { f, result } = build(["--build", "proj", "--out", "site"], {}, fs);
+    assert.equal(await result, 2);
+    assert.match(f.deps.stderr.text, /speckit-eye: .*not empty/);
+    assert.deepEqual(fs.writes, []);
+    assert.doesNotMatch(f.deps.stdout.text, /wrote|Note/);
+  });
+
+  test("--out inside the project's specs/ returns 2", async () => {
+    const { f, fs, result } = build(["--build", "proj", "--out", "proj/specs/site"]);
+    assert.equal(await result, 2);
+    assert.match(f.deps.stderr.text, /inside specs\//);
+    assert.deepEqual(fs.writes, []);
+  });
+
+  test("a write failure returns 1", async () => {
+    const fs = fakeFs();
+    fs.writeFile = async () => {
+      throw new Error("EROFS: read-only file system");
+    };
+    const { f, result } = build(["--build", "proj", "--out", "site"], {}, fs);
+    assert.equal(await result, 1);
+    assert.match(f.deps.stderr.text, /EROFS/);
+  });
+
+  test("a missing project returns 2 before anything is written", async () => {
+    const { f, fs, result } = build(["--build", "missing", "--out", "site"], { files: null });
+    assert.equal(await result, 2);
+    assert.match(f.deps.stderr.text, /folder not found/);
+    assert.deepEqual(fs.writes, []);
+  });
+
+  test("a missing asset returns 1", async () => {
+    const { f, result } = build(["--build", "proj", "--out", "site"], { assetError: new Error("dist/styles.css is missing") });
+    assert.equal(await result, 1);
+    assert.match(f.deps.stderr.text, /styles\.css is missing/);
   });
 });
 

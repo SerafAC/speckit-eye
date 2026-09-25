@@ -2,7 +2,8 @@
 
 speckit-eye shows the progress of a [GitHub Spec Kit](https://github.com/github/spec-kit)
 project in your browser. It only reads your project: it never creates, changes,
-or deletes a file in it.
+or deletes a file in it. A static build writes only to the output folder you
+name with `--out`.
 
 For every option and exit code, see the CLI contract:
 [contracts/cli.md](../specs/001-speckit-eye-dashboard/contracts/cli.md).
@@ -38,6 +39,46 @@ If a `tasks.md` does not follow the Spec Kit template, the tool still shows
 everything it can and prints a warning such as
 `warning: specs/002-x/tasks.md:14 checkbox without a task ID (counted)`. The
 same warnings are listed on the feature in the overview.
+
+## Build mode
+
+Build mode writes the same pages as a static site into a folder, for hosting
+or sharing, and exits:
+
+```sh
+npx speckit-eye --build . --out _site
+npx speckit-eye --build . --out _site --base /my-repo/
+```
+
+| Option | Required | Default | Meaning |
+|---|---|---|---|
+| `--build <dir>` | yes | — | The Spec Kit project to read. |
+| `--out <folder>` | yes | — | Where to write the site. Created if missing. Must not be the project folder itself or lie inside `specs/` or `.specify/`. |
+| `--base <path>` | no | `/` | The URL path the site is served under. `repo`, `/repo` and `/repo/` all mean `/repo/`. |
+
+It prints a summary:
+
+```text
+speckit-eye 0.1.0 — building /path/to/project → _site (base /my-repo/)
+  wrote 37 pages
+  2 warnings (see above)
+  Note: this site includes every spec, plan, research note, the constitution and assessments.
+        Anyone who can reach it can read them unless your host restricts access.
+```
+
+- Exit code 0 means the site was written (warnings do not change it); 1 means
+  the folder could not be written; 2 is a usage error, including an `--out`
+  folder that is not empty and was not written by speckit-eye (nothing is
+  changed in it then).
+- Building again into the same folder replaces the previous build; pages of
+  deleted files do not stay behind. The tool marks its output folder with a
+  `.speckit-eye-build` file.
+- The built pages match what serve mode shows, plus a "generated at" time in
+  the footer. They have no live updates and no "Live updates paused" banner,
+  and they work with JavaScript turned off.
+
+**Everything is published**: see [Hosting a snapshot](hosting.md) for what a
+hosted build exposes and a sample GitHub Pages workflow.
 
 ## What the overview shows
 

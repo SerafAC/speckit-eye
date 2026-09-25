@@ -5,7 +5,7 @@
  */
 
 import path from "node:path";
-import { readFile } from "node:fs/promises";
+import * as nodeFs from "node:fs/promises";
 import pkg from "../../package.json" with { type: "json" };
 import { parseCliArgs, USAGE } from "./args.js";
 import { createReader as defaultCreateReader } from "../project/reader.js";
@@ -16,6 +16,7 @@ import { createHandler } from "../serve/handler.js";
 import { startServer as defaultStartServer } from "../serve/server.js";
 import { createWatcher as defaultCreateWatcher } from "../serve/watcher.js";
 import { createEventHub as defaultCreateEventHub } from "../serve/events.js";
+import { writeSite } from "../build/build.js";
 
 /** @typedef {import("../project/scan.js").Warning} Warning */
 /** @typedef {import("../model/build-model.js").Project} Project */
@@ -39,7 +40,7 @@ export async function defaultReadAsset(name) {
   const url = ASSET_FILES[name];
   if (!url) throw new Error(`unknown asset ${name}`);
   try {
-    return await readFile(url, "utf8");
+    return await nodeFs.readFile(url, "utf8");
   } catch (err) {
     if (name === "styles.css" && /** @type {{code?: string}} */ (err)?.code === "ENOENT") {
       throw new Error("dist/styles.css is missing; run `pnpm run build:css` first");
@@ -47,6 +48,11 @@ export async function defaultReadAsset(name) {
     throw err;
   }
 }
+
+/** The public-exposure reminder printed after every build (FR-034). */
+export const EXPOSURE_NOTE =
+  "  Note: this site includes every spec, plan, research note, the constitution and assessments.\n" +
+  "        Anyone who can reach it can read them unless your host restricts access.\n";
 
 /**
  * Calls `handler` once on SIGINT or SIGTERM.
@@ -107,6 +113,8 @@ export function siteChanged(a, b) {
  * @property {typeof defaultCreateWatcher} [createWatcher]
  * @property {typeof defaultCreateEventHub} [createEventHub]
  * @property {string} [cwd]
+ * @property {import("../build/build.js").BuildFs} [fs] file system for build output
+ * @property {() => Date} [now] clock for the build's "generated at" time
  */
 
 /**
@@ -127,6 +135,8 @@ export async function run(argv, deps = {}) {
     createWatcher = defaultCreateWatcher,
     createEventHub = defaultCreateEventHub,
     cwd = process.cwd(),
+    fs = nodeFs,
+    now = () => new Date(),
   } = deps;
 
   const args = parseCliArgs(argv);
@@ -157,8 +167,29 @@ export async function run(argv, deps = {}) {
     }
 
     if (args.mode === "build") {
-      stderr.write("speckit-eye: --build is not available yet\n");
-      return 1;
+      const out = path.resolve(cwd, /** @type {string} */ (args.out));
+      stdout.write(`speckit-eye ${VERSION} — building ${root} → ${args.out} (base ${args.base})\n`);
+      const assets = { styles: await readAsset("styles.css"), overview: await readAsset("overview.js") };
+      const scanResult = await scan(reader, path.basename(root));
+      const project = buildModel({ ...scanResult, root });
+      const warnings = allWarnings(project).map(formatWarning);
+      for (const line of warnings) stderr.write(`${line}\n`);
+      const site = renderSite(project, {
+        base: args.base,
+        mode: "static",
+        version: VERSION,
+        generatedAt: now().toISOString(),
+        assets,
+      });
+      const result = await writeSite({ site, out, projectRoot: root, fs });
+      if ("error" in result) {
+        stderr.write(`speckit-eye: ${result.error}\n`);
+        return result.code;
+      }
+      stdout.write(`  wrote ${result.pages} pages\n`);
+      if (warnings.length) stdout.write(`  ${warnings.length} warning${warnings.length === 1 ? "" : "s"} (see above)\n`);
+      stdout.write(EXPOSURE_NOTE);
+      return 0;
     }
 
     const assets = {

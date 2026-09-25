@@ -5,7 +5,8 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cp, mkdtemp, readdir, readFile } from "node:fs/promises";
+import { cp, mkdtemp, readdir, readFile, stat } from "node:fs/promises";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,9 +40,12 @@ export async function copyFixture(name) {
  * Spawns `node bin/speckit-eye.js --serve <dir>` and resolves once the
  * `Local:` line appears.
  * @param {string} dir
+ * @param {{ anyPort?: boolean }} [options] `anyPort`: accept the port the
+ *   server fell back to instead of requiring {@link E2E_PORT} (for tests
+ *   that never restart the server)
  * @returns {Promise<ServeHandle>}
  */
-export function startServe(dir) {
+export function startServe(dir, { anyPort = false } = {}) {
   const child = spawn(process.execPath, [BIN, "--serve", dir], { cwd: REPO_ROOT, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "";
   let stderr = "";
@@ -75,7 +79,7 @@ export function startServe(dir) {
       const m = /Local:\s+(http:\/\/\S+)/.exec(stdout);
       if (!m) return;
       const url = m[1];
-      if (new URL(url).port !== String(E2E_PORT)) {
+      if (!anyPort && new URL(url).port !== String(E2E_PORT)) {
         fail(new Error(`E2E tests need port ${E2E_PORT} free (the server started on ${url})`));
         return;
       }
@@ -145,4 +149,87 @@ export async function hashTree(dir) {
     hash.update("\0");
   }
   return hash.digest("hex");
+}
+
+/**
+ * Runs `node bin/speckit-eye.js --build <dir> --out <out> [--base <base>]`.
+ * @param {string} dir
+ * @param {string} out
+ * @param {string} [base] omitted → the CLI default (`/`)
+ * @returns {Promise<{ code: number | null, stdout: string, stderr: string }>}
+ */
+export function runBuild(dir, out, base) {
+  const args = ["--build", dir, "--out", out];
+  if (base !== undefined) args.push("--base", base);
+  return runCli(args, { timeout: 30_000 });
+}
+
+const STATIC_TYPES = /** @type {Record<string, string>} */ ({
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+});
+
+/**
+ * @typedef {object} StaticHandle
+ * @property {string} origin `http://127.0.0.1:<port>`
+ * @property {string} url origin + mount path
+ * @property {string[]} requests every request path received, in order
+ * @property {() => Promise<void>} close
+ */
+
+/**
+ * A test-only plain static file server on 127.0.0.1 and port 0: maps
+ * `<mountPath>*` to files under `rootDir` (a folder → its `index.html`),
+ * anything else → 404. Like a static host, it has no server-side logic.
+ * @param {string} rootDir
+ * @param {string} [mountPath] with leading and trailing `/`
+ * @returns {Promise<StaticHandle>}
+ */
+export async function serveStatic(rootDir, mountPath = "/") {
+  const root = path.resolve(rootDir);
+  /** @type {string[]} */
+  const requests = [];
+  const notFound = (/** @type {http.ServerResponse} */ res) => {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("not found");
+  };
+  const server = http.createServer(async (req, res) => {
+    const pathname = new URL(req.url ?? "/", "http://x").pathname;
+    requests.push(pathname);
+    if (req.method !== "GET" && req.method !== "HEAD") return notFound(res);
+    if (!pathname.startsWith(mountPath)) return notFound(res);
+    let rel;
+    try {
+      rel = decodeURIComponent(pathname.slice(mountPath.length));
+    } catch {
+      return notFound(res);
+    }
+    let file = path.resolve(root, rel);
+    if (file !== root && !file.startsWith(root + path.sep)) return notFound(res);
+    try {
+      if ((await stat(file)).isDirectory()) file = path.join(file, "index.html");
+      const body = await readFile(file);
+      res.writeHead(200, { "Content-Type": STATIC_TYPES[path.extname(file)] ?? "application/octet-stream" });
+      res.end(req.method === "HEAD" ? undefined : body);
+    } catch {
+      notFound(res);
+    }
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve(undefined));
+  });
+  const { port } = /** @type {import("node:net").AddressInfo} */ (server.address());
+  const origin = `http://127.0.0.1:${port}`;
+  return {
+    origin,
+    url: `${origin}${mountPath}`,
+    requests,
+    close: () =>
+      new Promise((resolve) => {
+        server.closeAllConnections();
+        server.close(() => resolve());
+      }),
+  };
 }

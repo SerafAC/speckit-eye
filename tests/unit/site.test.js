@@ -76,6 +76,32 @@ describe("renderSite", () => {
     assert.match(body, /href="\/repo\/constitution\.html"/);
   });
 
+  test("serve and static <main> HTML are identical for the same model with base / (FR-031)", async () => {
+    const m = await model(ARTIFACT_FILES);
+    const serve = renderSite(m, { base: "/", mode: "serve", version: "1", assets: ASSETS });
+    const stat = renderSite(m, { base: "/", mode: "static", version: "1", generatedAt: "2026-09-25T10:00:00.000Z", assets: ASSETS });
+    const main = (body) => body.slice(body.indexOf("<main>"), body.indexOf("</main>") + "</main>".length);
+    const pages = [...serve.keys()].filter((k) => k.endsWith(".html"));
+    assert.ok(pages.length > 10);
+    for (const key of pages) {
+      assert.ok(main(serve.get(key).body).length > 20, key);
+      assert.equal(main(stat.get(key).body), main(serve.get(key).body), key);
+    }
+    const index = stat.get("index.html").body;
+    assert.match(index, /<footer>generated at <time datetime="2026-09-25T10:00:00\.000Z">/);
+    assert.doesNotMatch(index, /__events|live\.js|live-status/);
+  });
+
+  test("static pages prefix every link and asset with the base", async () => {
+    const s = renderSite(await model(ARTIFACT_FILES), { base: "/my-repo/", mode: "static", version: "1", generatedAt: "x", assets: ASSETS });
+    for (const [key, { body }] of s) {
+      if (!key.endsWith(".html")) continue;
+      for (const [, url] of body.matchAll(/\s(?:href|src)="([^"]*)"/g)) {
+        assert.ok(url.startsWith("/my-repo/") || url.startsWith("#"), `${key}: ${url}`);
+      }
+    }
+  });
+
   test("is deterministic for the same input (FR-031)", async () => {
     const m = await model(FILES);
     const opts = { base: "/", mode: "serve", version: "1", assets: ASSETS };

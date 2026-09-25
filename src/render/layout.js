@@ -43,10 +43,11 @@ ${project.features.map((f) => group(f.dir, f.title, f.artifacts ?? []))}
  * @param {Project} options.project
  * @param {string | import("./html.js").Raw} options.main trusted inner HTML of `<main>`
  * @param {string} options.version
- * @param {string | null} [options.generatedAt] ISO time (static mode footer, added later)
+ * @param {string | null} [options.generatedAt] ISO time of the build, shown in
+ *   the static mode footer (FR-031)
  * @returns {string} a complete HTML document
  */
-export function renderPage({ title, base, mode, project, main, version }) {
+export function renderPage({ title, base, mode, project, main, version, generatedAt = null }) {
   const link = (/** @type {string} */ url) => `${base}${url}`;
   // Live updates exist only in serve mode (FR-032). `live.js` exports its
   // helpers for unit tests, so it loads as a module (deferred by default).
@@ -76,7 +77,7 @@ ${serve ? html`<script type="module" src="${link("assets/live.js")}" defer></scr
 ${renderMenu(project, link)}
 </header>
 <main>${raw(main)}</main>
-${serve ? html`<div data-region="live-status" hidden>Live updates paused — reconnecting…</div>\n` : ""}<footer>speckit-eye ${version}</footer>
+${serve ? html`<div data-region="live-status" hidden>Live updates paused — reconnecting…</div>\n` : ""}<footer>${!serve && generatedAt ? html`generated at <time datetime="${generatedAt}">${generatedAt}</time> · ` : ""}speckit-eye ${version}</footer>
 </body>
 </html>
 `.value;
