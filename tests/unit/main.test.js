@@ -2,7 +2,8 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { readFileSync } from "node:fs";
-import { run, formatWarning, allWarnings, siteChanged, VERSION, EXPOSURE_NOTE } from "../../src/cli/main.js";
+import { run, formatWarning, allWarnings, siteChanged, VERSION, EXPOSURE_NOTE, defaultReadAsset, defaultOnSignal } from "../../src/cli/main.js";
+import { EventEmitter } from "node:events";
 import { USAGE } from "../../src/cli/args.js";
 import { createFakeReader } from "./fake-reader.js";
 import { fakeFs } from "./fake-fs.js";
@@ -209,6 +210,79 @@ describe("run: serve mode", () => {
   });
 });
 
+describe("run: non-Error failures", () => {
+  test("a thrown non-Error value is printed as text and returns 1", async () => {
+    const f = fakes({ assetError: "no assets" });
+    assert.equal(await run(["--serve", "proj"], f.deps), 1);
+    assert.equal(f.deps.stderr.text, "speckit-eye: no assets\n");
+  });
+});
+
+describe("defaultReadAsset", () => {
+  test("reads a packaged asset by name", async () => {
+    const calls = [];
+    const text = await defaultReadAsset("overview.js", async (url, enc) => {
+      calls.push([url.pathname, enc]);
+      return "js";
+    });
+    assert.equal(text, "js");
+    assert.equal(calls.length, 1);
+    assert.match(calls[0][0], /\/src\/client\/overview\.js$/);
+    assert.equal(calls[0][1], "utf8");
+  });
+
+  test("an unknown name is rejected without reading", async () => {
+    await assert.rejects(
+      defaultReadAsset("secret.txt", async () => assert.fail("must not read")),
+      /unknown asset secret\.txt/,
+    );
+  });
+
+  test("a missing dist/styles.css names the build command", async () => {
+    const enoent = async () => {
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+    };
+    await assert.rejects(defaultReadAsset("styles.css", enoent), /run `pnpm run build:css` first/);
+  });
+
+  test("other read errors are passed through", async () => {
+    const enoent = async () => {
+      throw Object.assign(new Error("ENOENT live"), { code: "ENOENT" });
+    };
+    await assert.rejects(defaultReadAsset("live.js", enoent), /^Error: ENOENT live$/);
+    const eacces = async () => {
+      throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+    };
+    await assert.rejects(defaultReadAsset("styles.css", eacces), /^Error: EACCES$/);
+  });
+});
+
+describe("defaultOnSignal", () => {
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    test(`${signal} calls the handler once and removes both listeners`, () => {
+      const proc = new EventEmitter();
+      let calls = 0;
+      defaultOnSignal(() => calls++, proc);
+      assert.equal(proc.listenerCount("SIGINT"), 1);
+      assert.equal(proc.listenerCount("SIGTERM"), 1);
+      proc.emit(signal);
+      assert.equal(calls, 1);
+      assert.equal(proc.listenerCount("SIGINT"), 0);
+      assert.equal(proc.listenerCount("SIGTERM"), 0);
+    });
+  }
+
+  test("a second signal before the listeners are removed does not call the handler again", () => {
+    const listeners = [];
+    const fake = { on: (e, fn) => listeners.push(fn), off: () => {} };
+    let calls = 0;
+    defaultOnSignal(() => calls++, fake);
+    listeners[0]();
+    listeners[1]();
+    assert.equal(calls, 1);
+  });
+});
+
 describe("run: build mode (US4, T055)", () => {
   const NOW = new Date("2026-09-25T10:00:00.000Z");
   const build = (argv, opts = {}, fs = fakeFs()) => {
@@ -248,6 +322,24 @@ describe("run: build mode (US4, T055)", () => {
     assert.equal(await result, 0);
     assert.equal(f.deps.stderr.text, "warning: specs/001-odd/tasks.md:2 checkbox without a task ID (counted)\n");
     assert.match(f.deps.stdout.text, /\n  wrote 2 pages\n  1 warning \(see above\)\n  Note:/);
+  });
+
+  test("without an injected clock the current time is used", async () => {
+    const f = fakes();
+    const fs = fakeFs();
+    f.deps.fs = fs;
+    const before = Date.now();
+    assert.equal(await run(["--build", "proj", "--out", "site"], f.deps), 0);
+    const index = fs.files.get(path.join(out, "index.html"));
+    const at = Date.parse(/datetime="([^"]+)"/.exec(index)[1]);
+    assert.ok(at >= before && at <= Date.now());
+  });
+
+  test("more than one warning is counted in the plural", async () => {
+    const files = { "specs/001-odd/tasks.md": "## Phase 1: Setup\n- [ ] no id\n- [ ] no id either" };
+    const { f, result } = build(["--build", "odd", "--out", "site"], { files });
+    assert.equal(await result, 0);
+    assert.match(f.deps.stdout.text, /\n  2 warnings \(see above\)\n/);
   });
 
   test("a foreign non-empty --out returns 2 and writes nothing (FR-033)", async () => {
@@ -294,6 +386,10 @@ describe("warning helpers", () => {
   test("formatWarning with and without a line", () => {
     assert.equal(formatWarning({ code: "W1", file: "specs/a/tasks.md", line: 14, message: "m" }), "warning: specs/a/tasks.md:14 m");
     assert.equal(formatWarning({ code: "W9", file: "specs/a/x.md", line: null, message: "m" }), "warning: specs/a/x.md m");
+  });
+
+  test("allWarnings accepts a project and features without warning lists", () => {
+    assert.deepEqual(allWarnings({ features: [{}, { warnings: [{ file: "b" }] }] }), [{ file: "b" }]);
   });
 
   test("allWarnings lists project warnings then feature warnings", () => {
@@ -438,6 +534,48 @@ describe("run: live updates (US2)", () => {
     assert.match(t.f.deps.stderr.text, /speckit-eye: watch error: ENOSPC\n/);
     t.f.calls.signalHandler();
     assert.equal(await t.pending, 0);
+  });
+
+  test("changes during a rescan lead to exactly one more rescan", async () => {
+    const t = await live();
+    t.watcher().opts.onChange();
+    t.watcher().opts.onChange();
+    t.watcher().opts.onChange();
+    await settle();
+    const lines = t.f.deps.stdout.text.split("\n").filter((l) => l.startsWith("updated"));
+    assert.equal(lines.length, 2);
+    t.f.calls.signalHandler();
+    await t.pending;
+  });
+
+  test("a stop during a rescan drops its result and the pending rescan", async () => {
+    const t = await live();
+    t.state.files = { ...MIXED, "specs/001-a/tasks.md": "## Phase 1: Setup\n- [x] T001 one\n- [x] T002 two" };
+    t.watcher().opts.onChange();
+    t.watcher().opts.onChange();
+    t.f.calls.signalHandler();
+    assert.equal(await t.pending, 0);
+    await settle();
+    assert.deepEqual(t.hub().broadcasts, []);
+    assert.doesNotMatch(t.f.deps.stdout.text, /updated/);
+  });
+
+  test("non-Error rescan and watch failures are printed as text", async () => {
+    const t = await live();
+    t.state.files = new Proxy(
+      {},
+      {
+        ownKeys() {
+          throw "scan exploded";
+        },
+      },
+    );
+    await t.change();
+    assert.match(t.f.deps.stderr.text, /speckit-eye: rescan failed: scan exploded\n/);
+    t.watcher().opts.onError("ENOSPC");
+    assert.match(t.f.deps.stderr.text, /speckit-eye: watch error: ENOSPC\n/);
+    t.f.calls.signalHandler();
+    await t.pending;
   });
 
   test("SIGINT/SIGTERM closes the watcher, the hub and the server", async () => {

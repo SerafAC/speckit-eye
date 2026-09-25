@@ -128,6 +128,25 @@ describe("features", () => {
   });
 });
 
+describe("feature warnings order", () => {
+  test("sorted by file, then by line with line-less warnings first", async () => {
+    const p = await model({
+      "specs/001-x/tasks.md": "# Tasks\n## Phase 1: A\n## Phase 1: B",
+      "specs/001-x/a.md": new Error("EIO"),
+      "specs/001-x/z.md": new Error("EIO"),
+    });
+    assert.deepEqual(
+      p.features[0].warnings.map((w) => `${w.code} ${w.file}:${w.line}`),
+      ["W9 specs/001-x/a.md:null", "W8 specs/001-x/tasks.md:null", "W12 specs/001-x/tasks.md:3", "W9 specs/001-x/z.md:null"],
+    );
+  });
+
+  test("a scan result without a warnings list is accepted", () => {
+    const p = buildModel({ name: "proj", features: [], constitution: null, assessments: [] });
+    assert.deepEqual(p.warnings, []);
+  });
+});
+
 describe("phases and story groups", () => {
   const TASKS = [
     "## Phase 1: Setup",

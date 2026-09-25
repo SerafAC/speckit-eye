@@ -126,8 +126,8 @@ export function createWatcher({
     }
   };
 
+  // Only called from a watch listener, which returns early once closed.
   const schedule = () => {
-    if (closed) return;
     if (quietTimer !== null) clearTimeout(quietTimer);
     quietTimer = setTimeout(fire, QUIET_MS);
     if (maxTimer === null) maxTimer = setTimeout(fire, MAX_WAIT_MS);

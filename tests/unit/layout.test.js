@@ -59,6 +59,12 @@ const menu = (doc) => doc.slice(doc.indexOf('<details data-region="menu">'), doc
 const urls = (doc) => [...doc.matchAll(/\s(?:href|src)="([^"]*)"/g)].map((m) => m[1]);
 
 describe("renderPage", () => {
+  test("a feature without an artifact list gets no menu group", () => {
+    const doc = page({ project: project({ features: [{ dir: "003-none", title: "None" }] }) });
+    assert.doesNotMatch(menu(doc), /003-none/);
+    assert.match(menu(doc), /Overview/);
+  });
+
   test("returns a complete HTML document", () => {
     const doc = page();
     assert.match(doc, /^<!doctype html>/);

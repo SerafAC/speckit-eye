@@ -143,6 +143,26 @@ describe("createHandler", () => {
   });
 });
 
+describe("createHandler: defaults", () => {
+  test("a request without method or url is a GET of /", () => {
+    const res = fakeRes();
+    handle({}, res);
+    assert.equal(res.status, 200);
+    assert.equal(text(res), "<!doctype html><p>hi ✓</p>");
+  });
+
+  test("binary bodies are sent as they are", () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const h = createHandler({ getSite: () => new Map([["logo.png", { type: "image/png", body: bytes }]]) });
+    const res = fakeRes();
+    h({ method: "GET", url: "/logo.png" }, res);
+    assert.equal(res.status, 200);
+    assert.equal(res.body, bytes);
+    assert.equal(res.headers["Content-Length"], 4);
+    assert.equal(res.headers["Content-Type"], "image/png");
+  });
+});
+
 describe("createHandler: GET /__events (US2)", () => {
   function withEvents() {
     const added = [];

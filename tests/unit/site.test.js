@@ -21,6 +21,15 @@ const site = async (opts = {}) =>
   renderSite(await model(FILES), { base: "/", mode: "serve", version: "9.9.9", assets: ASSETS, ...opts });
 
 describe("renderSite", () => {
+  test("tolerates a feature without artifacts and an artifact without content", async () => {
+    const m = await model(FILES);
+    m.features.push({ ...m.features[0], dir: "002-b", title: "B", artifacts: undefined });
+    delete m.constitution.content;
+    const s = renderSite(m, { base: "/", mode: "static", version: "1", assets: ASSETS });
+    assert.ok(s.has("constitution.html"));
+    assert.equal(allArtifacts(m).filter(({ feature }) => feature?.dir === "002-b").length, 0);
+  });
+
   test("returns exactly the overview, its assets and the artifact pages; live.js only in serve mode (US1, US2, US3)", async () => {
     const s = await site();
     assert.ok(s instanceof Map);

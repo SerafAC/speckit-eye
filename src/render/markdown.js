@@ -85,7 +85,7 @@ export function resolveHref(href, source, artifactsBySource, base) {
  * @param {any[]} children
  */
 function inlineText(children) {
-  return (children ?? [])
+  return children
     .filter((t) => t.type === "text" || t.type === "code_inline")
     .map((t) => t.content)
     .join("");
@@ -110,8 +110,8 @@ export function createMarkdown({ artifactsBySource, base }) {
       if (tokens[i].type !== "list_item_open") continue;
       const inline = tokens[i + 2];
       if (tokens[i + 1]?.type !== "paragraph_open" || inline?.type !== "inline") continue;
-      const first = inline.children?.[0];
-      if (!first || first.type !== "text") continue;
+      const first = inline.children[0];
+      if (first?.type !== "text") continue;
       const m = TASK_RE.exec(first.content);
       if (!m) continue;
       first.content = first.content.slice(m[0].length);
@@ -169,7 +169,7 @@ export function createMarkdown({ artifactsBySource, base }) {
     const tokens = state.tokens;
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i].type !== "heading_open") continue;
-      const slug = slugify(inlineText(tokens[i + 1]?.children)) || "section";
+      const slug = slugify(inlineText(tokens[i + 1].children)) || "section";
       let id = slug;
       if (used.has(id)) {
         let k = suffix.get(slug) ?? 0;

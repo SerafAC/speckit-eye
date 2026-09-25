@@ -142,6 +142,41 @@ describe("createReader with an in-memory fs", () => {
   });
 });
 
+describe("createReader error handling", () => {
+  const failing = (code) => {
+    const err = Object.assign(new Error(code), { code });
+    return {
+      readdir: async () => {
+        throw err;
+      },
+      readFile: async () => {
+        throw err;
+      },
+      stat: async () => {
+        throw err;
+      },
+    };
+  };
+
+  test("list returns [] when a path segment is a file (ENOTDIR)", async () => {
+    assert.deepEqual(await createReader(ROOT, failing("ENOTDIR")).list("specs/x.md"), []);
+  });
+
+  test("list passes other errors through", async () => {
+    await assert.rejects(createReader(ROOT, failing("EACCES")).list("specs"), { code: "EACCES" });
+  });
+
+  test("exists is false for ENOTDIR and for other stat errors", async () => {
+    assert.equal(await createReader(ROOT, failing("ENOTDIR")).exists("specs"), false);
+    assert.equal(await createReader(ROOT, failing("EACCES")).exists("specs"), false);
+  });
+
+  test("a thrown value without a code is not treated as missing", async () => {
+    const fs = { readdir: async () => Promise.reject(null), readFile: async () => null, stat: async () => null };
+    await assert.rejects(createReader(ROOT, fs).list("specs"), (err) => err === null);
+  });
+});
+
 describe("createReader.readGitHead", () => {
   test("reads .git/HEAD in a normal repository", async () => {
     const reader = createReader(ROOT, createMemoryFs({ [`${ROOT}/.git/HEAD`]: "ref: refs/heads/001-x\n" }));

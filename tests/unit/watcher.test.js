@@ -225,4 +225,76 @@ describe("createWatcher", () => {
     assert.equal(changes, 0);
     watcher.close();
   });
+
+  test("events without a file name on a filtered folder still fire", () => {
+    make();
+    fsx.emit(p(".specify"), "rename", null);
+    fsx.emit(GIT, "rename", undefined);
+    mock.timers.tick(QUIET_MS);
+    assert.equal(changes, 1);
+  });
+
+  test("a throwing onChange is reported through onError", () => {
+    const err = new Error("boom");
+    fsx = fakeFs(FULL);
+    errors = [];
+    watcher = createWatcher({
+      root: ROOT,
+      watch: fsx.watch,
+      exists: fsx.exists,
+      setTimeout: (fn, ms) => globalThis.setTimeout(fn, ms),
+      clearTimeout: (h) => globalThis.clearTimeout(h),
+      onChange: () => {
+        throw err;
+      },
+      onError: (e) => errors.push(e),
+    });
+    fsx.emit(p("specs"), "change", "x.md");
+    mock.timers.tick(QUIET_MS);
+    assert.deepEqual(errors, [err]);
+  });
+
+  test("after close, late events, late timers and refreshRoots do nothing", () => {
+    fsx = fakeFs(FULL);
+    changes = 0;
+    const timers = [];
+    watcher = createWatcher({
+      root: ROOT,
+      watch: fsx.watch,
+      exists: fsx.exists,
+      setTimeout: (fn) => timers.push(fn),
+      clearTimeout: () => {},
+      onChange: () => changes++,
+    });
+    const listener = fsx.watches.get(p("specs")).listener;
+    listener("change", "x.md");
+    watcher.close();
+    for (const fn of timers) fn();
+    listener("change", "y.md");
+    assert.equal(changes, 0);
+    assert.equal(timers.length, 2);
+    assert.equal(watcher.refreshRoots(), false);
+  });
+
+  test("a watch whose close throws is still dropped", () => {
+    make();
+    fsx.watches.get(p("specs")).close = () => {
+      throw new Error("already closed");
+    };
+    fsx.dirs.delete(p("specs"));
+    assert.equal(watcher.refreshRoots(), true);
+    assert.ok(!watcher.watched().includes(p("specs")));
+  });
+
+  test("without onError, a failing fs.watch is skipped silently", () => {
+    watcher = createWatcher({
+      root: ROOT,
+      watch: () => {
+        throw new Error("ENOSPC");
+      },
+      exists: () => true,
+      onChange: () => {},
+    });
+    assert.deepEqual(watcher.watched(), []);
+  });
 });

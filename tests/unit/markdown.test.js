@@ -128,6 +128,23 @@ describe("createMarkdown: links (FR-023)", () => {
     assert.match(r(PLAN, "[s](spec.md)"), /href="\/features\/001-full\/spec.html"/);
   });
 
+  test("resolveHref keeps a malformed escape as is and drops an empty target", () => {
+    const m = new Map([["specs/a/%E0%A4.md", { url: "features/a/odd.html" }]]);
+    assert.equal(resolveHref("%E0%A4.md", "specs/a/spec.md", m, "/"), "/features/a/odd.html");
+    assert.equal(resolveHref("?x=1", "specs/a/spec.md", m, "/"), null);
+  });
+
+  test("list items without a leading text paragraph are not task items", () => {
+    const out = render("- **[ ] bold**\n-\n- `[x]` code\n");
+    assert.doesNotMatch(out, /type="checkbox"/);
+    assert.match(out, /<strong>\[ \] bold<\/strong>/);
+  });
+
+  test("an empty heading gets the fallback id and missing text renders nothing", () => {
+    assert.match(render("#\n"), /<h1 id="section"><\/h1>/);
+    assert.equal(createMarkdown({ artifactsBySource: ARTIFACTS, base: "/" })(PLAN, undefined), "");
+  });
+
   test("resolveHref handles encoded names and queries", () => {
     const m = new Map([["specs/a/my file.md", { url: "features/a/x.html" }]]);
     assert.equal(resolveHref("my%20file.md?x=1#h", "specs/a/spec.md", m, "/"), "/features/a/x.html#h");

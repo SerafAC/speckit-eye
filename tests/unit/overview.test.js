@@ -398,6 +398,46 @@ describe("renderOverview: task grid (T024)", () => {
   });
 });
 
+describe("renderOverview: partial models", () => {
+  test("a model without sigs, states, artifact or warning lists still renders", async () => {
+    const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [x] T001 a\n- [ ] T002 [US1] b\n- [ ] T003 [US2] c" });
+    delete p.sig;
+    delete p.warnings;
+    for (const f of p.features) {
+      delete f.sig;
+      delete f.artifacts;
+      for (const ph of f.phases) {
+        delete ph.sig;
+        for (const g of ph.groups) delete g.sig;
+        for (const t of ph.tasks) {
+          delete t.sig;
+          delete t.state;
+        }
+      }
+    }
+    const out = render(p);
+    assert.match(out, /<progress data-key="project" data-sig=""/);
+    assert.match(out, /<details data-key="001-x" data-sig=""/);
+    assert.match(out, /<li data-key="001-x\/T001" data-sig="" data-state="future"/);
+    assert.match(out, /<a tabindex="0" data-key="001-x\/T001" data-sig="" data-state="future"/);
+    assert.doesNotMatch(out, /data-part="artifacts"/);
+  });
+
+  test("project warnings with a line show file:line", async () => {
+    const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a" });
+    p.warnings = [{ code: "W10", file: ".specify/feature.json", line: 3, message: "odd" }];
+    assert.match(render(p), /<li>\.specify\/feature\.json:3 odd<\/li>/);
+  });
+
+  test("a next-task key that matches no task shows no next line", async () => {
+    const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a" });
+    const before = render(p);
+    assert.match(before, /data-part="next"/);
+    p.active = { ...p.active, nextTaskKey: "001-x/T999" };
+    assert.doesNotMatch(render(p), /data-part="next"/);
+  });
+});
+
 describe("helpers", () => {
   const phase = (over) => ({ number: 2, title: "Core", tasks: [], groups: [], mergedStory: null, ...over });
   test("phaseHeading", () => {
