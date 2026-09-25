@@ -1,0 +1,101 @@
+/**
+ * Serve-mode request handler (contracts/routes.md). Pure `(req, res)`
+ * function: it answers only paths present in the site map from `getSite()`
+ * and never touches the file system (FR-007, SC-008). The listening server
+ * lives in `server.js`.
+ */
+
+/** @typedef {import("../render/site.js").Site} Site */
+
+export const CSP = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:";
+
+/** Headers sent with every response. */
+export const BASE_HEADERS = Object.freeze({
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "Content-Security-Policy": CSP,
+});
+
+const TYPES = /** @type {Record<string, string>} */ ({
+  html: "text/html; charset=utf-8",
+  css: "text/css; charset=utf-8",
+  js: "text/javascript; charset=utf-8",
+  json: "application/json; charset=utf-8",
+  svg: "image/svg+xml",
+  png: "image/png",
+  txt: "text/plain; charset=utf-8",
+});
+
+/**
+ * @param {string} path
+ * @returns {string} the Content-Type for the path's extension
+ */
+export function contentTypeFor(path) {
+  const m = /\.([A-Za-z0-9]+)$/.exec(path);
+  return (m && TYPES[m[1].toLowerCase()]) || "application/octet-stream";
+}
+
+/**
+ * Maps a request URL to a site-map key, or null when it can never be a valid
+ * key (`..`, encoded characters, backslashes, empty segments).
+ * @param {string | undefined} url
+ * @returns {string | null}
+ */
+export function routeKey(url) {
+  const raw = String(url ?? "/");
+  const pathname = raw.split(/[?#]/, 1)[0];
+  if (!pathname.startsWith("/")) return null;
+  if (pathname === "/") return "index.html";
+  const key = pathname.slice(1);
+  if (/[%\\]/.test(key)) return null;
+  const segments = key.split("/");
+  if (segments.some((s) => s === "" || s === "." || s === "..")) return null;
+  return key;
+}
+
+/**
+ * @typedef {object} Res
+ * @property {(status: number, headers: Record<string, string | number>) => unknown} writeHead
+ * @property {(body?: string | Uint8Array) => unknown} end
+ */
+
+/**
+ * @param {Res} res
+ * @param {number} status
+ * @param {string} method
+ * @param {string} type
+ * @param {string | Uint8Array} body
+ * @param {Record<string, string>} [extra]
+ */
+function send(res, status, method, type, body, extra = {}) {
+  const buffer = typeof body === "string" ? Buffer.from(body, "utf8") : body;
+  res.writeHead(status, {
+    ...BASE_HEADERS,
+    "Content-Type": type,
+    "Content-Length": buffer.byteLength,
+    ...extra,
+  });
+  if (method === "HEAD") res.end();
+  else res.end(buffer);
+}
+
+/**
+ * @param {{ getSite: () => Site }} options
+ * @returns {(req: {method?: string, url?: string}, res: Res) => void}
+ */
+export function createHandler({ getSite }) {
+  return function handle(req, res) {
+    const method = String(req.method ?? "GET").toUpperCase();
+    if (method !== "GET" && method !== "HEAD") {
+      send(res, 405, method, TYPES.txt, "Method Not Allowed\n", { Allow: "GET, HEAD" });
+      return;
+    }
+    const key = routeKey(req.url);
+    const entry = key === null ? undefined : getSite().get(key);
+    if (!entry || key === null) {
+      send(res, 404, method, TYPES.txt, "Not Found\n");
+      return;
+    }
+    send(res, 200, method, contentTypeFor(key), entry.body);
+  };
+}
