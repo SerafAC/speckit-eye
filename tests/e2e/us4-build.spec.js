@@ -258,7 +258,8 @@ function runIn(args, cwd) {
 }
 
 test("US4 AC4 FR-039 the build command of the documented GitHub Pages workflow works", async ({ page }) => {
-  const doc = await readFile(path.join(REPO_ROOT, "docs", "hosting.md"), "utf8");
+  // Windows checkouts may have CRLF line endings.
+  const doc = (await readFile(path.join(REPO_ROOT, "docs", "hosting.md"), "utf8")).replaceAll("\r\n", "\n");
   const yaml = [...doc.matchAll(/```ya?ml\n([\s\S]*?)```/g)].map((m) => m[1]).join("\n");
   const lines = yaml.split("\n").filter((l) => /npx speckit-eye --build /.test(l));
   expect(lines, "one build line in the YAML sample of docs/hosting.md").toHaveLength(1);
