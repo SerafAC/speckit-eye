@@ -79,18 +79,36 @@ function send(res, status, method, type, body, extra = {}) {
   else res.end(buffer);
 }
 
+/** Route of the live-update stream (serve mode only, contracts/routes.md). */
+export const EVENTS_KEY = "__events";
+
 /**
- * @param {{ getSite: () => Site }} options
+ * @typedef {object} EventsHub
+ * @property {(req: any, res: any) => void} add
+ */
+
+/**
+ * @param {{ getSite: () => Site, events?: EventsHub | null }} options
+ *   `events` answers `GET /__events`; without it that path is a 404
  * @returns {(req: {method?: string, url?: string}, res: Res) => void}
  */
-export function createHandler({ getSite }) {
+export function createHandler({ getSite, events = null }) {
   return function handle(req, res) {
     const method = String(req.method ?? "GET").toUpperCase();
+    const key = routeKey(req.url);
+    if (key === EVENTS_KEY && events) {
+      // The stream is not part of the site map (it is not a page or asset).
+      if (method !== "GET") {
+        send(res, 405, method, TYPES.txt, "Method Not Allowed\n", { Allow: "GET" });
+        return;
+      }
+      events.add(req, res);
+      return;
+    }
     if (method !== "GET" && method !== "HEAD") {
       send(res, 405, method, TYPES.txt, "Method Not Allowed\n", { Allow: "GET, HEAD" });
       return;
     }
-    const key = routeKey(req.url);
     const entry = key === null ? undefined : getSite().get(key);
     if (!entry || key === null) {
       send(res, 404, method, TYPES.txt, "Not Found\n");

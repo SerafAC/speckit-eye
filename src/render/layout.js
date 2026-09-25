@@ -20,6 +20,9 @@ import { html, raw } from "./html.js";
  */
 export function renderPage({ title, base, mode, project, main, version }) {
   const link = (/** @type {string} */ url) => `${base}${url}`;
+  // Live updates exist only in serve mode (FR-032). `live.js` exports its
+  // helpers for unit tests, so it loads as a module (deferred by default).
+  const serve = mode === "serve";
   const headerLinks = [];
   if (project.constitution) {
     headerLinks.push(html`<a href="${link(project.constitution.url)}">Constitution</a>`);
@@ -37,14 +40,14 @@ export function renderPage({ title, base, mode, project, main, version }) {
 <title>${title}</title>
 <link rel="stylesheet" href="${link("assets/styles.css")}">
 <script type="module" src="${link("assets/overview.js")}"></script>
-</head>
+${serve ? html`<script type="module" src="${link("assets/live.js")}" defer></script>\n` : ""}</head>
 <body data-mode="${mode}" data-version="${version}">
 <header data-region="header">
 <a href="${link("index.html")}" data-region="project-name">${project.name}</a>
 ${headerLinks.length ? html`<nav>${headerLinks}</nav>` : ""}
 </header>
 <main>${raw(main)}</main>
-<footer>speckit-eye ${version}</footer>
+${serve ? html`<div data-region="live-status" hidden>Live updates paused — reconnecting…</div>\n` : ""}<footer>speckit-eye ${version}</footer>
 </body>
 </html>
 `.value;

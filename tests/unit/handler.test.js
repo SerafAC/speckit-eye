@@ -142,3 +142,63 @@ describe("createHandler", () => {
     }
   });
 });
+
+describe("createHandler: GET /__events (US2)", () => {
+  function withEvents() {
+    const added = [];
+    const events = { add: (req, res) => added.push({ req, res }) };
+    let siteReads = 0;
+    const h = createHandler({
+      getSite: () => {
+        siteReads++;
+        return SITE;
+      },
+      events,
+    });
+    return { h, added, siteReads: () => siteReads };
+  }
+
+  test("is routed to events.add without a site-map lookup", () => {
+    const { h, added, siteReads } = withEvents();
+    const req = { method: "GET", url: "/__events" };
+    const res = fakeRes();
+    h(req, res);
+    assert.equal(added.length, 1);
+    assert.equal(added[0].req, req);
+    assert.equal(added[0].res, res);
+    assert.equal(res.status, null, "the hub writes the response");
+    assert.equal(siteReads(), 0);
+  });
+
+  test("query strings are allowed (EventSource reconnects)", () => {
+    const { h, added } = withEvents();
+    h({ method: "GET", url: "/__events?x=1" }, fakeRes());
+    assert.equal(added.length, 1);
+  });
+
+  test("other methods get 405 with Allow: GET", () => {
+    const { h, added } = withEvents();
+    for (const method of ["HEAD", "POST"]) {
+      const res = fakeRes();
+      h({ method, url: "/__events" }, res);
+      assert.equal(res.status, 405, method);
+      assert.equal(res.headers.Allow, "GET");
+    }
+    assert.equal(added.length, 0);
+  });
+
+  test("without an events hub the path is a 404", () => {
+    const res = request("/__events");
+    assert.equal(res.status, 404);
+  });
+
+  test("near misses are ordinary site lookups (404)", () => {
+    const { h, added } = withEvents();
+    for (const url of ["/__events/", "/__events/x", "/%5F_events", "/assets/__events"]) {
+      const res = fakeRes();
+      h({ method: "GET", url }, res);
+      assert.equal(res.status, 404, url);
+    }
+    assert.equal(added.length, 0);
+  });
+});
