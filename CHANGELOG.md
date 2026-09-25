@@ -15,3 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Live updates in serve mode: open pages follow file changes within
   about 2 seconds, keep scroll position and expanded items, highlight what
   changed, and show a banner while the connection to the tool is lost.
+- Added: artifact pages and site menu. Every Markdown artifact (feature files,
+  contracts, checklists, the constitution, assessments) has a rendered page,
+  linked from its feature in the overview and from a menu on every page.
+  Links between artifacts open their pages; raw HTML is shown as text.

@@ -41,8 +41,9 @@ same warnings are listed on the feature in the overview.
 
 ## What the overview shows
 
-- **Header**: the project name, and links to the constitution and to each
-  idea assessment under `.specify/assessments/`.
+- **Header**: the project name, an Overview link, links to the constitution
+  and to each idea assessment under `.specify/assessments/`, and the Menu (see
+  [Artifact pages](#artifact-pages)).
 - **Progress**: one bar for all tasks in the project ("40 / 65 tasks (62 %)"),
   and three counters: completed specs, completed phases, and completed tasks,
   each as "completed / total". Below them, the next open task ("Next: T011 ·
@@ -109,6 +110,65 @@ there.
 When every task in the project is done, the page says so and nothing is marked
 "next". A feature named by rule 1 or 2 then stays open and highlighted (and
 green, because it is complete); otherwise nothing is active.
+
+## Artifact pages
+
+Every Markdown file of the project gets its own page, so you can read the
+specs without opening the repository:
+
+- every `*.md` file anywhere under each feature folder in `specs/`: `spec.md`,
+  `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `tasks.md`, the
+  files in `contracts/` and `checklists/`, and any other file such as the
+  autopilot's `decisions.md` and `run-log.md`;
+- the constitution, `.specify/memory/constitution.md`;
+- every `*.md` file under `.specify/assessments/`, grouped per assessment.
+
+A file or folder whose name has characters other than letters, digits, `.`,
+`_` and `-` (for example a space) gets no page; the tool prints a warning such
+as `warning: specs/001-x/bad name.md name not supported for a page (skipped)`
+and shows it on the feature.
+
+### Order
+
+Inside a feature, the standard files come first, in this order: spec, plan,
+research, data model, quickstart, tasks, then the contracts and the checklists
+(each by name), then every other file by path. Inside an assessment: intake,
+research, problem, concept, decision, then the rest by name. Each link is
+labeled with the file's first `# ` heading (or its file name when it has none).
+
+### Getting there
+
+Every artifact is at most two clicks away from the overview:
+
+- **On the feature**: open a feature in the tree; links to its artifacts are
+  listed above its phases. A missing file (for example no `research.md`) has
+  no link.
+- **Menu**: every page has a **Menu** button in the header. It lists the
+  overview, the constitution, each assessment with its files, and each
+  feature with its files. It opens and closes without JavaScript.
+- **Back**: every page has an **Overview** link in the header, and each
+  artifact page starts with a breadcrumb (Overview › feature › file).
+
+### How files are shown
+
+Headings, tables, task lists (as ticked or empty checkboxes; checklist
+checkboxes are never counted as tasks), code blocks, block quotes and links
+are rendered. Headings get anchors, so a link such as `cli.md#synopsis` lands
+on the "Synopsis" heading.
+
+- **Links to other artifacts** (relative links such as `[plan](./plan.md)` or
+  `[cli](contracts/cli.md#synopsis)`) open that artifact's page.
+- **Links to other files** in the repository (for example `../../src/index.js`)
+  are shown as plain text: the tool never serves files that are not
+  artifacts.
+- **Web links** (`http:`, `https:`, `mailto:`) are kept as they are. Other
+  link types, such as `javascript:`, are not links.
+- **Raw HTML** in a file, including `<script>` tags, is shown as text and
+  never runs.
+- **Images** are shown as their alt text; nothing is loaded from other
+  servers.
+- **Diagrams** (for example ` ```mermaid ` blocks) are shown as code; they are
+  not drawn in this version.
 
 ## Live updates
 

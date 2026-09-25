@@ -238,17 +238,32 @@ function renderWarnings(feature) {
 }
 
 /**
+ * Links to the feature's present artifacts, in model order (US3 AC1, AC5).
  * @param {Feature} feature
- * @param {Project["active"]} active
+ * @param {string} base
  * @returns {Raw}
  */
-function renderFeature(feature, active) {
+function renderArtifactLinks(feature, base) {
+  const artifacts = feature.artifacts ?? [];
+  if (artifacts.length === 0) return html``;
+  return html`<ul data-part="artifacts">${artifacts.map(
+    (a) => html`<li><a href="${base}${a.url}" data-kind="${a.kind}">${a.title}</a></li>`,
+  )}</ul>`;
+}
+
+/**
+ * @param {Feature} feature
+ * @param {Project["active"]} active
+ * @param {string} base
+ * @returns {Raw}
+ */
+function renderFeature(feature, active, base) {
   const isActive = feature.dir === active?.featureDir;
   const n = feature.warnings.length;
   const summary = html`<span data-part="title">${feature.title}</span> · <span data-part="stage">${STAGE_LABELS[feature.stage]}</span> · <span data-part="count">${openOf(feature.counts)}</span>${
     n ? html` <span data-part="warning-count">${n} ${n === 1 ? "warning" : "warnings"}</span>` : ""
   }`;
-  const body = html`${renderWarnings(feature)}${
+  const body = html`${renderArtifactLinks(feature, base)}${renderWarnings(feature)}${
     feature.phases.length
       ? html`<ul data-part="phases">${feature.phases.map((p) => renderPhase(feature, p, active))}</ul>`
       : html`<p data-part="no-tasks">${feature.hasTasks ? "tasks.md has no phases yet." : "No tasks.md yet."}</p>`
@@ -258,12 +273,13 @@ function renderFeature(feature, active) {
 
 /**
  * @param {Project} project
+ * @param {string} base
  * @returns {Raw}
  */
-function renderTree(project) {
+function renderTree(project, base) {
   const projectWarnings = project.warnings ?? [];
   return html`<div data-region="tree">
-${project.features.map((f) => renderFeature(f, project.active))}
+${project.features.map((f) => renderFeature(f, project.active, base))}
 ${
   projectWarnings.length
     ? html`<ul data-part="warnings">${projectWarnings.map(
@@ -292,13 +308,13 @@ function renderGrid(project) {
 /**
  * The inner HTML of `<main>` for the overview page.
  * @param {Project} project
- * @param {{base: string}} [_options] normalized base path; used by the artifact links of later stories
+ * @param {{base: string}} [options] normalized base path for the artifact links
  * @returns {Raw}
  */
-export function renderOverview(project, _options = { base: "/" }) {
+export function renderOverview(project, { base } = { base: "/" }) {
   return html`${renderProgress(project)}
 <div data-region="columns">
-${renderTree(project)}
+${renderTree(project, base)}
 ${renderGrid(project)}
 </div>`;
 }

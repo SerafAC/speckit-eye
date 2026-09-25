@@ -127,3 +127,29 @@ Expected warnings (file `specs/<feature>/tasks.md`, 1-based line):
 | W4 | 001-odd | 18 | `story label US9 has no matching user story in spec.md` |
 | W12 | 001-odd | 28 | `duplicate phase number 2 (both shown)` |
 | W8 | 002-emptytasks | — | `tasks.md contains no tasks` |
+
+## `artifacts/`
+
+Every artifact type, for US3 (artifact pages, menu, links).
+
+| Path | Page |
+|---|---|
+| `.specify/memory/constitution.md` | `constitution.html` |
+| `.specify/assessments/idea-x/intake.md`, `decision.md`, `notes.md` | `assessments/idea-x/{intake,decision,notes}.html` (listed in that order) |
+| `specs/001-full/spec.md`, `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `tasks.md` | `features/001-full/<name>.html` |
+| `specs/001-full/contracts/cli.md` | `features/001-full/contracts/cli.html` |
+| `specs/001-full/checklists/requirements.md` | `features/001-full/checklists/requirements.html` (its checkboxes are **not** tasks) |
+| `specs/001-full/decisions.md`, `run-log.md` | `features/001-full/{decisions,run-log}.html` (listed after the standard files) |
+| `specs/001-full/bad name.md` | none: W11 `name not supported for a page (skipped)` |
+| `specs/002-partial/spec.md`, `plan.md` | `features/002-partial/{spec,plan}.html` only |
+
+That is 16 artifact pages. Totals: tasks **1/4** (only `001-full/tasks.md`),
+specs completed **0/2**; `001-full` is active.
+
+`specs/001-full/plan.md` holds the rendering cases: a table, a task list, a
+fenced `js` block, a `mermaid` block (shown as code), `<script>alert(1)</script>`
+and `<img src=x onerror=alert(1)>` (shown as text), and the links
+`[spec](./spec.md)` (→ `spec.html`), `[cli](./contracts/cli.md#synopsis)`
+(→ `contracts/cli.html#synopsis`), `[src](../../src/index.js)` (plain text),
+`[x](javascript:alert(1))` (not a link) and `[docs](https://example.com)`
+(kept).

@@ -7,8 +7,29 @@
 
 import { renderPage } from "./layout.js";
 import { renderOverview } from "./overview.js";
+import { renderArtifact } from "./artifact.js";
+import { createMarkdown } from "./markdown.js";
 
 /** @typedef {import("../model/build-model.js").Project} Project */
+/** @typedef {import("../project/artifacts.js").Artifact} Artifact */
+
+/**
+ * Every artifact of the project with the feature or assessment it belongs to:
+ * the constitution, each feature's artifacts, each assessment's artifacts.
+ * @param {Project} project
+ * @returns {{artifact: Artifact, feature: {title: string} | null, assessment: {slug: string} | null}[]}
+ */
+export function allArtifacts(project) {
+  const out = [];
+  if (project.constitution) out.push({ artifact: project.constitution, feature: null, assessment: null });
+  for (const feature of project.features) {
+    for (const artifact of feature.artifacts ?? []) out.push({ artifact, feature, assessment: null });
+  }
+  for (const assessment of project.assessments) {
+    for (const artifact of assessment.artifacts) out.push({ artifact, feature: null, assessment });
+  }
+  return out;
+}
 
 /**
  * @typedef {object} SiteEntry
@@ -50,6 +71,28 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
       generatedAt,
     }),
   });
+
+  // One page per artifact (US3, FR-021), keyed by its url.
+  const entries = allArtifacts(project).filter(({ artifact }) => artifact.url);
+  const renderMarkdown = createMarkdown({
+    artifactsBySource: new Map(entries.map(({ artifact }) => [artifact.source, artifact])),
+    base,
+  });
+  for (const { artifact, feature, assessment } of entries) {
+    const body = renderMarkdown(artifact.source, artifact.content ?? "");
+    site.set(artifact.url, {
+      type: HTML_TYPE,
+      body: renderPage({
+        title: `${artifact.title} · ${project.name} · speckit-eye`,
+        base,
+        mode,
+        project,
+        main: renderArtifact(artifact, body, { base, feature, assessment }),
+        version,
+        generatedAt,
+      }),
+    });
+  }
 
   site.set("assets/styles.css", { type: CSS_TYPE, body: assets.styles });
   site.set("assets/overview.js", { type: JS_TYPE, body: assets.overview });
