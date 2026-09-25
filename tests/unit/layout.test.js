@@ -116,6 +116,16 @@ describe("renderPage", () => {
     assert.match(page({ main: html`<p>${"<b>"}</p>` }), /<main><p>&lt;b&gt;<\/p><\/main>/);
   });
 
+  test("static mode footer shows the generated time before the version (FR-031)", () => {
+    const at = "2026-09-25T10:00:00.000Z";
+    assert.match(
+      page({ mode: "static", generatedAt: at }),
+      /<footer>generated at <time datetime="2026-09-25T10:00:00\.000Z">2026-09-25T10:00:00\.000Z<\/time> · speckit-eye 1\.2\.3<\/footer>/,
+    );
+    assert.doesNotMatch(page({ generatedAt: at }), /generated at/);
+    assert.doesNotMatch(page({ mode: "static" }), /generated at/);
+  });
+
   test("footer shows the version", () => {
     assert.match(page(), /<footer>[^<]*1\.2\.3[^<]*<\/footer>/);
   });
