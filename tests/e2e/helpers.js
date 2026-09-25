@@ -49,8 +49,12 @@ export function startServe(dir, { anyPort = false } = {}) {
   const child = spawn(process.execPath, [BIN, "--serve", dir], { cwd: REPO_ROOT, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "";
   let stderr = "";
+  // On Windows, kill() terminates the process without running its signal
+  // handlers, so there is no exit code; a SIGTERM exit there counts as 0.
   /** @type {Promise<number | null>} */
-  const exited = new Promise((resolve) => child.once("exit", (code) => resolve(code)));
+  const exited = new Promise((resolve) =>
+    child.once("exit", (code, signal) => resolve(code === null && signal === "SIGTERM" && process.platform === "win32" ? 0 : code)),
+  );
 
   const stop = async () => {
     if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
