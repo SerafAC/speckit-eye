@@ -109,3 +109,53 @@ there.
 When every task in the project is done, the page says so and nothing is marked
 "next". A feature named by rule 1 or 2 then stays open and highlighted (and
 green, because it is complete); otherwise nothing is active.
+
+## Live updates
+
+In serve mode, every open page follows your files as they change. There is no
+timed refresh and nothing to click: when a file settles, the page updates
+within about 2 seconds (usually much faster).
+
+### What triggers an update
+
+- Creating, changing, renaming, or deleting any Markdown file under `specs/`
+  (every feature folder, including `contracts/` and `checklists/`), the
+  constitution in `.specify/memory/`, and the files under
+  `.specify/assessments/`.
+- A new or deleted feature folder: it appears in, or disappears from, the tree.
+- A change to `.specify/feature.json` or a switch of git branch, which can
+  change the active feature.
+
+Editors that save by writing a temporary file and renaming it over the
+original, and bursts of many writes (for example during an autopilot run), are
+both fine: the tool waits for a short quiet moment, then rescans the whole
+project, so the page always ends on the final content.
+
+Each rescan prints one line in the terminal, such as
+`updated (3 features, 41/65 tasks)`, plus any new or changed warning.
+
+### What you see on the page
+
+- Your scroll position and the items you opened or closed stay as they are.
+- Items whose status or counts changed are briefly highlighted, and progress
+  bars move to their new values. With "reduce motion" turned on in your
+  system settings, the highlight and animation are skipped.
+- If the page you are on no longer exists (for example its file was deleted),
+  a notice says so and links back to the overview.
+
+### The "Live updates paused" banner
+
+The banner at the bottom of the page, "Live updates paused — reconnecting…",
+means the page has lost its connection to the tool, usually because you
+stopped it with Ctrl+C. The page keeps showing the last content and keeps
+trying to reconnect. Start the tool again on the same address (the same port,
+4747 by default) and the banner goes away and the page catches up on its own.
+
+### WSL
+
+Under WSL, keep the project on the Linux file system (for example under
+`~/projects/`). Files under `/mnt/c/...` that are edited from Windows do not
+raise Linux file events, so the page would not update; network drives may not
+raise them either. If you must work from such a folder, restart the tool to
+see your changes (reloading the page is not enough, because the tool has not
+rescanned).

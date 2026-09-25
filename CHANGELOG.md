@@ -12,3 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Serve mode with overview: `speckit-eye --serve <dir>` serves a local page with
   the overall progress bar, spec/phase/task counters, the feature tree, and the
   task grid.
+- Live updates in serve mode: open pages follow file changes within
+  about 2 seconds, keep scroll position and expanded items, highlight what
+  changed, and show a banner while the connection to the tool is lost.
