@@ -8,7 +8,7 @@
 
 export const PING_MS = 25_000;
 
-export const EVENT_HEADERS = Object.freeze({
+const EVENT_HEADERS = Object.freeze({
   "Content-Type": "text/event-stream",
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",

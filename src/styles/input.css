@@ -240,6 +240,18 @@
   background-color: var(--status-active);
 }
 
+/* The task a grid click jumped to: marked by src/client/overview.js, or the
+   fragment target when scripts are off (FR-037). */
+[data-region="tree"] li[data-state] {
+  scroll-margin-block: 4rem;
+}
+
+[data-region="tree"] li[data-highlight],
+[data-region="tree"] li:target {
+  outline: 2px solid var(--status-active);
+  outline-offset: 1px;
+}
+
 /* Parents of the hovered grid square (src/client/overview.js). */
 [data-region="tree"] [data-highlight] > summary {
   outline: 2px solid var(--status-active);
@@ -272,9 +284,12 @@
   @apply flex min-w-0 flex-wrap content-start gap-1;
 }
 
-[data-region="grid"] a {
+/* Task squares; the same rules serve the single grid and the per-feature rows.
+   A click jumps to the task in the tree (href) or, with scripts, opens its
+   parents and scrolls there smoothly (src/client/overview.js). */
+[data-region="grid"] a[data-state] {
   --status-color: var(--status-not-started);
-  @apply block size-3 cursor-default rounded-sm transition-transform;
+  @apply block size-3 cursor-pointer rounded-sm transition-transform;
   background-color: var(--status-color);
 }
 
@@ -294,10 +309,60 @@
   @apply opacity-60;
 }
 
-[data-region="grid"] a:hover,
-[data-region="grid"] a:focus-visible {
+[data-region="grid"] a[data-state]:hover,
+[data-region="grid"] a[data-state]:focus-visible {
   @apply scale-150 opacity-100;
   outline: 1px solid var(--color-gray-900);
+}
+
+/* Above GRID_ROWS_THRESHOLD tasks: one row per feature, smaller squares. */
+[data-region="grid"][data-layout="rows"],
+[data-region="grid"][data-layout="bars"] {
+  @apply flex-col flex-nowrap gap-2;
+}
+
+[data-region="grid"] [data-part="row"] {
+  @apply flex min-w-0 flex-col gap-0.5;
+}
+
+[data-region="grid"] [data-part="label"] {
+  @apply truncate text-xs text-gray-600;
+}
+
+[data-region="grid"] [data-part="cells"] {
+  @apply flex flex-wrap gap-px;
+}
+
+[data-region="grid"][data-layout="rows"] a[data-state] {
+  @apply size-1.5 rounded-none;
+}
+
+/* Above GRID_BARS_THRESHOLD tasks: one progress bar per feature. */
+[data-region="grid"] a[data-part="bar"] {
+  @apply flex min-w-0 flex-col gap-0.5 rounded px-1 py-0.5 text-inherit no-underline hover:bg-gray-100;
+}
+
+[data-region="grid"] a[data-part="bar"] progress {
+  @apply block h-2 w-full overflow-hidden rounded-full;
+  appearance: none;
+  border: 0;
+  background-color: var(--color-gray-200);
+  color: var(--status-done);
+}
+
+[data-region="grid"] a[data-part="bar"] progress::-webkit-progress-bar {
+  @apply rounded-full;
+  background-color: var(--color-gray-200);
+}
+
+[data-region="grid"] a[data-part="bar"] progress::-webkit-progress-value {
+  @apply rounded-full;
+  background-color: var(--status-done);
+}
+
+[data-region="grid"] a[data-part="bar"] progress::-moz-progress-bar {
+  @apply rounded-full;
+  background-color: var(--status-done);
 }
 
 /* ------------------------------------------------------------------------ */

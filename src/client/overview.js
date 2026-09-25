@@ -1,7 +1,9 @@
 /**
- * Overview enhancement (FR-015b, spec US1 AC9): hovering or focusing a task
- * square in the grid highlights its feature, phase and story in the tree.
- * Optional: the overview is complete without it (FR-037). Loaded as an ES
+ * Overview enhancements (FR-015b, spec US1 AC9): hovering or focusing a task
+ * square in the grid highlights its feature, phase and story in the tree, and
+ * clicking a square opens them and scrolls smoothly to the task (spec
+ * Assumptions "Open design items"). Optional: the overview is complete
+ * without it (FR-037); a square's `href` already jumps to the task. Loaded as an ES
  * module (`assets/overview.js`); `document` is injected so it can be unit
  * tested with fakes.
  */
@@ -62,4 +64,41 @@ export function attachHover(doc) {
   grid.addEventListener("focusout", clear);
 }
 
-if (typeof document !== "undefined") attachHover(document);
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
+/**
+ * Registers the grid → tree click. The listener sits on the document, so it
+ * keeps working after a live update swaps `<main>`. A click on a square
+ * (an element with `data-parents`) opens the `<details>` listed there,
+ * scrolls the task into the middle of the view (smooth unless the viewer
+ * prefers reduced motion, FR-036) and marks it with `data-highlight` until
+ * the next click. Other clicks, including tree toggles, are left alone.
+ * @param {Pick<Document, "querySelector" | "addEventListener">} doc
+ * @param {{matchMedia?: (query: string) => {matches: boolean}} | null} [win]
+ */
+export function attachClick(doc, win = /** @type {any} */ (doc).defaultView) {
+  /** @type {Element | null} */
+  let marked = null;
+
+  doc.addEventListener("click", (event) => {
+    const cell = /** @type {Element | null} */ (event.target);
+    const parents = cell && typeof cell.getAttribute === "function" ? cell.getAttribute("data-parents") : null;
+    const key = parents === null ? null : /** @type {Element} */ (cell).getAttribute("data-key");
+    if (key === null) return;
+    const tree = doc.querySelector('[data-region="tree"]');
+    const task = tree?.querySelector(keySelector(key));
+    if (!tree || !task) return;
+    event.preventDefault();
+    for (const parent of parentKeys(parents)) {
+      const details = /** @type {HTMLDetailsElement | null} */ (tree.querySelector(keySelector(parent)));
+      if (details) details.open = true;
+    }
+    marked?.removeAttribute("data-highlight");
+    task.setAttribute("data-highlight", "");
+    marked = task;
+    const reduced = Boolean(win?.matchMedia?.(REDUCED_MOTION)?.matches);
+    task.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+  });
+}
+
+if (typeof document !== "undefined") for (const attach of [attachHover, attachClick]) attach(document);

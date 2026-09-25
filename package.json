@@ -1,6 +1,6 @@
 {
   "name": "speckit-eye",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Zero-setup progress dashboard for GitHub Spec Kit projects",
   "type": "module",
   "bin": {

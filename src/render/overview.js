@@ -19,7 +19,7 @@ import { statusOf } from "../model/task-state.js";
 /** @typedef {import("./html.js").Raw} Raw */
 
 /** Plain-language stage labels (FR-012). */
-export const STAGE_LABELS = {
+const STAGE_LABELS = {
   empty: "Empty",
   specified: "Specified",
   planned: "Planned",
@@ -37,6 +37,49 @@ export function featureStatus(feature) {
   if (feature.stage === "complete") return "done";
   if (feature.stage === "in-progress") return "started";
   return "not-started";
+}
+
+/**
+ * Above this many tasks in total the grid shows one row per feature with
+ * smaller squares (spec Assumptions "Open design items", T034).
+ */
+export const GRID_ROWS_THRESHOLD = 1000;
+
+/** Above this many tasks in total the grid shows one progress bar per feature. */
+export const GRID_BARS_THRESHOLD = 5000;
+
+/**
+ * Grid layout for a project with `total` tasks.
+ * @param {number} total
+ * @returns {"single" | "rows" | "bars"}
+ */
+export function gridLayout(total) {
+  if (total > GRID_BARS_THRESHOLD) return "bars";
+  if (total > GRID_ROWS_THRESHOLD) return "rows";
+  return "single";
+}
+
+/**
+ * Attribute-safe element ids for keys: `prefix` + the key with every
+ * character outside `[A-Za-z0-9_-]` replaced by `-`, plus `-2`, `-3`, … when
+ * two keys map to the same id.
+ * @param {Iterable<string>} keys
+ * @param {string} prefix
+ * @returns {Map<string, string>} key → id
+ */
+export function elementIds(keys, prefix) {
+  /** @type {Map<string, string>} */
+  const ids = new Map();
+  const used = new Set();
+  for (const key of keys) {
+    if (ids.has(key)) continue;
+    const base = prefix + key.replace(/[^A-Za-z0-9_-]/g, "-");
+    let id = base;
+    for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+    used.add(id);
+    ids.set(key, id);
+  }
+  return ids;
 }
 
 /**
@@ -171,11 +214,12 @@ ${
 /**
  * @param {Task} task
  * @param {string | null} nextKey
+ * @param {Map<string, string>} ids task key → element id
  * @returns {Raw}
  */
-function renderTaskItem(task, nextKey) {
+function renderTaskItem(task, nextKey, ids) {
   const isNext = task.key === nextKey;
-  return html`<li data-key="${task.key}" data-sig="${task.sig ?? ""}" data-state="${task.state ?? "future"}"><span data-part="id">${taskName(task)}</span> <span data-part="desc">${task.description}</span>${isNext ? html` <span data-part="next">next</span>` : ""}</li>`;
+  return html`<li data-key="${task.key}" data-sig="${task.sig ?? ""}" data-state="${task.state ?? "future"}" id="${/** @type {string} */ (ids.get(task.key))}"><span data-part="id">${taskName(task)}</span> <span data-part="desc">${task.description}</span>${isNext ? html` <span data-part="next">next</span>` : ""}</li>`;
 }
 
 /**
@@ -185,10 +229,11 @@ function renderTaskItem(task, nextKey) {
  * @param {boolean} active
  * @param {Raw} summary
  * @param {Raw} body
+ * @param {string} [id] element id, for links to this item
  * @returns {Raw}
  */
-function detailsNode(key, sig, status, active, summary, body) {
-  return html`<details data-key="${key}" data-sig="${sig}" data-status="${status}"${active ? html` data-active` : ""}${active ? html` open` : ""}>
+function detailsNode(key, sig, status, active, summary, body, id) {
+  return html`<details data-key="${key}" data-sig="${sig}" data-status="${status}"${id ? html` id="${id}"` : ""}${active ? html` data-active` : ""}${active ? html` open` : ""}>
 <summary>${summary}</summary>
 ${body}
 </details>`;
@@ -198,13 +243,14 @@ ${body}
  * @param {Feature} feature
  * @param {Phase} phase
  * @param {Project["active"]} active
+ * @param {Map<string, string>} ids task key → element id
  * @returns {Raw}
  */
-function renderPhase(feature, phase, active) {
+function renderPhase(feature, phase, active, ids) {
   const phaseActive = feature.dir === active?.featureDir && phase.key === active?.phaseKey;
   const nextKey = active?.nextTaskKey ?? null;
   const children = phaseItems(phase).map((item) => {
-    if (item.task) return renderTaskItem(item.task, nextKey);
+    if (item.task) return renderTaskItem(item.task, nextKey, ids);
     const group = item.group;
     const groupActive = phaseActive && group.label === active?.storyLabel;
     return html`<li data-part="group">${detailsNode(
@@ -213,7 +259,7 @@ function renderPhase(feature, phase, active) {
       statusOf(group.counts),
       groupActive,
       html`<span data-part="title">${groupHeading(group)}</span> · <span data-part="count">${openOf(group.counts)}</span>`,
-      html`<ul data-part="tasks">${group.tasks.map((t) => renderTaskItem(t, nextKey))}</ul>`,
+      html`<ul data-part="tasks">${group.tasks.map((t) => renderTaskItem(t, nextKey, ids))}</ul>`,
     )}</li>`;
   });
   return html`<li data-part="phase">${detailsNode(
@@ -255,9 +301,10 @@ function renderArtifactLinks(feature, base) {
  * @param {Feature} feature
  * @param {Project["active"]} active
  * @param {string} base
+ * @param {Ids} ids
  * @returns {Raw}
  */
-function renderFeature(feature, active, base) {
+function renderFeature(feature, active, base, ids) {
   const isActive = feature.dir === active?.featureDir;
   const n = feature.warnings.length;
   const summary = html`<span data-part="title">${feature.title}</span> · <span data-part="stage">${STAGE_LABELS[feature.stage]}</span> · <span data-part="count">${openOf(feature.counts)}</span>${
@@ -265,21 +312,22 @@ function renderFeature(feature, active, base) {
   }`;
   const body = html`${renderArtifactLinks(feature, base)}${renderWarnings(feature)}${
     feature.phases.length
-      ? html`<ul data-part="phases">${feature.phases.map((p) => renderPhase(feature, p, active))}</ul>`
+      ? html`<ul data-part="phases">${feature.phases.map((p) => renderPhase(feature, p, active, ids.tasks))}</ul>`
       : html`<p data-part="no-tasks">${feature.hasTasks ? "tasks.md has no phases yet." : "No tasks.md yet."}</p>`
   }`;
-  return detailsNode(feature.dir, feature.sig ?? "", featureStatus(feature), isActive, summary, body);
+  return detailsNode(feature.dir, feature.sig ?? "", featureStatus(feature), isActive, summary, body, ids.features.get(feature.dir));
 }
 
 /**
  * @param {Project} project
  * @param {string} base
+ * @param {Ids} ids
  * @returns {Raw}
  */
-function renderTree(project, base) {
+function renderTree(project, base, ids) {
   const projectWarnings = project.warnings ?? [];
   return html`<div data-region="tree">
-${project.features.map((f) => renderFeature(f, project.active, base))}
+${project.features.map((f) => renderFeature(f, project.active, base, ids))}
 ${
   projectWarnings.length
     ? html`<ul data-part="warnings">${projectWarnings.map(
@@ -291,18 +339,71 @@ ${
 }
 
 /**
- * One square per task in tree order (FR-015b). No `href` until the click
- * behavior is decided (T034).
+ * @typedef {object} Ids
+ * @property {Map<string, string>} tasks task key → id of its tree `<li>`
+ * @property {Map<string, string>} features feature dir → id of its tree `<details>`
+ */
+
+/**
  * @param {Project} project
+ * @param {ReturnType<typeof tasksInTreeOrder>} entries
+ * @returns {Ids}
+ */
+function treeIds(project, entries) {
+  return {
+    tasks: elementIds(
+      entries.map((e) => e.task.key),
+      "task-",
+    ),
+    features: elementIds(
+      project.features.map((f) => f.dir),
+      "feature-",
+    ),
+  };
+}
+
+/**
+ * One grid square. `href` points at the task in the tree, so a click jumps
+ * there without scripts too (browsers open the closed `<details>` around a
+ * fragment target, FR-037); `src/client/overview.js` adds the smooth version.
+ * @param {ReturnType<typeof tasksInTreeOrder>[number]} entry
+ * @param {Map<string, string>} ids
  * @returns {Raw}
  */
-function renderGrid(project) {
-  const cells = tasksInTreeOrder(project).map(({ task, feature, phase, group }) => {
-    const parents = [feature.dir, phase.key, group?.key].filter(Boolean).join(" ");
-    const title = `${taskName(task)} · ${task.description} — ${feature.title} › ${phaseHeading(phase)}`;
-    return html`<a tabindex="0" data-key="${task.key}" data-sig="${task.sig ?? ""}" data-state="${task.state ?? "future"}" data-parents="${parents}" title="${title}"></a>`;
+function renderCell({ task, feature, phase, group }, ids) {
+  const parents = [feature.dir, phase.key, group?.key].filter(Boolean).join(" ");
+  const title = `${taskName(task)} · ${task.description} — ${feature.title} › ${phaseHeading(phase)}`;
+  return html`<a href="#${/** @type {string} */ (ids.get(task.key))}" data-key="${task.key}" data-sig="${task.sig ?? ""}" data-state="${task.state ?? "future"}" data-parents="${parents}" title="${title}"></a>`;
+}
+
+/**
+ * The task grid (FR-015b) in tree order. Up to `GRID_ROWS_THRESHOLD` tasks:
+ * one square per task. Above it: one row per feature with smaller squares.
+ * Above `GRID_BARS_THRESHOLD`: one progress bar per feature, linking to the
+ * feature in the tree (spec Assumptions "Open design items").
+ * @param {Project} project
+ * @param {ReturnType<typeof tasksInTreeOrder>} entries
+ * @param {Ids} ids
+ * @returns {Raw}
+ */
+function renderGrid(project, entries, ids) {
+  const layout = gridLayout(project.totals.tasks.total);
+  if (layout === "single") return html`<div data-region="grid">${entries.map((e) => renderCell(e, ids.tasks))}</div>`;
+
+  const withTasks = project.features.filter((f) => f.counts.total > 0);
+  if (layout === "bars") {
+    const bars = withTasks.map(
+      (f) =>
+        html`<a data-part="bar" href="#${/** @type {string} */ (ids.features.get(f.dir))}"><span data-part="label">${f.title} · ${f.counts.done} / ${f.counts.total}</span><progress data-key="${f.dir}" value="${f.counts.done}" max="${f.counts.total}">${f.counts.percent} %</progress></a>`,
+    );
+    return html`<div data-region="grid" data-layout="bars">${bars}</div>`;
+  }
+
+  const rows = withTasks.map((f) => {
+    const cells = entries.filter((e) => e.feature === f).map((e) => renderCell(e, ids.tasks));
+    return html`<div data-part="row"><span data-part="label">${f.title}</span><div data-part="cells">${cells}</div></div>`;
   });
-  return html`<div data-region="grid">${cells}</div>`;
+  return html`<div data-region="grid" data-layout="rows">${rows}</div>`;
 }
 
 /**
@@ -312,9 +413,11 @@ function renderGrid(project) {
  * @returns {Raw}
  */
 export function renderOverview(project, { base } = { base: "/" }) {
+  const entries = tasksInTreeOrder(project);
+  const ids = treeIds(project, entries);
   return html`${renderProgress(project)}
 <div data-region="columns">
-${renderTree(project, base)}
-${renderGrid(project)}
+${renderTree(project, base, ids)}
+${renderGrid(project, entries, ids)}
 </div>`;
 }

@@ -117,7 +117,7 @@ export function makeCounts(done, total) {
  * @param {{done: boolean}[]} tasks
  * @returns {Counts}
  */
-export function countTasks(tasks) {
+function countTasks(tasks) {
   return makeCounts(tasks.filter((t) => t.done).length, tasks.length);
 }
 
@@ -256,7 +256,7 @@ function buildFeature(dir, files, scanWarnings) {
  * @param {Feature[]} features
  * @returns {Totals}
  */
-export function computeTotals(features) {
+function computeTotals(features) {
   let done = 0;
   let total = 0;
   let specsCompleted = 0;

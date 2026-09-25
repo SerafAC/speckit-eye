@@ -7,6 +7,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { copyFixture, startServe, runCli, hashTree } from "./helpers.js";
+import { generateLarge, FEATURES } from "../fixtures/generate-large.js";
 
 /** @type {import("./helpers.js").ServeHandle | null} */
 let server = null;
@@ -361,4 +362,66 @@ test("US1 FR-006 serving never changes the project folder", async ({ page }) => 
   expect(await server.stop()).toBe(0);
   server = null;
   expect(await hashTree(dir)).toBe(before);
+});
+
+test("US1 FR-015b click on a grid square opens the task's feature, phase and story and scrolls to it", async ({ page }) => {
+  const { url } = await serve("mixed");
+  await page.setViewportSize({ width: 1280, height: 480 });
+  await page.goto(url);
+  const phase = tree(page).locator('details[data-key="002-beta/p4"]');
+  const story = tree(page).locator('details[data-key="002-beta/p4/US3"]');
+  const task = tree(page).locator('li[data-key="002-beta/T017"]');
+  await expect(phase).not.toHaveAttribute("open");
+  await expect(story).not.toHaveAttribute("open");
+  await expect(task).toBeHidden();
+
+  await grid(page).locator('a[data-key="002-beta/T017"]').click();
+  await expect(feature(page, "002-beta")).toHaveAttribute("open", "");
+  await expect(phase).toHaveAttribute("open", "");
+  await expect(story).toHaveAttribute("open", "");
+  await expect(task).toBeInViewport();
+  await expect(task).toHaveAttribute("data-highlight", "");
+
+  // A collapsed feature opens too; the highlight moves to the new task.
+  await grid(page).locator('a[data-key="003-gamma/T008"]').click();
+  await expect(feature(page, "003-gamma")).toHaveAttribute("open", "");
+  await expect(tree(page).locator('details[data-key="003-gamma/p2"]')).toHaveAttribute("open", "");
+  await expect(tree(page).locator('li[data-key="003-gamma/T008"]')).toBeInViewport();
+  await expect(task).not.toHaveAttribute("data-highlight");
+});
+
+test("US1 FR-015b FR-037 click without scripts reaches the task through the fragment", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 480 } });
+  const page = await context.newPage();
+  try {
+    const { url } = await serve("mixed");
+    await page.goto(url);
+    const task = tree(page).locator('li[data-key="002-beta/T017"]');
+    await expect(task).toBeHidden();
+    const cell = grid(page).locator('a[data-key="002-beta/T017"]');
+    const href = await cell.getAttribute("href");
+    expect(href).toMatch(/^#task-/);
+    await expect(task).toHaveAttribute("id", href.slice(1));
+    await cell.click();
+    await expect(page).toHaveURL(new RegExp(`${href}$`));
+    await expect(tree(page).locator('details[data-key="002-beta/p4"]')).toHaveAttribute("open", "");
+    await expect(tree(page).locator('details[data-key="002-beta/p4/US3"]')).toHaveAttribute("open", "");
+    await expect(task).toBeInViewport();
+  } finally {
+    await context.close();
+  }
+});
+
+test("US1 FR-015b large grid: 2,000 tasks show one row per feature", async ({ page }) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "speckit-eye-large-"));
+  await generateLarge(dir);
+  server = await startServe(dir);
+  await page.goto(server.url);
+  await expect(grid(page)).toHaveAttribute("data-layout", "rows");
+  await expect(grid(page).locator(':scope > [data-part="row"]')).toHaveCount(FEATURES);
+  await expect(grid(page).locator('[data-part="row"]').first().locator('[data-part="label"]')).toHaveText("Feature 1");
+  await expect(grid(page).locator("a[data-key]")).toHaveCount(2000);
+  // Squares in rows keep the click behavior.
+  await grid(page).locator('a[data-key="050-feature-50/T001"]').click();
+  await expect(tree(page).locator('li[data-key="050-feature-50/T001"]')).toBeInViewport();
 });

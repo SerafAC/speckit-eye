@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-25
+
 ### Added
 
 - Serve mode with overview: `speckit-eye --serve <dir>` serves a local page with
@@ -24,3 +26,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a sub-path and without JavaScript, shows when it was generated, and replaces
   its own previous build without leaving stale pages. See `docs/hosting.md` for
   a sample GitHub Pages workflow.
+- Added: click a grid square to jump to its task; compact grid for large projects.

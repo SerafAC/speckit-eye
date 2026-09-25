@@ -18,7 +18,7 @@ import { html, raw } from "./html.js";
  * @param {(url: string) => string} link
  * @returns {Raw}
  */
-export function renderMenu(project, link) {
+function renderMenu(project, link) {
   const item = (/** @type {Artifact} */ a) => html`<li><a href="${link(a.url)}">${a.title}</a></li>`;
   const group = (/** @type {string} */ key, /** @type {string} */ label, /** @type {Artifact[]} */ artifacts) =>
     artifacts.length

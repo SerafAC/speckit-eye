@@ -22,7 +22,7 @@ export const QUIET_MS = 100;
 export const MAX_WAIT_MS = 500;
 
 /** Recursive roots, relative to the project root. */
-export const RECURSIVE_ROOTS = Object.freeze(["specs", ".specify/memory", ".specify/assessments"]);
+const RECURSIVE_ROOTS = Object.freeze(["specs", ".specify/memory", ".specify/assessments"]);
 
 /**
  * @typedef {object} FsWatcher

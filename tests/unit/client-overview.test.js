@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { parentKeys, attachHover } from "../../src/client/overview.js";
+import { parentKeys, attachHover, attachClick } from "../../src/client/overview.js";
 
 /** A minimal element: attributes, listeners and a querySelector over `children` by data-key. */
 function fakeElement(attrs = {}, children = []) {
@@ -120,5 +120,104 @@ describe("attachHover", () => {
     const grid = fakeElement();
     attachHover({ querySelector: (s) => (s === '[data-region="grid"]' ? grid : null) });
     assert.equal(grid.listeners.size, 0);
+  });
+});
+
+describe("attachClick (T072)", () => {
+  function clickPage({ reduced = false } = {}) {
+    const details = (key) => Object.assign(fakeElement({ "data-key": key }), { open: false });
+    const nodes = {
+      feature: details("002-beta"),
+      phase: details("002-beta/p4"),
+      group: details("002-beta/p4/US3"),
+      other: details("001-alpha"),
+    };
+    const scrolls = [];
+    const task = (key) => Object.assign(fakeElement({ "data-key": key }), { scrollIntoView: (opts) => scrolls.push([key, opts]) });
+    const tasks = { t18: task("002-beta/T018"), t1: task("001-alpha/T001") };
+    const tree = fakeElement({}, [...Object.values(nodes), ...Object.values(tasks)]);
+    const doc = fakeElement();
+    doc.querySelector = (selector) => (selector === '[data-region="tree"]' ? tree : null);
+    const queries = [];
+    const win = { matchMedia: (q) => (queries.push(q), { matches: reduced }) };
+    const click = (target) => {
+      const event = { type: "click", target, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; } };
+      for (const fn of doc.listeners.get("click") ?? []) fn(event);
+      return event;
+    };
+    const cell = (key, parents) => fakeElement({ "data-key": key, "data-parents": parents });
+    return { doc, win, nodes, tasks, scrolls, queries, click, cell };
+  }
+
+  test("registers one click listener on the document", () => {
+    const { doc, win } = clickPage();
+    attachClick(doc, win);
+    assert.deepEqual([...doc.listeners.keys()], ["click"]);
+  });
+
+  test("opens the parents, scrolls smoothly to the task and prevents the default jump", () => {
+    const { doc, win, nodes, tasks, scrolls, queries, click, cell } = clickPage();
+    attachClick(doc, win);
+    const event = click(cell("002-beta/T018", "002-beta 002-beta/p4 002-beta/p4/US3"));
+    assert.equal(event.defaultPrevented, true);
+    assert.deepEqual(
+      Object.entries(nodes).filter(([, n]) => n.open).map(([k]) => k),
+      ["feature", "phase", "group"],
+    );
+    assert.deepEqual(scrolls, [["002-beta/T018", { block: "center", behavior: "smooth" }]]);
+    assert.deepEqual(queries, ["(prefers-reduced-motion: reduce)"]);
+    assert.equal(tasks.t18.getAttribute("data-highlight"), "");
+  });
+
+  test("reduced motion scrolls with behavior auto", () => {
+    const { doc, win, scrolls, click, cell } = clickPage({ reduced: true });
+    attachClick(doc, win);
+    click(cell("001-alpha/T001", "001-alpha"));
+    assert.deepEqual(scrolls, [["001-alpha/T001", { block: "center", behavior: "auto" }]]);
+  });
+
+  test("the highlight stays until the next click moves it", () => {
+    const { doc, win, tasks, click, cell } = clickPage();
+    attachClick(doc, win);
+    click(cell("002-beta/T018", "002-beta"));
+    click({}); // a click elsewhere keeps it
+    assert.equal(tasks.t18.getAttribute("data-highlight"), "");
+    click(cell("001-alpha/T001", "001-alpha"));
+    assert.equal(tasks.t18.getAttribute("data-highlight"), null);
+    assert.equal(tasks.t1.getAttribute("data-highlight"), "");
+  });
+
+  test("clicks outside grid squares are left alone (tree toggles keep their native behavior)", () => {
+    const { doc, win, nodes, scrolls, click, cell } = clickPage();
+    attachClick(doc, win);
+    for (const target of [null, {}, nodes.feature, fakeElement({ "data-parents": "002-beta" })]) {
+      assert.equal(click(target).defaultPrevented, false);
+    }
+    assert.equal(nodes.feature.open, false);
+    assert.deepEqual(scrolls, []);
+    // A square whose task is not in the tree falls back to the native jump.
+    assert.equal(click(cell("999-x/T001", "999-x")).defaultPrevented, false);
+  });
+
+  test("unknown parent keys are skipped; no tree means no action", () => {
+    const { doc, win, nodes, click, cell } = clickPage();
+    attachClick(doc, win);
+    click(cell("002-beta/T018", "999-missing 002-beta"));
+    assert.equal(nodes.feature.open, true);
+    const bare = fakeElement();
+    bare.querySelector = () => null;
+    attachClick(bare);
+    for (const fn of bare.listeners.get("click")) {
+      const event = { target: cell("002-beta/T018", "002-beta"), preventDefault: () => assert.fail("no tree") };
+      fn(event);
+    }
+  });
+
+  test("defaults the window to doc.defaultView and tolerates a missing matchMedia", () => {
+    const { doc, scrolls, click, cell } = clickPage();
+    doc.defaultView = {};
+    attachClick(doc);
+    click(cell("001-alpha/T001", "001-alpha"));
+    assert.deepEqual(scrolls, [["001-alpha/T001", { block: "center", behavior: "smooth" }]]);
   });
 });

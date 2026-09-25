@@ -46,11 +46,41 @@ pnpm run test:e2e        # builds the CSS, then runs the Playwright suites in te
 
 ## Project structure
 
-_To be completed (T069)._
+```text
+bin/speckit-eye.js      one-line entry point; calls src/cli/main.js
+src/
+  cli/                  argument parsing and the serve/build commands
+  project/              the only file reader: scan specs/, .specify/, artifacts
+  parse/                tasks.md and spec.md parsers (contracts/tasks-md-format.md)
+  model/                project model: counts, stages, task states, the active chain
+  render/               HTML: overview, artifact pages, layout; site.js decides every page
+  serve/                local HTTP server, route handler, file watcher, live-update events
+  build/                static build: the only file writer
+  client/               browser scripts: grid hover and click, live updates
+  styles/input.css      Tailwind source; status colors defined once
+tests/
+  unit/                 node:test suites with injected fakes (fake-fs.js, fake-reader.js)
+  e2e/                  Playwright suites, one per user story plus security, scale, self-counts
+  fixtures/             sample projects (projects/README.md) and generate-large.js
+docs/                   user docs (usage.md, hosting.md) and architecture.md
+```
+
+Data flows one way: `project → parse → model → render → serve/build`. See
+[docs/architecture.md](docs/architecture.md) for each module's job, why
+`render/site.js` is the single page decider, and the live-update sequence.
 
 ## Release process
 
-_To be completed (T069)._
+The version lives only in `package.json` (§III). To release version `X.Y.Z`:
+
+1. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`
+   and add a new, empty `## [Unreleased]` above it.
+2. Set `"version": "X.Y.Z"` in `package.json`. Do not write the version
+   anywhere else.
+3. Run `pnpm test` and `pnpm run test:e2e`, then work through the release
+   checklist below (`npm pack --dry-run` contents and the installed tarball).
+4. Commit, then tag: `git tag vX.Y.Z` and `git push origin vX.Y.Z`.
+5. Publish: `npm publish` (runs `prepack`, which builds `dist/styles.css`).
 
 ### Release checklist
 
