@@ -299,3 +299,59 @@
   @apply scale-150 opacity-100;
   outline: 1px solid var(--color-gray-900);
 }
+
+/* ------------------------------------------------------------------------ */
+/* Live updates, serve mode only (FR-028, FR-030; src/client/live.js)        */
+/* ------------------------------------------------------------------------ */
+
+/* Items whose status or counts just changed: a ~1.5 s fading highlight.
+   Motion-safe only; under reduced motion the item gets a static outline for
+   the same 1.5 s instead (live.js removes the attribute). */
+@keyframes speckit-eye-changed {
+  from {
+    background-color: color-mix(in srgb, var(--status-active) 45%, transparent);
+    box-shadow: 0 0 0 2px var(--status-active);
+  }
+  to {
+    background-color: transparent;
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Only the summary row of a changed <details> flashes, not its contents. */
+  [data-region="tree"] details[data-changed] > summary,
+  [data-region="tree"] li[data-changed],
+  [data-region="grid"] a[data-changed],
+  progress[data-changed] {
+    animation: speckit-eye-changed 1.5s ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-region="tree"] details[data-changed] > summary,
+  [data-region="tree"] li[data-changed],
+  [data-region="grid"] a[data-changed],
+  progress[data-changed] {
+    outline: 2px solid var(--status-active);
+    outline-offset: 1px;
+  }
+}
+
+/* Shown while the event stream is disconnected; the page keeps its content. */
+[data-region="live-status"] {
+  @apply fixed inset-x-0 bottom-0 z-50 border-t border-amber-300 bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-900 shadow-lg;
+}
+
+[data-region="live-status"][hidden] {
+  display: none;
+}
+
+/* The page's source file was deleted (live.js got a 404). */
+[data-region="not-found"] {
+  @apply mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900;
+}
+
+[data-region="not-found"] a {
+  @apply font-semibold underline underline-offset-2;
+}

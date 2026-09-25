@@ -29,8 +29,9 @@ export const JS_TYPE = "text/javascript; charset=utf-8";
  * @param {"serve" | "static"} options.mode
  * @param {string} options.version
  * @param {string | null} [options.generatedAt] ISO time, static mode only
- * @param {{styles: string, overview: string}} options.assets contents of the
- *   compiled stylesheet and the overview client script
+ * @param {{styles: string, overview: string, live?: string}} options.assets
+ *   contents of the compiled stylesheet and the client scripts (`live` is
+ *   needed in serve mode only)
  * @returns {Site}
  */
 export function renderSite(project, { base, mode, version, generatedAt = null, assets }) {
@@ -52,6 +53,10 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
 
   site.set("assets/styles.css", { type: CSS_TYPE, body: assets.styles });
   site.set("assets/overview.js", { type: JS_TYPE, body: assets.overview });
+  if (mode === "serve") {
+    if (typeof assets.live !== "string") throw new Error("renderSite: serve mode needs assets.live");
+    site.set("assets/live.js", { type: JS_TYPE, body: assets.live });
+  }
 
   return site;
 }

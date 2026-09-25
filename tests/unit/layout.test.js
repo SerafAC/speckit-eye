@@ -78,6 +78,19 @@ describe("renderPage", () => {
     assert.match(doc, /<script type="module" src="\/assets\/overview.js"><\/script>/);
   });
 
+  test("serve mode loads live.js and has the hidden live-status banner (US2, FR-030)", () => {
+    const doc = page({ base: "/" });
+    assert.match(doc, /<script type="module" src="\/assets\/live\.js" defer><\/script>\n<\/head>/);
+    assert.match(doc, /<\/main>\n<div data-region="live-status" hidden>Live updates paused — reconnecting…<\/div>\n<footer>/);
+  });
+
+  test("static mode has neither live.js nor the live-status banner (FR-032)", () => {
+    const doc = page({ mode: "static", base: "/repo/" });
+    assert.doesNotMatch(doc, /live\.js/);
+    assert.doesNotMatch(doc, /live-status/);
+    assert.match(doc, /<script type="module" src="\/repo\/assets\/overview\.js"><\/script>\n<\/head>/);
+  });
+
   test("main is inserted as trusted HTML (string or Raw)", () => {
     assert.match(page(), /<main><section data-region="progress">x<\/section><\/main>/);
     assert.match(page({ main: html`<p>${"<b>"}</p>` }), /<main><p>&lt;b&gt;<\/p><\/main>/);

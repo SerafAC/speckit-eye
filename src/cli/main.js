@@ -14,6 +14,8 @@ import { buildModel } from "../model/build-model.js";
 import { renderSite } from "../render/site.js";
 import { createHandler } from "../serve/handler.js";
 import { startServer as defaultStartServer } from "../serve/server.js";
+import { createWatcher as defaultCreateWatcher } from "../serve/watcher.js";
+import { createEventHub as defaultCreateEventHub } from "../serve/events.js";
 
 /** @typedef {import("../project/scan.js").Warning} Warning */
 /** @typedef {import("../model/build-model.js").Project} Project */
@@ -25,10 +27,11 @@ export const VERSION = pkg.version;
 const ASSET_FILES = /** @type {Record<string, URL>} */ ({
   "styles.css": new URL("../../dist/styles.css", import.meta.url),
   "overview.js": new URL("../client/overview.js", import.meta.url),
+  "live.js": new URL("../client/live.js", import.meta.url),
 });
 
 /**
- * Reads one packaged asset by name (`styles.css`, `overview.js`).
+ * Reads one packaged asset by name (`styles.css`, `overview.js`, `live.js`).
  * @param {string} name
  * @returns {Promise<string>}
  */
@@ -80,6 +83,20 @@ export function allWarnings(project) {
 }
 
 /**
+ * @param {import("../render/site.js").Site} a
+ * @param {import("../render/site.js").Site} b
+ * @returns {boolean} whether any page or asset differs
+ */
+export function siteChanged(a, b) {
+  if (a.size !== b.size) return true;
+  for (const [key, entry] of b) {
+    const old = a.get(key);
+    if (!old || old.body !== entry.body || old.type !== entry.type) return true;
+  }
+  return false;
+}
+
+/**
  * @typedef {object} RunDeps
  * @property {Writable} [stdout]
  * @property {Writable} [stderr]
@@ -87,6 +104,8 @@ export function allWarnings(project) {
  * @property {typeof defaultStartServer} [startServer]
  * @property {(name: string) => Promise<string>} [readAsset]
  * @property {(handler: () => void) => void} [onSignal]
+ * @property {typeof defaultCreateWatcher} [createWatcher]
+ * @property {typeof defaultCreateEventHub} [createEventHub]
  * @property {string} [cwd]
  */
 
@@ -105,6 +124,8 @@ export async function run(argv, deps = {}) {
     startServer = defaultStartServer,
     readAsset = defaultReadAsset,
     onSignal = defaultOnSignal,
+    createWatcher = defaultCreateWatcher,
+    createEventHub = defaultCreateEventHub,
     cwd = process.cwd(),
   } = deps;
 
@@ -140,19 +161,98 @@ export async function run(argv, deps = {}) {
       return 1;
     }
 
-    const assets = { styles: await readAsset("styles.css"), overview: await readAsset("overview.js") };
-    const scanResult = await scan(reader, path.basename(root));
+    const assets = {
+      styles: await readAsset("styles.css"),
+      overview: await readAsset("overview.js"),
+      live: await readAsset("live.js"),
+    };
+    const name = path.basename(root);
+    const renderOptions = { base: "/", mode: /** @type {"serve"} */ ("serve"), version: VERSION, assets };
+    const scanResult = await scan(reader, name);
     const project = buildModel({ ...scanResult, root });
-    const site = renderSite(project, { base: "/", mode: "serve", version: VERSION, assets });
-    const handler = createHandler({ getSite: () => site });
+    let site = renderSite(project, renderOptions);
+    let modelVersion = 0;
+    const events = createEventHub({ version: modelVersion });
+    const handler = createHandler({ getSite: () => site, events });
 
-    const server = await startServer({ handler });
+    let server;
+    try {
+      server = await startServer({ handler });
+    } catch (err) {
+      events.close();
+      throw err;
+    }
     stdout.write(`speckit-eye ${VERSION} — serving ${root}\n`);
     stdout.write(`  Local: ${server.url}\n`);
     stdout.write("  Watching specs/ and .specify/ for changes (Ctrl+C to stop)\n");
-    for (const w of allWarnings(project)) stderr.write(`${formatWarning(w)}\n`);
+    /** Formatted warnings printed so far for the current model (printed once each). */
+    let printed = new Set(allWarnings(project).map(formatWarning));
+    for (const line of printed) stderr.write(`${line}\n`);
+
+    let stopped = false;
+    let rescanning = false;
+    let rescanAgain = false;
+    let gitDir = scanResult.gitDir ?? null;
+
+    /** Rebuilds the site; broadcasts a change when any page or asset differs. */
+    const rescan = async () => {
+      const next = await scan(reader, name);
+      const nextProject = buildModel({ ...next, root });
+      const nextSite = renderSite(nextProject, renderOptions);
+      if (stopped) return;
+      if (siteChanged(site, nextSite)) {
+        site = nextSite;
+        modelVersion += 1;
+        events.broadcast(modelVersion);
+      }
+      const { done, total } = nextProject.totals.tasks;
+      stdout.write(`updated (${nextProject.features.length} features, ${done}/${total} tasks)\n`);
+      const current = new Set(allWarnings(nextProject).map(formatWarning));
+      for (const line of current) if (!printed.has(line)) stderr.write(`${line}\n`);
+      printed = current;
+      const nextGitDir = next.gitDir ?? null;
+      if (nextGitDir !== gitDir) {
+        gitDir = nextGitDir;
+        watcher.close();
+        watcher = watch();
+      }
+    };
+
+    /** Runs rescans one at a time; a change during a rescan runs one more. */
+    const onChange = async () => {
+      if (rescanning) {
+        rescanAgain = true;
+        return;
+      }
+      rescanning = true;
+      try {
+        do {
+          rescanAgain = false;
+          try {
+            await rescan();
+          } catch (err) {
+            // Keep serving the last good site.
+            stderr.write(`speckit-eye: rescan failed: ${/** @type {Error} */ (err)?.message ?? String(err)}\n`);
+          }
+        } while (rescanAgain && !stopped);
+      } finally {
+        rescanning = false;
+      }
+    };
+
+    const watch = () =>
+      createWatcher({
+        root,
+        gitDir,
+        onChange: () => void onChange(),
+        onError: (err) => stderr.write(`speckit-eye: watch error: ${err?.message ?? String(err)}\n`),
+      });
+    let watcher = watch();
 
     await new Promise((resolve) => onSignal(() => resolve(undefined)));
+    stopped = true;
+    watcher.close();
+    events.close();
     await server.close();
     return 0;
   } catch (err) {
