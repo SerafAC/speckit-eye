@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { renderSite, HTML_TYPE, CSS_TYPE, JS_TYPE } from "../../src/render/site.js";
+import { renderSite, allArtifacts, HTML_TYPE, CSS_TYPE, JS_TYPE } from "../../src/render/site.js";
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
@@ -21,12 +21,13 @@ const site = async (opts = {}) =>
   renderSite(await model(FILES), { base: "/", mode: "serve", version: "9.9.9", assets: ASSETS, ...opts });
 
 describe("renderSite", () => {
-  test("returns exactly the overview and its assets; live.js only in serve mode (US1, US2)", async () => {
+  test("returns exactly the overview, its assets and the artifact pages; live.js only in serve mode (US1, US2, US3)", async () => {
     const s = await site();
     assert.ok(s instanceof Map);
-    assert.deepEqual([...s.keys()].sort(), ["assets/live.js", "assets/overview.js", "assets/styles.css", "index.html"]);
+    const pages = ["constitution.html", "features/001-a/spec.html", "features/001-a/tasks.html"];
+    assert.deepEqual([...s.keys()].sort(), ["assets/live.js", "assets/overview.js", "assets/styles.css", ...pages, "index.html"].sort());
     const st = await site({ mode: "static" });
-    assert.deepEqual([...st.keys()].sort(), ["assets/overview.js", "assets/styles.css", "index.html"]);
+    assert.deepEqual([...st.keys()].sort(), ["assets/overview.js", "assets/styles.css", ...pages, "index.html"].sort());
   });
 
   test("serve mode needs the live script; static mode does not", async () => {
@@ -91,5 +92,116 @@ describe("renderSite", () => {
       assets: ASSETS,
     });
     assert.match(s.get("index.html").body, /data-part="empty"/);
+  });
+});
+
+/** Every artifact type, same shape as tests/fixtures/projects/artifacts. */
+const ARTIFACT_FILES = {
+  ".specify/memory/constitution.md": "# Constitution",
+  ".specify/assessments/idea-x/notes.md": "# Notes",
+  ".specify/assessments/idea-x/decision.md": "# Decision",
+  ".specify/assessments/idea-x/intake.md": "# Intake",
+  "specs/001-full/spec.md": "# Feature Specification: Full",
+  "specs/001-full/plan.md": [
+    "# Plan",
+    "[spec](./spec.md) [cli](./contracts/cli.md#synopsis) [src](../../src/index.js) [x](javascript:alert(1))",
+    "",
+    "<script>alert(1)</script>",
+    "",
+    "```mermaid",
+    "graph TD",
+    "```",
+  ].join("\n"),
+  "specs/001-full/research.md": "# Research",
+  "specs/001-full/data-model.md": "# Data Model",
+  "specs/001-full/quickstart.md": "# Quickstart",
+  "specs/001-full/tasks.md": "## Phase 1: Setup\n- [ ] T001 one",
+  "specs/001-full/contracts/cli.md": "# CLI\n## Synopsis",
+  "specs/001-full/checklists/requirements.md": "# Requirements\n- [x] CHK001 x",
+  "specs/001-full/decisions.md": "# Decisions",
+  "specs/001-full/run-log.md": "# Run Log",
+  "specs/001-full/bad name.md": "# Bad",
+  "specs/002-partial/spec.md": "# Feature Specification: Partial",
+  "specs/002-partial/plan.md": "# Partial plan",
+};
+
+const ARTIFACT_PAGES = [
+  "constitution.html",
+  "assessments/idea-x/intake.html",
+  "assessments/idea-x/decision.html",
+  "assessments/idea-x/notes.html",
+  "features/001-full/spec.html",
+  "features/001-full/plan.html",
+  "features/001-full/research.html",
+  "features/001-full/data-model.html",
+  "features/001-full/quickstart.html",
+  "features/001-full/tasks.html",
+  "features/001-full/contracts/cli.html",
+  "features/001-full/checklists/requirements.html",
+  "features/001-full/decisions.html",
+  "features/001-full/run-log.html",
+  "features/002-partial/spec.html",
+  "features/002-partial/plan.html",
+];
+
+describe("renderSite: artifact pages (T050, US3)", () => {
+  const artifactSite = async (opts = {}) =>
+    renderSite(await model(ARTIFACT_FILES), { base: "/", mode: "serve", version: "1", assets: ASSETS, ...opts });
+
+  test("the page set equals the artifact set (FR-021)", async () => {
+    const m = await model(ARTIFACT_FILES);
+    const s = await artifactSite();
+    const htmlPages = [...s.keys()].filter((k) => k.endsWith(".html") && k !== "index.html");
+    assert.deepEqual(htmlPages.sort(), [...ARTIFACT_PAGES].sort());
+    const fromModel = allArtifacts(m).map(({ artifact }) => artifact.url);
+    assert.deepEqual(fromModel.sort(), [...ARTIFACT_PAGES].sort());
+  });
+
+  test("W11 names get no page", async () => {
+    const s = await artifactSite();
+    for (const key of s.keys()) assert.doesNotMatch(key, /bad|\s/);
+    for (const { body } of s.values()) assert.doesNotMatch(body, /href="[^"]*bad/);
+    // The skipped file is reported as a warning on its feature instead.
+    assert.match(s.get("index.html").body, /specs\/001-full\/bad name\.md name not supported for a page \(skipped\)/);
+  });
+
+  test("an artifact page is a full page with the breadcrumb and the rendered article", async () => {
+    const { type, body } = (await artifactSite()).get("features/001-full/plan.html");
+    assert.equal(type, HTML_TYPE);
+    assert.match(body, /^<!doctype html>/);
+    assert.match(body, /<title>Plan · proj · speckit-eye<\/title>/);
+    assert.match(body, /<details data-region="menu">/);
+    assert.match(body, /<main><nav data-region="breadcrumb"[^>]*><a href="\/index.html">Overview<\/a>[\s\S]*Full[\s\S]*Plan<\/span><\/nav>/);
+    assert.match(body, /<article class="prose" data-region="artifact" data-key="specs\/001-full\/plan.md">/);
+    assert.match(body, /<h1 id="plan">Plan<\/h1>/);
+  });
+
+  test("links between artifacts go to their pages; other links are plain text (FR-023)", async () => {
+    const { body } = (await artifactSite({ base: "/repo/", mode: "static" })).get("features/001-full/plan.html");
+    const article = body.slice(body.indexOf("<article"));
+    assert.match(article, /<a href="\/repo\/features\/001-full\/spec.html">spec<\/a>/);
+    assert.match(article, /<a href="\/repo\/features\/001-full\/contracts\/cli.html#synopsis">cli<\/a>/);
+    assert.doesNotMatch(article, /src\/index\.js"/);
+    assert.doesNotMatch(article, /href="javascript/i);
+  });
+
+  test("scripts from files are escaped and diagrams stay code (FR-024, FR-020)", async () => {
+    const { body } = (await artifactSite()).get("features/001-full/plan.html");
+    const article = body.slice(body.indexOf("<article"));
+    assert.doesNotMatch(article, /<script/);
+    assert.match(article, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+    assert.match(article, /<pre><code class="language-mermaid">graph TD/);
+  });
+
+  test("assessment and constitution pages have their own breadcrumb", async () => {
+    const s = await artifactSite();
+    assert.match(s.get("assessments/idea-x/intake.html").body, /<span data-part="parent">Assessment: idea-x<\/span>/);
+    assert.doesNotMatch(s.get("constitution.html").body, /data-part="parent"/);
+  });
+
+  test("the same pages exist in serve and static mode", async () => {
+    const serve = [...(await artifactSite()).keys()].filter((k) => k.endsWith(".html"));
+    const stat = [...(await artifactSite({ mode: "static", base: "/repo/" })).keys()].filter((k) => k.endsWith(".html"));
+    assert.deepEqual(stat, serve);
   });
 });

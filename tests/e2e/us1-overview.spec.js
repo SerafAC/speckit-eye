@@ -162,8 +162,8 @@ test("US1 AC8 header, counters, tree statuses and one grid square per task", asy
   await page.goto(url);
   const header = page.locator('[data-region="header"]');
   await expect(header).toContainText(path.basename(dir));
-  await expect(header.locator('a[href="/constitution.html"]')).toBeVisible();
-  await expect(header.locator('a[href="/assessments/speckit-dashboard/intake.html"]')).toBeVisible();
+  await expect(header.locator(':scope > nav a[href="/constitution.html"]')).toBeVisible();
+  await expect(header.locator(':scope > nav a[href="/assessments/speckit-dashboard/intake.html"]')).toBeVisible();
 
   await expect(page.locator('[data-counter="specs"] [data-part="value"]')).toHaveText("1 / 4");
   await expect(page.locator('[data-counter="phases"] [data-part="value"]')).toHaveText("5 / 9");
@@ -258,11 +258,11 @@ test("US1 FR-036 reduced motion turns off transitions and animations", async ({ 
     const expected = { transition: "0s", animation: "none" };
     expect(await motion(page.locator('progress[data-key="project"]'))).toEqual(expected);
     expect(await motion(feature(page, "002-beta"))).toEqual(expected);
-    expect(await motion(feature(page, "002-beta").locator(":scope > ul"))).toEqual(expected);
+    expect(await motion(feature(page, "002-beta").locator(':scope > ul[data-part="phases"]'))).toEqual(expected);
     expect(await motion(summaryOf(page, "002-beta"))).toEqual(expected);
     // Opening an item does not start an animation either.
     await summaryOf(page, "003-gamma").click();
-    expect(await motion(feature(page, "003-gamma").locator(":scope > ul"))).toEqual(expected);
+    expect(await motion(feature(page, "003-gamma").locator(':scope > ul[data-part="phases"]'))).toEqual(expected);
   } finally {
     await context.close();
   }

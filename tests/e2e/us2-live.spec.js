@@ -137,9 +137,47 @@ test("US2 AC3 changed items are highlighted and the bar moves to its new value",
   await expect(task).not.toHaveAttribute("data-changed", { timeout: 3_000 });
 });
 
-test("US2 AC4 an open artifact page shows new content within 2 s", async () => {
-  // Artifact pages arrive with US3 (T045–T058).
-  test.fixme(true, "needs artifact pages from US3");
+test("US2 AC4 an open artifact page shows new content within 2 s", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 400 });
+  const dir = await copyFixture("mixed");
+  const plan = path.join(dir, "specs", "001-alpha", "plan.md");
+  const long = (extra) =>
+    ["# Implementation Plan: Alpha", "", ...Array.from({ length: 60 }, (_, i) => `Paragraph ${i + 1}.\n`), extra].join("\n");
+  await writeFile(plan, long("Old ending."));
+  server = await startServe(dir);
+  const connected = page.waitForResponse((r) => r.url().endsWith("/__events"));
+  await page.goto(`${server.url}features/001-alpha/plan.html`);
+  await connected;
+  const article = page.locator('article[data-region="artifact"]');
+  await expect(article).toContainText("Old ending.");
+
+  await page.evaluate(() => window.scrollTo(0, 600));
+  const scrollY = await page.evaluate(() => window.scrollY);
+  expect(scrollY).toBeGreaterThan(100);
+
+  await writeFile(plan, long("New ending."));
+  await expect(article).toContainText("New ending.", { timeout: LIVE_MS });
+  await expect(article).not.toContainText("Old ending.");
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
+});
+
+test("US2 FR-026 a deleted artifact's open page shows a notice linking to the overview", async ({ page }) => {
+  const dir = await copyFixture("mixed");
+  const research = path.join(dir, "specs", "002-beta", "research.md");
+  await writeFile(research, "# Research: Beta\n\nFindings.\n");
+  server = await startServe(dir);
+  const connected = page.waitForResponse((r) => r.url().endsWith("/__events"));
+  await page.goto(`${server.url}features/002-beta/research.html`);
+  await connected;
+  await expect(page.locator('article[data-region="artifact"]')).toContainText("Findings.");
+
+  await rm(research);
+  const notice = page.locator('[data-region="not-found"]');
+  await expect(notice).toBeVisible({ timeout: LIVE_MS });
+  const link = notice.getByRole("link", { name: "Back to the overview" });
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page.locator('[data-region="progress"]')).toBeVisible();
 });
 
 test("US2 AC5 a new feature folder appears without a restart", async ({ page }) => {

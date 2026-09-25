@@ -6,7 +6,18 @@ import { html } from "../../src/render/html.js";
 function project(overrides = {}) {
   return {
     name: "my-proj",
-    features: [],
+    features: [
+      {
+        dir: "001-full",
+        title: "Full <Feature>",
+        artifacts: [
+          { kind: "spec", title: "Spec", source: "specs/001-full/spec.md", url: "features/001-full/spec.html" },
+          { kind: "plan", title: "Plan", source: "specs/001-full/plan.md", url: "features/001-full/plan.html" },
+          { kind: "contract", title: "CLI", source: "specs/001-full/contracts/cli.md", url: "features/001-full/contracts/cli.html" },
+        ],
+      },
+      { dir: "002-bare", title: "Bare", artifacts: [] },
+    ],
     constitution: { kind: "constitution", title: "C", source: ".specify/memory/constitution.md", url: "constitution.html" },
     assessments: [
       {
@@ -35,6 +46,15 @@ const page = (opts = {}) =>
     ...opts,
   });
 
+/** The header's link bar (the first <nav> in the header, not the menu). */
+const headerNav = (doc) => {
+  const header = doc.slice(doc.indexOf("<header"), doc.indexOf("</header>"));
+  return header.slice(header.indexOf("<nav>"), header.indexOf("</nav>"));
+};
+
+/** The menu element. */
+const menu = (doc) => doc.slice(doc.indexOf('<details data-region="menu">'), doc.indexOf("</details>") + "</details>".length);
+
 /** Every href/src attribute value in the document. */
 const urls = (doc) => [...doc.matchAll(/\s(?:href|src)="([^"]*)"/g)].map((m) => m[1]);
 
@@ -59,17 +79,17 @@ describe("renderPage", () => {
 
   test("header links to the constitution and each assessment's first artifact", () => {
     const doc = page();
-    const header = doc.slice(doc.indexOf("<header"), doc.indexOf("</header>"));
+    const header = headerNav(doc);
     assert.match(header, /href="\/constitution.html"/);
     assert.match(header, /href="\/assessments\/dash\/intake.html"/);
     assert.doesNotMatch(header, /decision.html/);
     assert.doesNotMatch(header, /empty/);
   });
 
-  test("no constitution and no assessments → only the project link", () => {
-    const doc = page({ project: project({ constitution: null, assessments: [] }) });
+  test("no constitution, assessments or features → only overview links", () => {
+    const doc = page({ project: project({ constitution: null, assessments: [], features: [] }) });
     const header = doc.slice(doc.indexOf("<header"), doc.indexOf("</header>"));
-    assert.deepEqual(urls(header), ["/index.html"]);
+    assert.deepEqual(urls(header), ["/index.html", "/index.html", "/index.html"]);
   });
 
   test("stylesheet and overview script", () => {
@@ -124,5 +144,47 @@ describe("renderPage", () => {
 
   test("no inline style attributes (serve-mode CSP)", () => {
     assert.doesNotMatch(page(), /\sstyle=/);
+  });
+
+  test("an always-visible Overview link in the header (FR-025)", () => {
+    const nav = headerNav(page({ base: "/repo/" }));
+    assert.match(nav, /<a href="\/repo\/index.html" data-part="overview-link">Overview<\/a>/);
+  });
+
+  test("the menu is a <details> in the header that works without scripts (FR-022, FR-025)", () => {
+    const doc = page();
+    const header = doc.slice(doc.indexOf("<header"), doc.indexOf("</header>"));
+    assert.match(header, /<details data-region="menu">\n<summary>Menu<\/summary>/);
+    assert.doesNotMatch(menu(doc), /\sopen[\s>]/);
+  });
+
+  test("the menu lists overview, constitution, assessments and features with their artifacts, in order", () => {
+    const m = menu(page());
+    assert.deepEqual(urls(m), [
+      "/index.html",
+      "/constitution.html",
+      "/assessments/dash/intake.html",
+      "/assessments/dash/decision.html",
+      "/features/001-full/spec.html",
+      "/features/001-full/plan.html",
+      "/features/001-full/contracts/cli.html",
+    ]);
+    assert.match(m, /<a href="\/constitution.html">Constitution<\/a>/);
+    assert.match(m, /<span data-part="group-title">Assessment: dash<\/span><ul><li><a href="\/assessments\/dash\/intake.html">Intake<\/a><\/li>/);
+    assert.match(m, /<li data-part="group" data-key="001-full"><span data-part="group-title">Full &lt;Feature&gt;<\/span>/);
+    // Groups without artifacts are left out.
+    assert.doesNotMatch(m, /Assessment: empty/);
+    assert.doesNotMatch(m, /Bare/);
+  });
+
+  test("the menu uses the base path and is the same on every mode", () => {
+    const m = menu(page({ base: "/repo/", mode: "static" }));
+    for (const u of urls(m)) assert.ok(u.startsWith("/repo/"), u);
+    assert.equal(menu(page({ mode: "static" })), menu(page()));
+  });
+
+  test("the menu without constitution, assessments or features has only the overview", () => {
+    const m = menu(page({ project: project({ constitution: null, assessments: [], features: [] }) }));
+    assert.deepEqual(urls(m), ["/index.html"]);
   });
 });

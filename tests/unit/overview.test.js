@@ -286,6 +286,75 @@ describe("renderOverview: feature tree (T023)", () => {
   });
 });
 
+/** The HTML inside the feature `<details>` with `dir`, up to its phases list. */
+function featureHead(doc, dir) {
+  const start = doc.indexOf(`<details data-key="${dir}"`);
+  assert.ok(start >= 0, `feature ${dir} present`);
+  const rest = doc.slice(start);
+  const end = rest.search(/<ul data-part="phases">|<p data-part="no-tasks">/);
+  return rest.slice(0, end);
+}
+
+const hrefs = (part) => [...part.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+
+const FULL = {
+  "specs/001-full/tasks.md": "## Phase 1: Setup\n- [ ] T001 one",
+  "specs/001-full/checklists/requirements.md": "# Requirements\n- [x] CHK001 x",
+  "specs/001-full/run-log.md": "# Run Log",
+  "specs/001-full/quickstart.md": "# Quickstart",
+  "specs/001-full/contracts/cli.md": "# CLI <Contract>",
+  "specs/001-full/spec.md": "# Feature Specification: Full",
+  "specs/001-full/data-model.md": "# Data Model",
+  "specs/001-full/decisions.md": "# Decisions",
+  "specs/001-full/plan.md": "# Plan",
+  "specs/001-full/research.md": "# Research",
+  "specs/002-partial/spec.md": "# Feature Specification: Partial",
+  "specs/002-partial/plan.md": "# Partial plan",
+};
+
+describe("renderOverview: artifact links (T049, US3)", () => {
+  test("every present artifact is linked inside its feature, in data-model order, above the phases (AC1)", async () => {
+    const doc = render(await model(FULL));
+    const head = featureHead(doc, "001-full");
+    assert.match(head, /<\/summary>\n<ul data-part="artifacts">/);
+    assert.deepEqual(hrefs(head), [
+      "/features/001-full/spec.html",
+      "/features/001-full/plan.html",
+      "/features/001-full/research.html",
+      "/features/001-full/data-model.html",
+      "/features/001-full/quickstart.html",
+      "/features/001-full/tasks.html",
+      "/features/001-full/contracts/cli.html",
+      "/features/001-full/checklists/requirements.html",
+      "/features/001-full/decisions.html",
+      "/features/001-full/run-log.html",
+    ]);
+    assert.match(head, /<a href="\/features\/001-full\/contracts\/cli.html" data-kind="contract">CLI &lt;Contract&gt;<\/a>/);
+    assert.ok(doc.indexOf('data-part="artifacts"') < doc.indexOf('data-part="phases"'));
+  });
+
+  test("no link for missing artifacts (AC5)", async () => {
+    const head = featureHead(render(await model(FULL)), "002-partial");
+    assert.deepEqual(hrefs(head), ["/features/002-partial/spec.html", "/features/002-partial/plan.html"]);
+    assert.doesNotMatch(head, /research|tasks\.html/);
+  });
+
+  test("a feature with no Markdown files has no artifact list", async () => {
+    const doc = render(await model({ "specs/001-x/notes.txt": "x" }));
+    assert.doesNotMatch(featureHead(doc, "001-x"), /data-part="artifacts"/);
+  });
+
+  test("links use the base path", async () => {
+    const doc = renderOverview(await model(FULL), { base: "/repo/" }).value;
+    for (const h of hrefs(featureHead(doc, "001-full"))) assert.ok(h.startsWith("/repo/features/001-full/"), h);
+  });
+
+  test("checklist checkboxes do not count as tasks", async () => {
+    const doc = render(await model(FULL));
+    assert.match(regionHtml(doc, "progress"), /0 \/ 1 tasks/);
+  });
+});
+
 describe("renderOverview: task grid (T024)", () => {
   test("one square per task in tree order with state, parents and title", async () => {
     const doc = render(await model(MIXED));
