@@ -10,7 +10,7 @@
 export const CSP = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:";
 
 /** Headers sent with every response. */
-export const BASE_HEADERS = Object.freeze({
+const BASE_HEADERS = Object.freeze({
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
   "Content-Security-Policy": CSP,
@@ -80,7 +80,7 @@ function send(res, status, method, type, body, extra = {}) {
 }
 
 /** Route of the live-update stream (serve mode only, contracts/routes.md). */
-export const EVENTS_KEY = "__events";
+const EVENTS_KEY = "__events";
 
 /**
  * @typedef {object} EventsHub

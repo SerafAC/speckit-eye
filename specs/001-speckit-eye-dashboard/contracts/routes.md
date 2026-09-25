@@ -32,10 +32,12 @@ Response headers (serve mode): `Content-Type` by extension, `Cache-Control: no-s
                                          <summary> title · stage · "N open / M" </summary>
                                          links to artifacts
                                          <details data-key="<phaseKey>" …> (merged phase+story title when single story)
-                                           [<details data-key="<groupKey>">] tasks <li data-key="<taskKey>" data-state=…>
-    <div data-region="grid">           <a data-key="<taskKey>" data-state="completed|current|blocked|future"
+                                           [<details data-key="<groupKey>">] tasks <li data-key="<taskKey>" data-state=… id="task-…">
+    <div data-region="grid">           <a href="#<task li id>" data-key="<taskKey>" data-state="completed|current|blocked|future"
                                           data-parents="<featureDir> <phaseKey> [groupKey]"
                                           title="T012 · description — feature › phase"></a> …
+         [data-layout="rows"]          > 1,000 tasks: <div data-part="row"> label + <div data-part="cells"> squares per feature
+         [data-layout="bars"]          > 5,000 tasks: <a data-part="bar" href="#<feature id>"> label + <progress data-key="<featureDir>">
   </main>
   <div data-region="live-status" hidden>Live updates paused — reconnecting…</div>  (serve only)
   <footer> generated at <ISO time> (static) · version

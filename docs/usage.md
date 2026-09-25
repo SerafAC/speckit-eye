@@ -26,7 +26,7 @@ npx speckit-eye --serve path/to/project
 The tool prints the address to open:
 
 ```text
-speckit-eye 0.1.0 — serving /path/to/project
+speckit-eye 1.0.0 — serving /path/to/project
   Local: http://127.0.0.1:4747/
   Watching specs/ and .specify/ for changes (Ctrl+C to stop)
 ```
@@ -59,7 +59,7 @@ npx speckit-eye --build . --out _site --base /my-repo/
 It prints a summary:
 
 ```text
-speckit-eye 0.1.0 — building /path/to/project → _site (base /my-repo/)
+speckit-eye 1.0.0 — building /path/to/project → _site (base /my-repo/)
   wrote 37 pages
   2 warnings (see above)
   Note: this site includes every spec, plan, research note, the constitution and assessments.
@@ -98,9 +98,27 @@ hosted build exposes and a sample GitHub Pages workflow.
   Enter on it) to open or close it.
 - **Task grid** (right): one small square per task, in the same order as the
   tree, colored by state. Hover a square to see the task ID and description;
-  its feature and phase are outlined in the tree.
+  its feature and phase are outlined in the tree. Click a square (or press
+  Enter on it) to jump to that task in the tree: its feature, phase and story
+  open, the tree scrolls to the task, and the task is outlined until your next
+  click. This also works with JavaScript turned off, for example on a hosted
+  static build; the browser then jumps to the task without the smooth scroll.
 
 On a narrow screen the tree comes first and the grid below it.
+
+### Large projects
+
+The grid changes shape as the total number of tasks grows, so it stays
+readable:
+
+| Tasks in the project | The grid shows |
+|---|---|
+| up to 1,000 | one square per task, as above |
+| 1,001 to 5,000 | one row per feature, labelled with its title, with smaller squares; hover and click work as above |
+| more than 5,000 | one progress bar per feature, labelled "title · done / total"; click a bar to jump to the feature in the tree |
+
+Features without tasks have no row or bar. The tree is the same in all three
+cases.
 
 ### Stage labels
 
