@@ -12,6 +12,7 @@
 import { createPrefs, browserStorage, ALLOWED } from "./prefs.js";
 import * as tree from "./tree.js";
 import * as taskmap from "./taskmap.js";
+import * as feature from "./feature.js";
 
 /**
  * @typedef {object} Deps
@@ -49,13 +50,21 @@ const treeModule = { name: "tree", init: tree.init, save: tree.save };
 const taskmapModule = { name: "taskmap", init: taskmap.init };
 
 /**
+ * The feature page: phase rail ↔ list, filters, selection, detail panel,
+ * "Copy ID" and the `#task-…` address (src/client/feature.js). Its filters
+ * and selected task are page-local state kept across live swaps.
+ * @type {PageModule}
+ */
+const featureModule = { name: "feature", init: feature.init, save: feature.save };
+
+/**
  * The modules run on each page type; `all` runs on every page first.
  * @type {Record<"overview" | "feature" | "document" | "all", PageModule[]>}
  */
 export const MODULES = {
   all: [],
   overview: [treeModule, taskmapModule],
-  feature: [],
+  feature: [featureModule],
   document: [],
 };
 

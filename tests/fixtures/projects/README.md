@@ -48,7 +48,14 @@ Phases and stories:
 | `003-gamma/p2` | User Story 1 … | 0/10 | merged `US1` (Gamma import, P1) |
 
 Active selection: feature `002-beta`, phase `002-beta/p3`, no story label
-(the phase has no groups), next task `002-beta/T011` ("List paging").
+(the phase has no groups), next task `002-beta/T011` ("List paging in `src/list.go`").
+
+File paths in `002-beta` task texts (for the feature page's kind, file and
+Tests chips; FR-034, FR-035): `T009` `web/List.vue` (Vue), `T010`
+`src/list_test.go` (Go test), `T011` `src/list.go` (Go), `T012` `src/list.go`
+and `src/list_test.go` (Go, "2 files"), `T016` `src/detail_test.go` (Go test).
+Feature page chips: All 20, Open 10, Tests 2, Vue 1, Go 4. `T018` is on line
+31 of `tasks.md`.
 
 Task states in `002-beta`: `T001`–`T010` completed, `T011` current, `T018`
 ("Search box, depends on T011") **blocked** because `T011` is open, every
@@ -166,7 +173,7 @@ shares are the `w-pct-N` widths, in folder order, of the features with tasks.
 
 | Fixture | Percent | Detail | Features | Phases | Open tasks | Up next |
 |---|---|---|---|---|---|---|
-| `mixed` | 62 % | 40 of 65 tasks | 1 / 4, 1 in progress | 5 / 9, 4 remaining | 25, across 2 features | `002-beta` T011 "List paging" |
+| `mixed` | 62 % | 40 of 65 tasks | 1 / 4, 1 in progress | 5 / 9, 4 remaining | 25, across 2 features | `002-beta` T011 "List paging in `src/list.go`" |
 | `complete` | 100 % | 8 of 8 tasks | 2 / 2, 0 in progress | 4 / 4, 0 remaining | 0, across 0 features | none: "Every task is complete" (`data-empty="complete"`) |
 | `empty` | 0 % | 0 of 0 tasks | 0 / 0, 0 in progress | 0 / 0, 0 remaining | 0, across 0 features | none: "No tasks yet" (`data-empty="no-tasks"`); no segments, empty-state text |
 | `nonstandard` | 56 % | 5 of 9 tasks | 0 / 2, 1 in progress | 2 / 4, 2 remaining | 4, across 1 feature | `001-odd` T004 |

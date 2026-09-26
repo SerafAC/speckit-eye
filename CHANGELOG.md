@@ -62,3 +62,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tree. Clicking, tapping or pressing Enter on a square reveals the task in
   the tree: its feature and phase open, the tree scrolls to it and the row
   stays outlined.
+- Added: a page per feature. Its header shows the status pill, folder name,
+  title, "done / total tasks · completed of total phases" and a progress ring
+  with a check mark when the feature is complete. Tabs lead to Tasks and to
+  each existing document (Specification, Plan, Research, Data model,
+  Quickstart, Contracts, checklists, More); a tab with several documents
+  lists them without leaving the page.
+- Added: on the Tasks tab, a phase rail with one block per phase sized by its
+  task count; choosing a block or a phase opens it and closes the others, and
+  choosing it again closes it. Warnings appear as an amber banner with line
+  numbers and "Show lines".
+- Added: task filters on the feature page: All, Open, Tests and one chip per
+  kind of file (for example Go, Vue), each with its count, plus a text filter
+  over IDs, task text and file names, and "Expand all" / "Collapse all".
+- Added: task rows show the task text with its inline formatting and FR/SC
+  chips, plus a kind chip ("Go test", "Vue") and a file chip ("list.go",
+  "2 files") aligned in columns. Clicking a row expands it in place and opens
+  a detail panel with status, full text, phase, markers, file paths and, for
+  blocked tasks, "Waiting on …"; "Copy ID" copies the task ID and "View
+  source line" opens `tasks.md` at that line, highlighted.
+- Added: every task has its own address on its feature page; opening it (for
+  example from "View task" or a task ID in the tree) shows the task open,
+  selected and in view.

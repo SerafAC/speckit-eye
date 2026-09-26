@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import { Window } from "happy-dom";
 import { MODULES, start, save, reinit, initShell } from "../../src/client/app.js";
 import { createPrefs } from "../../src/client/prefs.js";
+import { renderFeaturePage } from "../../src/render/feature.js";
+import { buildModel } from "../../src/model/build-model.js";
+import { scan } from "../../src/project/scan.js";
+import { createFakeReader } from "./fake-reader.js";
 
 const THEME = `<div role="group" aria-label="Theme" data-part="theme" hidden>
 <button type="button" aria-pressed="false" data-theme-choice="light"></button>
@@ -85,9 +89,10 @@ describe("start", () => {
     assert.deepEqual(log.map(([n]) => n), ["a"]);
   });
 
-  test("the default table runs tree.js and taskmap.js on the overview only", () => {
+  test("the default table runs tree.js and taskmap.js on the overview and feature.js on the feature page", () => {
     assert.deepEqual(MODULES.overview.map((m) => m.name), ["tree", "taskmap"]);
-    assert.deepEqual([...MODULES.all, ...MODULES.feature, ...MODULES.document], []);
+    assert.deepEqual(MODULES.feature.map((m) => m.name), ["feature"]);
+    assert.deepEqual([...MODULES.all, ...MODULES.document], []);
     const w = page("overview");
     w.document.querySelector("main").innerHTML = `${TREE}<section data-region="taskmap" data-layout="stacked"><header><button type="button" data-part="map-mode" aria-pressed="false" hidden><span data-part="mode-label">By feature</span></button></header><div data-part="card"><div data-part="grid"><a data-key="002-b/T1" data-state="next" data-parents="002-b 002-b/p1" href="#b-t1" title="T1 · Next — t — B"></a></div></div></section>`;
     const storage = memoryStorage({ "sk-map": "grouped" });
@@ -118,6 +123,36 @@ describe("start", () => {
     doc.querySelector('button[data-part="order"]').click();
     assert.equal(storage.data.get("sk-order"), "progress");
     assert.deepEqual(featureOrder(doc), ["002-b", "001-a"]);
+  });
+
+  test("the default table wires the feature page: filter bar shown, #task-… address selected, state kept across a live swap", async () => {
+    const m = buildModel(
+      await scan(
+        createFakeReader({
+          "specs/002-beta/spec.md": "# Feature Specification: Beta",
+          "specs/002-beta/tasks.md": "## Phase 1: Setup\n- [x] T001 Create `src/list.go`\n- [ ] T002 List tests in `src/list_test.go`\n- [ ] T003 Docs",
+        }),
+        "proj",
+      ),
+    );
+    const html = renderFeaturePage(m.features[0], m, { base: "/" }).value;
+    const w = new Window({ url: "http://localhost/features/002-beta/index.html" });
+    windows.push(w);
+    const doc = w.document;
+    doc.body.dataset.page = "feature";
+    doc.body.innerHTML = `<main>${html}</main>`;
+    const key = doc.querySelector('details[data-part="task"][data-id="T002"]').id;
+    w.location.hash = `#${key}`;
+    start({ document: doc, window: w, storage: memoryStorage() });
+    assert.equal(doc.querySelector('[data-part="filters"]').hidden, false);
+    const row = doc.querySelector('details[data-part="task"][data-id="T002"]');
+    assert.equal(row.open, true);
+    assert.ok(row.hasAttribute("data-selected"));
+    const state = save(doc);
+    assert.equal(state.feature.selected, row.getAttribute("data-key"));
+    doc.querySelector("main").innerHTML = html;
+    reinit(doc, state);
+    assert.ok(doc.querySelector('details[data-part="task"][data-id="T002"]').hasAttribute("data-selected"));
   });
 
   test("the tree's depth survives a live swap through save and reinit", () => {
