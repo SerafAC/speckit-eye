@@ -39,6 +39,8 @@ import { applyTaskStates } from "./task-state.js";
  * @property {string[]} dependsOn
  * @property {number} line
  * @property {string} key
+ * @property {string} anchor `task-` + key with `/` and `@` replaced by `-`
+ *   (page fragment on the tree, the map and the feature page)
  * @property {"completed" | "current" | "blocked" | "future" | null} state set by applyTaskStates
  * @property {"done" | "next" | "blocked" | "open"} [display] `state` under the
  *   redesign's names, set by applyTaskStates
@@ -72,6 +74,27 @@ import { applyTaskStates } from "./task-state.js";
 
 /** @typedef {"empty" | "specified" | "planned" | "ready" | "in-progress" | "complete"} Stage */
 
+/** @typedef {"done" | "in-progress" | "not-started" | "no-tasks"} FeatureStatus */
+
+/**
+ * @typedef {object} DocumentGroup
+ * @property {string} name
+ * @property {Artifact[]} items
+ */
+
+/**
+ * @typedef {object} DocumentTab
+ * @property {string} label
+ * @property {number} count number of documents behind the tab
+ * @property {Artifact[]} items
+ */
+
+/**
+ * @typedef {object} DocumentGroups
+ * @property {DocumentGroup[]} groups reader groups, empty ones left out
+ * @property {DocumentTab[]} tabs feature-page tabs in display order
+ */
+
 /**
  * @typedef {object} Feature
  * @property {string} dir
@@ -82,6 +105,10 @@ import { applyTaskStates } from "./task-state.js";
  * @property {boolean} hasTasks
  * @property {Counts} counts
  * @property {Stage} stage
+ * @property {string | null} number numeric or timestamp prefix of `dir`
+ * @property {FeatureStatus} status
+ * @property {string} statusLabel pill text (data-model FeatureStatus)
+ * @property {DocumentGroups} documents reader groups and feature-page tabs
  * @property {Warning[]} warnings
  * @property {string} [sig]
  */
@@ -100,6 +127,8 @@ import { applyTaskStates } from "./task-state.js";
  * @property {Feature[]} features
  * @property {Artifact | null} constitution
  * @property {{slug: string, artifacts: Artifact[]}[]} assessments
+ * @property {{groups: DocumentGroup[]}} documents project document list:
+ *   "Project" (constitution) and one group per assessment
  * @property {import("./active.js").ActiveSelection} active
  * @property {Totals} totals
  * @property {Warning[]} warnings
@@ -156,6 +185,123 @@ export function deriveStage({ hasSpec, hasPlan, hasTasks, counts }) {
   return "empty";
 }
 
+/** Stage → FeatureStatus (data-model FeatureStatus). */
+const STATUS_OF_STAGE = Object.freeze({
+  complete: "done",
+  "in-progress": "in-progress",
+  ready: "not-started",
+  empty: "no-tasks",
+  specified: "no-tasks",
+  planned: "no-tasks",
+});
+
+/** Pill label of a feature without tasks: its stage. */
+const STAGE_LABEL = Object.freeze({ empty: "Empty", specified: "Specified", planned: "Planned" });
+
+/**
+ * @param {Stage} stage
+ * @returns {FeatureStatus}
+ */
+export function featureStatus(stage) {
+  return /** @type {FeatureStatus} */ (STATUS_OF_STAGE[stage]);
+}
+
+/**
+ * The status pill text: "Complete", "N open", "Ready" ("N open" for the
+ * active feature) or the stage label for a feature without tasks.
+ * @param {{stage: Stage, counts: Counts}} feature
+ * @param {boolean} active
+ * @returns {string}
+ */
+export function featureStatusLabel({ stage, counts }, active) {
+  switch (featureStatus(stage)) {
+    case "done":
+      return "Complete";
+    case "in-progress":
+      return `${counts.open} open`;
+    case "not-started":
+      return active ? `${counts.open} open` : "Ready";
+    default:
+      return STAGE_LABEL[/** @type {"empty" | "specified" | "planned"} */ (stage)];
+  }
+}
+
+/**
+ * The feature number chip: leading digits of the folder name (`001-x` →
+ * `"001"`), or its timestamp prefix (`20250101-123456-x` →
+ * `"20250101-123456"`); null without a numeric prefix.
+ * @param {string} dir
+ * @returns {string | null}
+ */
+export function featureNumber(dir) {
+  const m = /^(\d{8}-\d{6}|\d+)(?=-|$)/.exec(dir);
+  return m ? m[1] : null;
+}
+
+/**
+ * @param {string} key
+ * @returns {string}
+ */
+export function taskAnchor(key) {
+  return `task-${key.replace(/[/@]/g, "-")}`;
+}
+
+/** @type {Readonly<Record<string, string>>} */
+const GROUP_OF_KIND = Object.freeze({
+  spec: "Define",
+  checklist: "Define",
+  plan: "Design",
+  research: "Design",
+  "data-model": "Design",
+  quickstart: "Design",
+  contract: "Contracts",
+  tasks: "Build",
+});
+const GROUP_ORDER = ["Define", "Design", "Contracts", "Build", "Other"];
+
+/** Single-document tabs, in tab order. */
+/** @type {[string, string][]} */
+const SINGLE_TABS = [
+  ["spec", "Specification"],
+  ["plan", "Plan"],
+  ["research", "Research"],
+  ["data-model", "Data model"],
+  ["quickstart", "Quickstart"],
+];
+
+/**
+ * Places a feature's artifacts (already in 001 order) into the reader groups
+ * and the feature-page tabs (data-model DocumentGroups).
+ * @param {Artifact[]} artifacts
+ * @param {string} dir
+ * @returns {DocumentGroups}
+ */
+export function featureDocuments(artifacts, dir) {
+  const groups = GROUP_ORDER.map((name) => ({
+    name,
+    items: artifacts.filter((a) => (GROUP_OF_KIND[a.kind] ?? "Other") === name),
+  })).filter((g) => g.items.length > 0);
+
+  const ofKind = (/** @type {string} */ kind) => artifacts.filter((a) => a.kind === kind);
+  /** @type {DocumentTab[]} */
+  const tabs = [];
+  for (const [kind, label] of SINGLE_TABS) {
+    const items = ofKind(kind);
+    if (items.length > 0) tabs.push({ label, count: items.length, items });
+  }
+  const contracts = ofKind("contract");
+  if (contracts.length > 0) tabs.push({ label: "Contracts", count: contracts.length, items: contracts });
+  const checklists = ofKind("checklist");
+  if (checklists.length === 1 && checklists[0].source === `specs/${dir}/checklists/requirements.md`) {
+    tabs.push({ label: "Quality checklist", count: 1, items: checklists });
+  } else if (checklists.length > 0) {
+    tabs.push({ label: "Checklists", count: checklists.length, items: checklists });
+  }
+  const other = artifacts.filter((a) => !(a.kind in GROUP_OF_KIND));
+  if (other.length > 0) tabs.push({ label: "More", count: other.length, items: other });
+  return { groups, tabs };
+}
+
 /**
  * @param {string} dir
  * @param {Map<string, string>} files
@@ -187,7 +333,7 @@ function buildFeature(dir, files, scanWarnings) {
   for (const t of parsed.tasks) {
     let key = `${dir}/${t.id ?? `L${t.line}`}`;
     if (t.id !== null && idRepeated(t.id)) key += `@L${t.line}`;
-    taskOf.set(t, { ...t, dependsOn: [...t.dependsOn], key, state: null });
+    taskOf.set(t, { ...t, dependsOn: [...t.dependsOn], key, anchor: taskAnchor(key), state: null });
   }
 
   const phases = parsed.phases.map((p) => {
@@ -243,6 +389,8 @@ function buildFeature(dir, files, scanWarnings) {
   );
   const warnings = [...scanWarnings, ...parsed.warnings, ...w4].sort(compareWarnings);
 
+  const stage = deriveStage({ hasSpec: files.has("spec.md"), hasPlan: files.has("plan.md"), hasTasks, counts });
+  const status = featureStatus(stage);
   return {
     dir,
     title: spec.title ?? dir,
@@ -251,7 +399,12 @@ function buildFeature(dir, files, scanWarnings) {
     phases,
     hasTasks,
     counts,
-    stage: deriveStage({ hasSpec: files.has("spec.md"), hasPlan: files.has("plan.md"), hasTasks, counts }),
+    stage,
+    number: featureNumber(dir),
+    status,
+    // Recomputed for the active feature once the selection is known (buildModel).
+    statusLabel: featureStatusLabel({ stage, counts }, false),
+    documents: featureDocuments(artifacts, dir),
     warnings,
   };
 }
@@ -315,6 +468,12 @@ export function buildModel(scanResult) {
     features,
     constitution,
     assessments,
+    documents: {
+      groups: [
+        ...(constitution ? [{ name: "Project", items: [constitution] }] : []),
+        ...assessments.map((a) => ({ name: `Assessment: ${a.slug}`, items: a.artifacts })),
+      ],
+    },
     active: /** @type {any} */ (null),
     totals: computeTotals(features),
     warnings: scanWarnings.filter((w) => !claimed.has(w)),
@@ -323,5 +482,6 @@ export function buildModel(scanResult) {
     featureDirectory: scanResult.featureDirectory ?? null,
     gitBranch: scanResult.gitBranch ?? null,
   });
+  for (const f of features) f.statusLabel = featureStatusLabel(f, f.dir === project.active.featureDir);
   return applyTaskStates(project);
 }
