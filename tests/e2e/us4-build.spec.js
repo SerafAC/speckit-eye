@@ -78,7 +78,7 @@ test("US4 AC1 FR-003 build writes the overview and one page per artifact and exi
   const files = await listFiles(out);
   expect(files.filter((f) => f.endsWith(".html")).sort()).toEqual([...PAGES].sort());
   expect(files).toContain("assets/styles.css");
-  expect(files).toContain("assets/overview.js");
+  expect(files).toContain("assets/taskmap.js");
   expect(files).toContain("assets/app.js");
   expect(files).toContain("assets/theme.js");
   expect(files).toContain(".speckit-eye-build");
@@ -141,7 +141,7 @@ test("US4 AC3 FR-031 the overview matches serve mode, shows the generated time a
   const snapshot = async () => ({
     progress: await page.locator('[data-region="stats"]').innerText(),
     tree: await tree(page).evaluate((el) => el.textContent),
-    grid: await page.locator('[data-region="grid"]').evaluate((el) => ({
+    grid: await page.locator('[data-region="taskmap"] [data-part="grid"]').evaluate((el) => ({
       text: el.textContent,
       squares: [...el.querySelectorAll("a[data-key]")].map((a) => `${a.dataset.key}=${a.dataset.state}|${a.title}`),
     })),
@@ -197,7 +197,7 @@ test("US4 FR-037 expand and collapse work with JavaScript disabled", async ({ br
   await expect(details(page, "002-beta")).toHaveAttribute("open", "");
   // Grid colors come from the stylesheet alone.
   const colors = await page
-    .locator('[data-region="grid"] a[data-state]')
+    .locator('[data-region="taskmap"] [data-part="grid"] a[data-state]')
     .evaluateAll((els) => new Set(els.map((el) => getComputedStyle(el).backgroundColor)).size);
   expect(colors).toBeGreaterThanOrEqual(3);
 });

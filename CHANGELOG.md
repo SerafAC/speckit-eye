@@ -49,3 +49,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   amber warning rows with line chips and a "Details" link. The order and the
   filter are remembered in the browser; the tree scrolls inside its card when
   it is tall.
+- Added: the task map replaces the task grid. Every task, including checkboxes
+  without a task ID, is one square in folder order: done filled green, open
+  blue outline, next orange, and blocked tasks (waiting on an open task) in a
+  rose color shared with the tree. A legend counts each state. "By feature"
+  groups the squares per feature and "Stack all" restores one field; the
+  choice is remembered in the browser, and large projects open "By feature"
+  (above 1,000 tasks) or as one bar per feature (above 5,000).
+- Added: hovering a square grows it and, after half a second, shows a dark
+  tooltip with the task ID, status, text and feature (at once on keyboard
+  focus, never on touch); its feature, phase and task rows are tinted in the
+  tree. Clicking, tapping or pressing Enter on a square reveals the task in
+  the tree: its feature and phase open, the tree scrolls to it and the row
+  stays outlined.

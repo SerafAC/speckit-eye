@@ -24,7 +24,7 @@ const ASSETS = {
     "app.js": "export const app = 1;",
     "prefs.js": "export const prefs = 1;",
     "live.js": "export const live = 1;",
-    "overview.js": "export const x = 1;",
+    "taskmap.js": "export const x = 1;",
   },
   fonts: { "geist-latin-wght-normal.woff2": WOFF2, "OFL-geist.txt": "SIL Open Font License" },
 };
@@ -33,9 +33,9 @@ const ASSET_KEYS = [
   "assets/app.js",
   "assets/fonts/OFL-geist.txt",
   "assets/fonts/geist-latin-wght-normal.woff2",
-  "assets/overview.js",
   "assets/prefs.js",
   "assets/styles.css",
+  "assets/taskmap.js",
   "assets/theme.js",
 ];
 
@@ -86,7 +86,7 @@ describe("renderSite", () => {
     assert.match(body, /<body data-mode="serve" data-version="9\.9\.9" data-page="overview" data-base="\/">/);
     assert.match(body, /<main><header data-region="page-head">/);
     assert.match(body, /<div data-region="tree" data-keep-scroll="tree" data-filter="all">/);
-    assert.match(body, /<div data-region="grid">/);
+    assert.match(body, /<section data-region="taskmap" data-layout="stacked"/);
     assert.match(body, /50 %<\/span><span data-part="detail">1 of 2 tasks</);
     assert.match(body, /two &lt;b&gt;/);
     assert.doesNotMatch(body, /two <b>/);

@@ -7,10 +7,7 @@ import {
   phaseItems,
   featureStatus,
   elementIds,
-  gridLayout,
   ORDER_LABELS,
-  GRID_ROWS_THRESHOLD,
-  GRID_BARS_THRESHOLD,
 } from "../../src/render/overview.js";
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
@@ -94,7 +91,7 @@ function regionHtml(doc, region) {
   const start = doc.indexOf(`data-region="${region}"`);
   assert.ok(start >= 0, `region ${region} present`);
   const rest = doc.slice(start);
-  if (region === "tree") return rest.slice(0, rest.indexOf('data-region="map-column"'));
+  if (region === "tree") return rest.slice(0, rest.indexOf('data-region="taskmap"'));
   if (region === "stats" || region === "up-next") return rest.slice(0, rest.indexOf("</section>"));
   if (region === "page-head") return rest.slice(0, rest.indexOf("</header>"));
   return rest;
@@ -132,10 +129,10 @@ describe("renderOverview: page head (T027, FR-010)", () => {
     assert.match(head, /data-filter="open" aria-pressed="false">Open tasks only</);
   });
 
-  test("regions in order: page head, stats, up next, then tree left of the map column", async () => {
+  test("regions in order: page head, stats, up next, then tree left of the task map", async () => {
     const doc = render(await model(MIXED));
     const at = (r) => doc.indexOf(`data-region="${r}"`);
-    const order = ["page-head", "stats", "up-next", "columns", "features", "tree", "map-column", "grid"].map(at);
+    const order = ["page-head", "stats", "up-next", "columns", "features", "tree", "taskmap"].map(at);
     assert.ok(order.every((v) => v >= 0));
     assert.deepEqual([...order].sort((a, b) => a - b), order);
   });
@@ -458,51 +455,17 @@ describe("renderOverview: feature tree (T028)", () => {
   });
 });
 
-describe("renderOverview: task grid (T024)", () => {
-  test("one square per task in tree order with state, parents and title", async () => {
+describe("renderOverview: task map (T036)", () => {
+  test("the tree and the task map sit side by side in one columns wrapper", async () => {
     const doc = render(await model(MIXED));
-    const grid = regionHtml(doc, "grid");
-    const cells = [...grid.matchAll(/<a href="[^"]*" data-key="([^"]+)"[^>]*>/g)];
-    assert.equal(cells.length, 65);
-    const beta = cells.map((m) => m[1]).filter((k) => k.startsWith("002-beta/T0")).slice(13);
-    // Phase 4: US2 group, then US3 group (T017, T018, T020), then the unlabeled T019.
-    assert.deepEqual(beta, ["002-beta/T014", "002-beta/T015", "002-beta/T016", "002-beta/T017", "002-beta/T018", "002-beta/T020", "002-beta/T019"]);
-  });
-
-  test("cell attributes", async () => {
-    const doc = render(await model(MIXED));
-    const cell = tagOf(doc, "grid", "002-beta/T018");
-    assert.match(cell, /data-state="blocked"/);
-    assert.match(cell, /data-parents="002-beta 002-beta\/p4 002-beta\/p4\/US3"/);
-    assert.match(cell, /title="T018 · Search box, depends on T011 — Beta › Phase 4: Mixed"/);
-    const current = tagOf(doc, "grid", "002-beta/T011");
-    assert.match(current, /data-state="next"/);
-    assert.match(current, /data-parents="002-beta 002-beta\/p3"/);
-    assert.match(current, /title="T011 · List paging — Beta › Phase 3 · US1 – Beta listing \(P1\)"/);
-    assert.match(tagOf(doc, "grid", "001-alpha/T001"), /data-state="done"/);
-    assert.match(tagOf(doc, "grid", "003-gamma/T001"), /data-state="open"/);
-    assert.match(tagOf(doc, "grid", "002-beta/T019"), /data-parents="002-beta 002-beta\/p4"/);
-  });
-
-  test("escapes the title", async () => {
-    const doc = render(await model(MIXED));
-    assert.match(tagOf(doc, "grid", "002-beta/T019"), /title="T019 · Shared docs &lt;update&gt; — /);
-  });
-
-  test("empty grid for an empty project", async () => {
-    const doc = render(await model({ "specs/.gitkeep": "" }));
-    assert.match(doc, /<div data-region="grid"><\/div>/);
-  });
-
-  test("the tree and the grid sit side by side in one columns wrapper", async () => {
-    const doc = render(await model(MIXED));
-    assert.match(doc, /<div data-region="columns">\s*<section data-region="features"[\s\S]*<div data-region="tree"[\s\S]*<section data-region="map-column" aria-label="Task map">\s*<div data-region="grid">[\s\S]*<\/div>\s*<\/section>\s*<\/div>$/);
+    assert.match(doc, /<div data-region="columns">\s*<section data-region="features"[\s\S]*<div data-region="tree"[\s\S]*<section data-region="taskmap" data-layout="stacked"[\s\S]*<\/section>\s*<\/div>$/);
+    assert.doesNotMatch(doc, /data-region="grid"|data-region="map-column"/);
   });
 });
 
-describe("renderOverview: grid click targets (T071)", () => {
+describe("renderOverview: map click targets (T071)", () => {
   const treeIds = (doc) => [...regionHtml(doc, "tree").matchAll(/<li data-key="[^"]+" id="([^"]+)"/g)].map((m) => m[1]);
-  const hrefs = (doc) => [...regionHtml(doc, "grid").matchAll(/<a href="#([^"]+)" data-key/g)].map((m) => m[1]);
+  const hrefs = (doc) => [...regionHtml(doc, "taskmap").matchAll(/<a data-key="[^"]+"[^>]* href="#([^"]+)"/g)].map((m) => m[1]);
 
   test("every square's href matches exactly one tree task id", async () => {
     const doc = render(await model(MIXED));
@@ -511,7 +474,7 @@ describe("renderOverview: grid click targets (T071)", () => {
     assert.equal(targets.length, 65);
     for (const target of targets) assert.equal(ids.filter((id) => id === target).length, 1, target);
     assert.match(tagOf(doc, "tree", "002-beta/T018"), /id="task-002-beta-T018"/);
-    assert.match(tagOf(doc, "grid", "002-beta/T018"), /href="#task-002-beta-T018"/);
+    assert.match(tagOf(doc, "taskmap", "002-beta/T018"), /href="#task-002-beta-T018"/);
   });
 
   test("ids are unique for repeated task IDs", async () => {
@@ -524,7 +487,7 @@ describe("renderOverview: grid click targets (T071)", () => {
     for (const id of ids) assert.match(id, /^task-[A-Za-z0-9_-]+$/);
   });
 
-  test("features get an id for links from the bar layout", async () => {
+  test("features get an id for links from the map's bar layout", async () => {
     const doc = render(await model(MIXED));
     assert.match(tagOf(doc, "tree", "002-beta"), /id="feature-002-beta"/);
   });
@@ -540,66 +503,6 @@ describe("renderOverview: grid click targets (T071)", () => {
         ["ok_1", "task-ok_1"],
       ],
     );
-  });
-});
-
-describe("renderOverview: large grids (T073)", () => {
-  /** A project with `n` tasks spread over features of at most 400 tasks. */
-  async function big(n) {
-    const files = {};
-    let left = n;
-    for (let f = 1; left > 0; f++) {
-      const count = Math.min(400, left);
-      left -= count;
-      files[`specs/${String(f).padStart(3, "0")}-f/tasks.md`] = ["## Phase 1: Work", ...lines(count, Math.floor(count / 2))].join("\n");
-    }
-    files["specs/999-empty/spec.md"] = spec("Empty", [[1, "Nothing", "P1"]]);
-    return render(await model(files));
-  }
-  const gridOpen = (doc) => /<div data-region="grid"[^>]*>/.exec(doc)[0];
-
-  test("thresholds and gridLayout", () => {
-    assert.equal(GRID_ROWS_THRESHOLD, 1000);
-    assert.equal(GRID_BARS_THRESHOLD, 5000);
-    assert.equal(gridLayout(0), "single");
-    assert.equal(gridLayout(1000), "single");
-    assert.equal(gridLayout(1001), "rows");
-    assert.equal(gridLayout(5000), "rows");
-    assert.equal(gridLayout(5001), "bars");
-  });
-
-  test("1,000 tasks keep the single grid", async () => {
-    const doc = await big(1000);
-    assert.equal(gridOpen(doc), '<div data-region="grid">');
-    assert.equal([...regionHtml(doc, "grid").matchAll(/<a href=/g)].length, 1000);
-    assert.doesNotMatch(regionHtml(doc, "grid"), /data-part="row"/);
-  });
-
-  test("1,001 tasks give one row per feature with its squares", async () => {
-    const doc = await big(1001);
-    assert.equal(gridOpen(doc), '<div data-region="grid" data-layout="rows">');
-    const grid = regionHtml(doc, "grid");
-    const rows = grid.split('<div data-part="row">').slice(1);
-    assert.equal(rows.length, 3); // 400 + 400 + 201; the feature without tasks has no row
-    assert.match(rows[0], /^<span data-part="label">001-f<\/span><div data-part="cells">/);
-    assert.equal([...rows[2].matchAll(/<a href="#task-003-f-T\d+" data-key="003-f\/T\d+" data-sig="[^"]*" data-state="\w+" data-parents="003-f 003-f\/p1" title="[^"]+"><\/a>/g)].length, 201);
-    assert.equal([...grid.matchAll(/<a href=/g)].length, 1001);
-  });
-
-  test("5,001 tasks give one progress bar per feature linking to its tree item", async () => {
-    const doc = await big(5001);
-    assert.equal(gridOpen(doc), '<div data-region="grid" data-layout="bars">');
-    const grid = regionHtml(doc, "grid");
-    assert.doesNotMatch(grid, /data-state=/);
-    const bars = [...grid.matchAll(/<a data-part="bar" href="#([^"]+)"><span data-part="label">([^<]+)<\/span><progress data-key="([^"]+)" value="(\d+)" max="(\d+)">/g)];
-    assert.equal(bars.length, 13);
-    assert.deepEqual(bars[0].slice(1), ["feature-001-f", "001-f · 200 / 400", "001-f", "200", "400"]);
-    assert.deepEqual(bars[12].slice(1), ["feature-013-f", "013-f · 100 / 201", "013-f", "100", "201"]);
-    assert.match(tagOf(doc, "tree", "001-f"), /id="feature-001-f"/);
-  });
-
-  test("no layout uses an inline style attribute (CSP)", async () => {
-    for (const n of [10, 1001, 5001]) assert.doesNotMatch(await big(n), /\sstyle=/);
   });
 });
 
@@ -623,7 +526,7 @@ describe("renderOverview: partial models", () => {
     const out = render(p);
     assert.match(out, /<details data-key="001-x" data-sig=""/);
     assert.match(out, /<li data-key="001-x\/T001" id="task-001-x-T001" data-state="done" data-sig=""/);
-    assert.match(out, /<a href="#task-001-x-T001" data-key="001-x\/T001" data-sig="" data-state="done"/);
+    assert.match(out, /<a data-key="001-x\/T001" data-sig="" data-state="done" data-parents="001-x 001-x\/p1" href="#task-001-x-T001"/);
   });
 
   test("project warnings with a line show file:line", async () => {

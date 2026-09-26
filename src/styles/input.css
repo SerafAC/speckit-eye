@@ -717,16 +717,12 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 
 /* Section headers above the cards (Features, Task map). */
 [data-region="features"] > header,
-[data-region="map-column"] > header {
+[data-region="taskmap"] > header {
   @apply mb-2 flex min-h-9 flex-wrap items-center gap-2;
 }
 
 [data-region="features"] > header h2 {
   @apply m-0 mr-auto text-sm font-semibold text-(--text);
-}
-
-[data-region="map-column"] {
-  @apply min-w-0 rounded-xl border border-(--border) bg-(--surface) p-4;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -972,10 +968,18 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
   outline-offset: -2px;
 }
 
-/* Parents of the hovered grid square (001 grid, src/client/overview.js). */
-[data-region="tree"] li[data-highlight],
-[data-region="tree"] [data-highlight] > summary {
-  outline: 2px solid var(--next);
+/* Rows of the hovered or focused map square (FR-025, src/client/taskmap.js):
+   ancestors lightly tinted, the deepest visible row stronger and outlined. */
+[data-region="tree"] [data-hl="ancestor"] > summary,
+[data-region="tree"] li[data-hl="ancestor"] {
+  background-color: var(--blue-bg-2);
+}
+
+[data-region="tree"] [data-hl="deepest"] > summary,
+[data-region="tree"] li[data-hl="deepest"],
+[data-region="tree"] [data-part="phase"] > [data-hl="deepest"] {
+  background-color: var(--blue-bg);
+  outline: 2px solid var(--blue);
   outline-offset: -2px;
 }
 
@@ -998,92 +1002,233 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 }
 
 /* ------------------------------------------------------------------------ */
-/* Overview: task grid (FR-015b)                                             */
+/* Overview: task map (FR-021–FR-025, FR-027; research D8)                   */
 /* ------------------------------------------------------------------------ */
 
-[data-region="grid"] {
-  @apply flex min-w-0 flex-wrap content-start gap-1;
+[data-region="taskmap"] {
+  @apply min-w-0;
 }
 
-/* Task squares; the same rules serve the single grid and the per-feature rows.
-   A click jumps to the task in the tree (href) or, with scripts, opens its
-   parents and scrolls there smoothly (src/client/overview.js). */
-[data-region="grid"] a[data-state] {
-  --status-color: var(--status-not-started);
-  @apply block size-3 cursor-pointer rounded-sm transition-transform;
-  background-color: var(--status-color);
+[data-region="taskmap"] > header h2 {
+  @apply m-0 mr-auto text-sm font-semibold text-(--text);
 }
 
-[data-region="grid"] a[data-state="done"] {
-  --status-color: var(--status-done);
+[data-region="taskmap"] [data-part="map-mode"][hidden] {
+  display: none;
 }
 
-[data-region="grid"] a[data-state="next"] {
-  --status-color: var(--status-active);
+[data-region="taskmap"] > [data-part="card"] {
+  @apply flex min-w-0 flex-col gap-4 rounded-xl border border-(--border) bg-(--surface) p-5;
 }
 
-[data-region="grid"] a[data-state="blocked"] {
-  --status-color: var(--status-blocked);
+[data-region="taskmap"] [data-part="empty"] {
+  @apply m-0 text-sm text-(--muted);
 }
 
-[data-region="grid"] a[data-state="open"] {
-  @apply opacity-60;
+/* Blocks per feature. "By feature" (grouped) shows them with a head; the
+   stacked layout flattens them into one field, so both modes share one
+   markup and the toggle only changes data-layout (src/client/taskmap.js). */
+[data-region="taskmap"] [data-part="grid"] {
+  @apply flex min-w-0 flex-col gap-3.5;
 }
 
-[data-region="grid"] a[data-state]:hover,
-[data-region="grid"] a[data-state]:focus-visible {
-  @apply scale-150 opacity-100;
-  outline: 1px solid var(--color-gray-900);
+[data-region="taskmap"] [data-part="group"] {
+  @apply flex min-w-0 flex-col gap-1.5;
 }
 
-/* Above GRID_ROWS_THRESHOLD tasks: one row per feature, smaller squares. */
-[data-region="grid"][data-layout="rows"],
-[data-region="grid"][data-layout="bars"] {
-  @apply flex-col flex-nowrap gap-2;
+[data-region="taskmap"] [data-part="group-head"] {
+  @apply flex min-w-0 justify-between gap-3 text-xs text-(--text-3);
 }
 
-[data-region="grid"] [data-part="row"] {
-  @apply flex min-w-0 flex-col gap-0.5;
+[data-region="taskmap"] [data-part="group-head"] [data-part="name"] {
+  @apply truncate;
 }
 
-[data-region="grid"] [data-part="label"] {
-  @apply truncate text-xs text-gray-600;
+[data-region="taskmap"] [data-part="group-head"] [data-part="count"] {
+  @apply shrink-0 font-mono text-(--muted);
 }
 
-[data-region="grid"] [data-part="cells"] {
-  @apply flex flex-wrap gap-px;
+[data-region="taskmap"] [data-part="squares"] {
+  @apply flex min-w-0 flex-wrap gap-[3px];
 }
 
-[data-region="grid"][data-layout="rows"] a[data-state] {
-  @apply size-1.5 rounded-none;
+[data-region="taskmap"][data-layout="stacked"] [data-part="grid"] {
+  @apply flex-row flex-wrap gap-[3px];
 }
 
-/* Above GRID_BARS_THRESHOLD tasks: one progress bar per feature. */
-[data-region="grid"] a[data-part="bar"] {
-  @apply flex min-w-0 flex-col gap-0.5 rounded px-1 py-0.5 text-inherit no-underline hover:bg-gray-100;
+[data-region="taskmap"][data-layout="stacked"] [data-part="group"],
+[data-region="taskmap"][data-layout="stacked"] [data-part="squares"] {
+  display: contents;
 }
 
-[data-region="grid"] a[data-part="bar"] progress {
-  @apply block h-2 w-full overflow-hidden rounded-full;
-  appearance: none;
-  border: 0;
-  background-color: var(--color-gray-200);
-  color: var(--status-done);
+[data-region="taskmap"][data-layout="stacked"] [data-part="group-head"] {
+  display: none;
 }
 
-[data-region="grid"] a[data-part="bar"] progress::-webkit-progress-bar {
-  @apply rounded-full;
-  background-color: var(--color-gray-200);
+/* Squares: 13 px stacked, 9 px by feature (handoff). Done filled green, open
+   blue outline, blocked rose outline and tint, next filled orange (FR-022). */
+[data-region="taskmap"] a[data-state] {
+  --sq-fill: transparent;
+  --sq-ring: inset 0 0 0 1.5px var(--blue);
+  @apply relative block size-[13px] shrink-0 cursor-pointer rounded-[3px];
+  background-color: var(--sq-fill);
+  box-shadow: var(--sq-ring);
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
 }
 
-[data-region="grid"] a[data-part="bar"] progress::-webkit-progress-value {
-  @apply rounded-full;
-  background-color: var(--status-done);
+[data-region="taskmap"][data-layout="grouped"] a[data-state] {
+  @apply size-[9px] rounded-[2.5px];
 }
 
-[data-region="grid"] a[data-part="bar"] progress::-moz-progress-bar {
-  @apply rounded-full;
-  background-color: var(--status-done);
+[data-region="taskmap"] a[data-state="done"] {
+  --sq-fill: var(--green);
+  --sq-ring: 0 0 #0000;
+}
+
+[data-region="taskmap"] a[data-state="next"] {
+  --sq-fill: var(--next);
+  --sq-ring: 0 0 #0000;
+}
+
+[data-region="taskmap"] a[data-state="blocked"] {
+  --sq-fill: var(--rose-bg);
+  --sq-ring: inset 0 0 0 1.5px var(--rose);
+}
+
+/* Hover and keyboard focus: the square grows 1.6× with a two-ring outline;
+   transform does not move any other square (FR-024). */
+[data-region="taskmap"] a[data-state]:hover,
+[data-region="taskmap"] a[data-state]:focus-visible {
+  z-index: 1;
+  transform: scale(1.6);
+  outline: none;
+  box-shadow:
+    var(--sq-ring),
+    0 0 0 1.5px var(--surface),
+    0 0 0 3px var(--text);
+}
+
+/* Above 5,000 tasks: one progress bar per feature. */
+[data-region="taskmap"] [data-part="bars"] {
+  @apply flex min-w-0 flex-col gap-2;
+}
+
+[data-region="taskmap"] a[data-part="bar"] {
+  @apply flex min-w-0 flex-col gap-1 rounded px-1 py-0.5 text-xs text-(--text-3) no-underline hover:bg-(--surface-2);
+}
+
+[data-region="taskmap"] a[data-part="bar"] [data-part="label"] {
+  @apply truncate;
+}
+
+[data-region="taskmap"] a[data-part="bar"] [data-part="track"] {
+  @apply block h-2 w-full overflow-hidden rounded-full bg-(--track);
+}
+
+[data-region="taskmap"] a[data-part="bar"] [data-part="track"] > span {
+  @apply block h-full rounded-full bg-(--green);
+}
+
+/* Legend (FR-023). */
+[data-region="taskmap"] [data-part="legend"] {
+  @apply m-0 flex list-none flex-wrap items-center gap-x-4 gap-y-1 p-0 text-xs text-(--muted);
+}
+
+[data-region="taskmap"] [data-part="legend"] li {
+  @apply flex items-center gap-1.5;
+}
+
+[data-region="taskmap"] [data-part="legend"] [data-part="swatch"] {
+  @apply inline-block size-[9px] rounded-[2.5px];
+  box-shadow: inset 0 0 0 1.5px var(--blue);
+}
+
+[data-region="taskmap"] [data-part="legend"] [data-state="done"] [data-part="swatch"] {
+  background-color: var(--green);
+  box-shadow: none;
+}
+
+[data-region="taskmap"] [data-part="legend"] [data-state="next"] [data-part="swatch"] {
+  background-color: var(--next);
+  box-shadow: none;
+}
+
+[data-region="taskmap"] [data-part="legend"] [data-state="blocked"] [data-part="swatch"] {
+  background-color: var(--rose-bg);
+  box-shadow: inset 0 0 0 1.5px var(--rose);
+}
+
+[data-region="taskmap"] [data-part="legend"] [data-part="count"] {
+  @apply font-mono;
+}
+
+[data-region="taskmap"] [data-part="legend"] [data-part="unit"] {
+  @apply ml-auto;
+}
+
+/* The shared map tooltip (src/client/taskmap.js): always dark, placed by the
+   script through the CSSOM (left/top), text clamped to two lines. */
+[data-region="tooltip"] {
+  color-scheme: dark;
+  @apply pointer-events-none fixed z-50 flex w-61 max-w-[calc(100vw-1rem)] flex-col gap-1 rounded-[10px] border px-3 py-2.5;
+  top: 0;
+  left: 0;
+  background-color: #15171c;
+  border-color: var(--border-strong);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(21, 23, 28, 0.22);
+  opacity: 1;
+  transition: opacity 120ms ease-out;
+}
+
+[data-region="tooltip"][hidden] {
+  display: none;
+}
+
+@starting-style {
+  [data-region="tooltip"] {
+    opacity: 0;
+  }
+}
+
+[data-region="tooltip"] [data-part="head"] {
+  @apply flex items-center gap-2;
+}
+
+[data-region="tooltip"] [data-part="id"] {
+  @apply font-mono text-xs text-[#d9dce1];
+}
+
+[data-region="tooltip"] [data-part="text"] {
+  @apply text-[13.5px] leading-snug font-medium break-words;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+[data-region="tooltip"] [data-part="feature"] {
+  @apply truncate text-xs text-[#bfc3ca];
+}
+
+/* Growth and fade are off under reduced motion (001 FR-036): the square
+   still gets its rings, just not the scale. */
+@media (prefers-reduced-motion: reduce) {
+  [data-region="taskmap"] a[data-state] {
+    transition: none;
+  }
+
+  [data-region="taskmap"] a[data-state]:hover,
+  [data-region="taskmap"] a[data-state]:focus-visible {
+    transform: none;
+  }
+
+  [data-region="tooltip"] {
+    transition: none;
+  }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -1108,7 +1253,7 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
   /* Only the summary row of a changed <details> flashes, not its contents. */
   [data-region="tree"] details[data-changed] > summary,
   [data-region="tree"] li[data-changed],
-  [data-region="grid"] a[data-changed],
+  [data-region="taskmap"] a[data-changed],
   [data-region="stats"] [data-changed],
   progress[data-changed] {
     animation: speckit-eye-changed 1.5s ease-out;
@@ -1118,7 +1263,7 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 @media (prefers-reduced-motion: reduce) {
   [data-region="tree"] details[data-changed] > summary,
   [data-region="tree"] li[data-changed],
-  [data-region="grid"] a[data-changed],
+  [data-region="taskmap"] a[data-changed],
   [data-region="stats"] [data-changed],
   progress[data-changed] {
     outline: 2px solid var(--status-active);

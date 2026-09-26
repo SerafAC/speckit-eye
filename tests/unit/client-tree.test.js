@@ -324,7 +324,7 @@ describe("reveal (FR-026)", () => {
     const { window, document, deps } = await page();
     init(document, deps);
     reveal(document, "task-003-gamma-T004");
-    pointerdown(window, document.querySelector('[data-region="grid"] a[data-parents]'));
+    pointerdown(window, document.querySelector('[data-region="taskmap"] a[data-parents]'));
     assert.equal(document.querySelectorAll("[data-selected]").length, 1);
     pointerdown(window, document.getElementById("task-003-gamma-T004").querySelector('[data-part="text"]'));
     assert.equal(document.getElementById("task-003-gamma-T004").hasAttribute("data-selected"), true);
