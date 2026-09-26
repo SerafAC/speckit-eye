@@ -42,7 +42,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - run: pnpm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -54,6 +54,7 @@ jobs:
   wsl:
     # WSL is a supported platform, and the watcher only works there with the
     # project on the Linux file system (research R2), so test that setup.
+    # It tests the file watcher, not browser engines, so Chromium is enough.
     name: E2E live updates (WSL)
     runs-on: windows-latest
     steps:
@@ -79,4 +80,4 @@ jobs:
           npm install -g pnpm@11
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
-          pnpm run test:e2e tests/e2e/us2-live.spec.js
+          pnpm run test:e2e tests/e2e/us2-live.spec.js --project chromium

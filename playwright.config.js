@@ -1,8 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// E2E tests drive the real CLI (constitution §V). Chromium only (research R7).
+// E2E tests drive the real CLI (constitution §V) in the three browser engines
+// of the supported browsers (FR-055, research D16): Chromium, Firefox and
+// WebKit, plus a Chromium project without JavaScript (FR-053) and a Chromium
+// phone project (FR-009). The cloud container has Chromium only; Firefox and
+// WebKit run in CI.
 // One worker: every E2E server uses the default port 4747, and US2 AC7
 // restarts the server on the same address.
+const DESKTOP_VIEWPORT = { width: 1440, height: 900 }; // SC-009
+const DESKTOP_IGNORE = [/nojs\.spec\.js/, /mobile\.spec\.js/];
+
 export default defineConfig({
   testDir: "tests/e2e",
   workers: 1,
@@ -12,7 +19,33 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], viewport: DESKTOP_VIEWPORT },
+      testIgnore: DESKTOP_IGNORE,
+    },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"], viewport: DESKTOP_VIEWPORT },
+      testIgnore: DESKTOP_IGNORE,
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"], viewport: DESKTOP_VIEWPORT },
+      testIgnore: DESKTOP_IGNORE,
+    },
+    {
+      name: "chromium-nojs",
+      use: { ...devices["Desktop Chrome"], viewport: DESKTOP_VIEWPORT, javaScriptEnabled: false },
+      testMatch: /nojs\.spec\.js/,
+    },
+    {
+      name: "chromium-mobile",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        hasTouch: true,
+        isMobile: true,
+      },
+      testMatch: /mobile\.spec\.js/,
     },
   ],
 });
