@@ -111,6 +111,13 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
     }),
   });
 
+  // One Markdown renderer for documents and task texts (links resolve alike).
+  const entries = allArtifacts(project).filter(({ artifact }) => artifact.url);
+  const renderMarkdown = createMarkdown({
+    artifactsBySource: new Map(entries.map(({ artifact }) => [artifact.source, artifact])),
+    base,
+  });
+
   // One feature page per feature (FR-029, contracts/routes.md "Page paths").
   for (const feature of project.features) {
     site.set(`features/${feature.dir}/index.html`, {
@@ -122,7 +129,7 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
         project,
         page: "feature",
         current: feature.dir,
-        main: renderFeaturePage(feature, project, { base }),
+        main: renderFeaturePage(feature, project, { base, markdown: renderMarkdown }),
         version,
         generatedAt,
       }),
@@ -131,11 +138,6 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
 
   // One document page per artifact (US3, FR-021), keyed by its url; the icon
   // rail layout until US5 replaces these pages.
-  const entries = allArtifacts(project).filter(({ artifact }) => artifact.url);
-  const renderMarkdown = createMarkdown({
-    artifactsBySource: new Map(entries.map(({ artifact }) => [artifact.source, artifact])),
-    base,
-  });
   for (const { artifact, feature, assessment } of entries) {
     const body = renderMarkdown(artifact.source, artifact.content ?? "");
     site.set(artifact.url, {

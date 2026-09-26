@@ -1330,6 +1330,603 @@ header[data-region="header"] [data-region="menu"] a {
 }
 
 /* ------------------------------------------------------------------------ */
+/* Feature page: header and progress ring (FR-030)                          */
+/* ------------------------------------------------------------------------ */
+
+[data-region="feature-head"] {
+  @apply mb-5 flex items-start justify-between gap-6;
+}
+
+[data-region="feature-head"] [data-part="head-text"] {
+  @apply min-w-0 flex-1;
+}
+
+[data-region="feature-head"] [data-part="breadcrumb"] {
+  @apply mb-2 flex flex-wrap items-baseline gap-x-1 text-sm text-(--muted);
+}
+
+[data-region="feature-head"] [data-part="breadcrumb"] a {
+  @apply text-(--text-4) underline-offset-2 hover:underline;
+}
+
+[data-region="feature-head"] [data-part="meta"] {
+  @apply m-0 flex flex-wrap items-center gap-2;
+}
+
+[data-region="feature-head"] code {
+  @apply inline-flex max-w-full items-center truncate rounded px-1.5 font-mono text-xs;
+  background-color: var(--subtle);
+  color: var(--text-3);
+  height: 22px;
+}
+
+[data-region="feature-head"] h1 {
+  @apply mt-2 mb-1 font-serif text-4xl leading-tight font-normal text-(--text);
+  overflow-wrap: anywhere;
+}
+
+[data-region="feature-head"] [data-part="counts"] {
+  @apply m-0 font-mono text-sm text-(--muted) tabular-nums;
+}
+
+[data-region="feature-head"] [data-part="ring"] {
+  @apply relative grid size-14 shrink-0 place-items-center;
+}
+
+[data-region="feature-head"] [data-part="ring"] > svg {
+  @apply absolute inset-0 size-full;
+}
+
+[data-part="ring-track"] {
+  stroke: var(--track);
+}
+
+[data-part="ring-value"] {
+  stroke: var(--blue);
+}
+
+[data-part="ring"][data-complete="true"] [data-part="ring-value"] {
+  stroke: var(--green);
+}
+
+[data-part="ring-label"] {
+  @apply relative font-mono text-xs text-(--text-3) tabular-nums;
+}
+
+[data-part="ring"][data-complete="true"] [data-part="ring-label"] {
+  @apply inline-flex text-(--green);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Feature page: document tabs (FR-031, FR-008); they scroll sideways on     */
+/* narrow screens instead of widening the page (FR-009).                     */
+/* ------------------------------------------------------------------------ */
+
+[data-region="tabs"] {
+  @apply mb-5 flex items-end gap-1 overflow-x-auto border-b border-(--border);
+  scrollbar-width: thin;
+}
+
+[data-region="tabs"] [data-part="tab"] {
+  @apply inline-flex shrink-0 cursor-pointer list-none items-center gap-1.5 border-b-2 border-transparent px-3 text-sm whitespace-nowrap text-(--muted) no-underline;
+  min-height: var(--hit);
+}
+
+[data-region="tabs"] summary[data-part="tab"]::-webkit-details-marker {
+  display: none;
+}
+
+[data-region="tabs"] [data-part="tab"]:hover {
+  color: var(--text);
+}
+
+[data-region="tabs"] [data-part="tab"][aria-current="page"] {
+  @apply font-medium;
+  border-bottom-color: var(--text);
+  color: var(--text);
+}
+
+[data-region="tabs"] [data-part="count"] {
+  @apply rounded-full px-1.5 font-mono text-xs;
+  background-color: var(--subtle);
+  color: var(--text-4);
+}
+
+/* A tab with several documents lists them in place (no navigation). */
+[data-region="tabs"] details[data-part="tab-menu"] {
+  @apply shrink-0;
+}
+
+[data-region="tabs"] details[data-part="tab-menu"] > ul {
+  @apply m-0 mb-2 flex list-none flex-col gap-0.5 rounded-lg border border-(--border) bg-(--surface) p-1;
+}
+
+[data-region="tabs"] details[data-part="tab-menu"] a {
+  @apply flex items-center rounded-md px-3 text-sm whitespace-nowrap text-(--text-2) no-underline hover:bg-(--surface-2);
+  min-height: var(--hit);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Feature page: phase rail and caption (FR-032). Block widths come from     */
+/* w-pct-N; a minimum width keeps the label readable. Scrolls sideways.      */
+/* ------------------------------------------------------------------------ */
+
+[data-region="tasks"] [data-part="rail"] {
+  @apply flex gap-1 overflow-x-auto pb-1;
+  scrollbar-width: thin;
+}
+
+[data-region="tasks"] [data-part="rail"] [data-part="block"] {
+  @apply flex shrink-0 items-center justify-between gap-1 rounded-md px-2 font-mono text-xs no-underline;
+  min-width: 3.5rem;
+  min-height: var(--hit);
+  background-color: var(--subtle);
+  color: var(--text-4);
+  box-sizing: border-box;
+}
+
+[data-region="tasks"] [data-part="rail"] [data-part="block"][data-status="done"] {
+  background-color: var(--green-bg);
+  color: var(--green-text);
+}
+
+[data-region="tasks"] [data-part="rail"] [data-part="block"][data-status="started"] {
+  background-color: var(--blue-bg);
+  color: var(--blue-text);
+}
+
+[data-region="tasks"] [data-part="rail"] [data-part="block"][data-status="not-started"] {
+  background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* An empty phase: a narrow block that cannot be opened. */
+[data-region="tasks"] [data-part="rail"] [data-part="block"][data-empty] {
+  @apply justify-center;
+  min-width: 2.25rem;
+  background-color: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--muted-2);
+}
+
+[data-region="tasks"] [data-part="rail"] [data-part="block"][data-empty] [data-part="count"] {
+  display: none;
+}
+
+[data-region="tasks"] [data-part="rail"] [data-part="block"][aria-current="true"] {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
+[data-region="tasks"] [data-part="caption"] {
+  @apply mt-1 mb-4 truncate text-xs text-(--muted);
+}
+
+[data-region="tasks"] [data-part="caption"] [data-part="selected"] {
+  @apply font-medium text-(--text-3);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Feature page: amber warnings banner (FR-033)                             */
+/* ------------------------------------------------------------------------ */
+
+[data-region="tasks"] [data-part="warnings"] {
+  @apply mb-4 flex flex-col gap-2 rounded-lg p-3 text-sm;
+  background-color: var(--amber-bg);
+  color: var(--amber-text);
+  scroll-margin-top: 4rem;
+}
+
+[data-region="tasks"] [data-part="warning"] {
+  @apply flex items-start gap-2;
+}
+
+[data-region="tasks"] [data-part="warning"] > svg {
+  @apply mt-0.5 shrink-0;
+}
+
+[data-region="tasks"] [data-part="warning-body"] {
+  @apply min-w-0 flex-1;
+}
+
+[data-region="tasks"] [data-part="warning-body"] > p {
+  @apply m-0;
+}
+
+[data-region="tasks"] [data-part="warning-title"] {
+  @apply font-medium;
+}
+
+[data-region="tasks"] [data-part="warning"] [data-part="lines"] {
+  @apply inline-flex flex-wrap gap-1 align-middle;
+}
+
+[data-region="tasks"] [data-part="warning"] .chip {
+  @apply bg-transparent;
+  color: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 35%, transparent);
+}
+
+[data-region="tasks"] [data-part="show-lines"] > summary {
+  @apply inline-flex cursor-pointer items-center font-semibold underline underline-offset-2;
+  min-height: var(--hit);
+}
+
+[data-region="tasks"] [data-part="show-lines"] ol {
+  @apply m-0 flex list-none flex-col gap-0.5 overflow-x-auto p-0 font-mono text-xs;
+}
+
+[data-region="tasks"] [data-part="show-lines"] li {
+  @apply whitespace-pre;
+}
+
+[data-region="tasks"] [data-part="line-no"] {
+  @apply inline-block w-12 opacity-70;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Feature page: filter bar (FR-034; shown by src/client/feature.js)         */
+/* ------------------------------------------------------------------------ */
+
+[data-region="tasks"] [data-part="filters"]:not([hidden]) {
+  @apply mb-3 flex flex-wrap items-center gap-2;
+}
+
+[data-region="tasks"] [data-part="chips"] {
+  @apply flex flex-wrap gap-1;
+}
+
+[data-region="tasks"] button[data-filter-chip] {
+  @apply cursor-pointer gap-1.5 border border-(--border) bg-(--surface) px-2.5 font-sans text-sm text-(--text-3);
+  height: auto;
+  min-height: var(--hit);
+}
+
+[data-region="tasks"] button[data-filter-chip] [data-part="count"] {
+  @apply font-mono text-xs text-(--muted);
+}
+
+[data-region="tasks"] button[data-filter-chip][aria-pressed="true"] {
+  background-color: var(--inv-bg);
+  border-color: var(--inv-bg);
+  color: var(--inv-fg);
+}
+
+[data-region="tasks"] button[data-filter-chip][aria-pressed="true"] [data-part="count"] {
+  color: inherit;
+  opacity: 0.8;
+}
+
+[data-region="tasks"] input[data-part="text-filter"] {
+  @apply min-w-0 flex-1 rounded-md border border-(--border) bg-(--surface) px-3 text-sm text-(--text);
+  min-height: var(--hit);
+  flex-basis: 12rem;
+}
+
+[data-region="tasks"] button[data-part="expand-all"],
+[data-region="tasks"] button[data-part="collapse-all"],
+[data-region="tasks"] button[data-part="clear"],
+aside[data-region="detail"] [data-part="copy"],
+aside[data-region="detail"] [data-part="source-line"] {
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-(--border) px-3 text-sm font-medium text-(--text-2) no-underline;
+  min-height: var(--hit);
+  background-color: var(--surface);
+}
+
+[data-region="tasks"] button[data-part="expand-all"]:hover,
+[data-region="tasks"] button[data-part="collapse-all"]:hover,
+[data-region="tasks"] button[data-part="clear"]:hover,
+aside[data-region="detail"] [data-part="copy"]:hover,
+aside[data-region="detail"] [data-part="source-line"]:hover {
+  background-color: var(--surface-2);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Feature page: task list and detail panel (FR-035, FR-036). The panel sits */
+/* beside the list on wide screens and below it on narrow ones.             */
+/* ------------------------------------------------------------------------ */
+
+[data-region="tasks"] [data-part="columns"] {
+  @apply flex flex-col gap-4;
+}
+
+@media (width >= 64rem) {
+  [data-region="tasks"] [data-part="columns"] {
+    @apply flex-row items-start;
+  }
+
+  [data-region="tasks"] aside[data-region="detail"] {
+    @apply sticky top-4 w-80 shrink-0;
+  }
+}
+
+[data-region="tasks"] [data-part="list"] {
+  @apply flex min-w-0 flex-1 flex-col gap-2;
+}
+
+[data-region="tasks"] [data-part="list"] summary {
+  @apply flex min-w-0 cursor-pointer list-none items-center gap-2 rounded-md px-2;
+  min-height: var(--hit);
+}
+
+[data-region="tasks"] [data-part="list"] summary::-webkit-details-marker {
+  display: none;
+}
+
+[data-region="tasks"] [data-part="list"] summary > svg:first-child {
+  @apply shrink-0 text-(--muted-2) transition-transform;
+}
+
+[data-region="tasks"] [data-part="list"] details[open] > summary > svg:first-child {
+  transform: rotate(90deg);
+}
+
+/* Phase rows. */
+[data-region="tasks"] [data-part="phase"] {
+  @apply rounded-xl border border-(--border) bg-(--surface) text-sm;
+  scroll-margin-top: 4rem;
+}
+
+[data-region="tasks"] [data-part="phase"] > summary,
+[data-region="tasks"] div[data-part="phase"] {
+  @apply font-medium text-(--text);
+  min-height: 44px;
+}
+
+[data-region="tasks"] div[data-part="phase"] {
+  @apply flex min-w-0 items-center gap-2 px-2 text-(--muted);
+}
+
+[data-region="tasks"] [data-part="phase"] [data-part="phase-name"] {
+  @apply shrink-0 font-mono text-xs text-(--muted);
+}
+
+[data-region="tasks"] [data-part="phase"] [data-part="title"] {
+  @apply min-w-0 flex-1 truncate;
+}
+
+[data-region="tasks"] [data-part="phase"] [data-part="count"] {
+  @apply shrink-0 font-mono text-xs text-(--muted) tabular-nums;
+}
+
+[data-region="tasks"] [data-part="chevron-space"] {
+  @apply inline-block w-4 shrink-0;
+}
+
+[data-region="tasks"] [data-part="done-mark"] {
+  @apply inline-flex shrink-0 text-(--green);
+}
+
+[data-region="tasks"] [data-part="priority"] {
+  @apply inline-flex shrink-0 items-center rounded px-1.5 font-mono text-xs;
+  height: 20px;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text-4);
+}
+
+[data-region="tasks"] [data-part="priority"][data-priority="P1"] {
+  background-color: var(--inv-bg);
+  color: var(--inv-fg);
+  box-shadow: none;
+}
+
+[data-region="tasks"] [data-part="priority"][data-priority="P2"] {
+  background-color: var(--subtle);
+  box-shadow: none;
+}
+
+[data-region="tasks"] [data-part="tasks"] {
+  @apply flex flex-col border-t border-(--border) p-1;
+}
+
+/* Task rows: chevron, mark, ID, text on one line, then the kind and file
+   chips at fixed widths so they line up in columns (handoff 64 × 22 and
+   200 × 22 px). */
+[data-region="tasks"] details[data-part="task"] {
+  @apply rounded-md;
+  scroll-margin-block: 4rem;
+}
+
+[data-region="tasks"] details[data-part="task"] > summary {
+  @apply font-normal text-(--text-2);
+}
+
+[data-region="tasks"] details[data-part="task"] > summary:hover {
+  background-color: var(--surface-2);
+}
+
+[data-region="tasks"] details[data-part="task"] > summary [data-part="id"] {
+  @apply w-12 shrink-0 font-mono text-xs text-(--text-3);
+}
+
+[data-region="tasks"] details[data-part="task"] > summary [data-part="text"] {
+  @apply min-w-0 flex-1 truncate;
+}
+
+[data-region="tasks"] details[data-part="task"][data-state="done"] > summary [data-part="text"] {
+  @apply text-(--muted);
+}
+
+[data-region="tasks"] details[data-part="task"][data-state="next"] > summary {
+  background-color: color-mix(in srgb, var(--next) 10%, transparent);
+}
+
+/* Block display so a label that does not fit ends in an ellipsis. */
+[data-region="tasks"] [data-part="kind"],
+[data-region="tasks"] [data-part="file"] {
+  @apply block shrink-0;
+  box-sizing: border-box;
+  line-height: 22px;
+}
+
+/* The handoff's 64 px fits "Go test"; "JavaScript test" needs a little more. */
+[data-region="tasks"] [data-part="kind"] {
+  width: 96px;
+}
+
+[data-region="tasks"] [data-part="file"] {
+  width: 200px;
+}
+
+[data-region="tasks"] [data-part="kind"][data-empty],
+[data-region="tasks"] [data-part="file"][data-empty] {
+  @apply bg-transparent;
+}
+
+@media (width < 48rem) {
+  [data-region="tasks"] [data-part="file"] {
+    width: 96px;
+  }
+}
+
+/* Inline formatting of task text: code as mono chips, FR/SC references as
+   blue mono chips. */
+[data-region="tasks"] code[data-part="code"] {
+  @apply align-baseline;
+  height: auto;
+  line-height: 1.5;
+}
+
+[data-region="tasks"] .chip[data-ref],
+[data-region="detail"] .chip[data-ref] {
+  height: auto;
+  line-height: 1.5;
+  background-color: var(--blue-bg);
+  color: var(--blue-text);
+}
+
+[data-region="tasks"] [data-part="text"] a,
+[data-region="tasks"] [data-part="full-text"] a,
+[data-region="detail"] [data-part="text"] a {
+  @apply underline underline-offset-2;
+  color: var(--blue-text);
+}
+
+/* The expanded row: the full text wraps; marker tags below. */
+[data-region="tasks"] details[data-part="task"] > [data-part="body"] {
+  @apply pr-2 pb-2;
+  padding-left: 3.25rem;
+}
+
+[data-region="tasks"] [data-part="full-text"] {
+  @apply m-0 text-sm text-(--text-2);
+  overflow-wrap: anywhere;
+}
+
+[data-part="markers"] {
+  @apply mt-2 mb-0 flex list-none flex-wrap gap-1 p-0;
+}
+
+.tag {
+  @apply inline-flex items-center rounded px-1.5 font-mono text-xs;
+  height: 20px;
+  background-color: var(--subtle);
+  color: var(--text-3);
+}
+
+.tag[data-marker="story"] {
+  background-color: var(--inv-bg);
+  color: var(--inv-fg);
+}
+
+.tag[data-marker="parallel"] {
+  background-color: var(--purple-bg);
+  color: var(--purple-text);
+}
+
+.tag[data-marker="ref"] {
+  background-color: var(--blue-bg);
+  color: var(--blue-text);
+}
+
+/* The selected row (src/client/feature.js), or the fragment target. */
+[data-region="tasks"] details[data-part="task"][data-selected],
+[data-region="tasks"] details[data-part="task"]:target {
+  background-color: var(--blue-bg-2);
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+/* Filters active (src/client/feature.js): hidden rows and phases. */
+[data-region="tasks"] [data-filtered-out] {
+  display: none;
+}
+
+[data-region="tasks"] [data-part="no-match"]:not([hidden]) {
+  @apply m-0 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-(--border-strong) p-4 text-sm text-(--muted);
+}
+
+[data-region="tasks"] a[data-part="source"],
+[data-region="tasks"] [data-part="empty-stage"] + a[data-part="source"] {
+  @apply inline-flex items-center gap-1.5 self-start text-xs text-(--muted) underline-offset-2 hover:underline;
+  min-height: var(--hit);
+}
+
+[data-region="tasks"] [data-part="empty-stage"] {
+  @apply rounded-xl border border-dashed border-(--border-strong) p-6 text-sm text-(--muted);
+}
+
+/* Detail panel (hidden until a task is selected). */
+aside[data-region="detail"]:not([hidden]) {
+  @apply flex flex-col gap-3 rounded-xl border border-(--border) bg-(--surface) p-4 text-sm;
+}
+
+aside[data-region="detail"] > header {
+  @apply flex items-center gap-2;
+}
+
+aside[data-region="detail"] > header [data-part="id"] {
+  @apply font-mono text-base font-semibold text-(--text);
+}
+
+aside[data-region="detail"] > header [data-part="close"] {
+  @apply ml-auto inline-flex cursor-pointer items-center justify-center rounded-md text-(--muted) hover:bg-(--subtle);
+  min-width: var(--hit);
+  min-height: var(--hit);
+}
+
+aside[data-region="detail"] [data-part="text"] {
+  @apply text-(--text-2);
+  overflow-wrap: anywhere;
+}
+
+aside[data-region="detail"] [data-part="waiting"] {
+  @apply m-0 rounded-md px-2 py-1.5 text-xs font-medium;
+  background-color: var(--rose-bg);
+  color: var(--rose-text);
+}
+
+aside[data-region="detail"] dl {
+  @apply m-0 grid gap-x-3 gap-y-2;
+  grid-template-columns: max-content 1fr;
+}
+
+aside[data-region="detail"] dt {
+  @apply text-xs text-(--muted);
+}
+
+aside[data-region="detail"] dd {
+  @apply m-0 min-w-0 text-(--text-3);
+}
+
+aside[data-region="detail"] dd [data-part="markers"] {
+  @apply mt-0;
+}
+
+aside[data-region="detail"] [data-part="files"] {
+  @apply m-0 flex list-none flex-col gap-1 p-0 font-mono text-xs;
+  overflow-wrap: anywhere;
+}
+
+aside[data-region="detail"] [data-part="actions"] {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+aside[data-region="detail"] [data-part="copied"]:not([hidden]) {
+  @apply text-xs font-medium text-(--green-text);
+}
+
+/* ------------------------------------------------------------------------ */
 /* Artifact pages (FR-020)                                                   */
 /* ------------------------------------------------------------------------ */
 
@@ -1355,4 +1952,17 @@ article[data-region="artifact"] ul.contains-task-list {
 
 article[data-region="artifact"] li.task-list-item input[type="checkbox"] {
   @apply mr-1 align-middle;
+}
+
+/* tasks.md task lines (FR-044): "View source line" lands on #L<line>. */
+article [data-source-line] {
+  scroll-margin-top: 6rem;
+}
+
+article [data-source-line]:target {
+  background-color: var(--blue-bg);
+  color: var(--blue-text);
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 2px;
 }

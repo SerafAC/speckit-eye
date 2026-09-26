@@ -235,8 +235,8 @@ describe("phases and story groups", () => {
     const f = (await model({ "specs/001-x/tasks.md": "## Phase 1: P\n- [ ] T001 [P] a\n- [x] no id depends on T001" }))
       .features[0];
     assert.deepEqual(f.phases[0].tasks, [
-      { id: "T001", done: false, parallel: true, story: null, description: "a", dependsOn: [], line: 2, key: "001-x/T001", anchor: "task-001-x-T001", state: "current", display: "next", waitingOn: [], sig: "current:a" },
-      { id: null, done: true, parallel: false, story: null, description: "no id depends on T001", dependsOn: ["T001"], line: 3, key: "001-x/L3", anchor: "task-001-x-L3", state: "completed", display: "done", waitingOn: [], sig: "completed" },
+      { id: "T001", done: false, parallel: true, story: null, description: "a", dependsOn: [], line: 2, key: "001-x/T001", anchor: "task-001-x-T001", state: "current", display: "next", waitingOn: [], sig: "current:a", files: [], kind: null, refs: [] },
+      { id: null, done: true, parallel: false, story: null, description: "no id depends on T001", dependsOn: ["T001"], line: 3, key: "001-x/L3", anchor: "task-001-x-L3", state: "completed", display: "done", waitingOn: [], sig: "completed", files: [], kind: null, refs: [] },
     ]);
   });
 });
@@ -595,5 +595,35 @@ describe("overview stats (T026)", () => {
     assert.deepEqual(o.segments, []);
     assert.deepEqual(o.legend, { done: 0, open: 0, blocked: 0, next: 0 });
     assert.deepEqual(o.phases, { completed: 0, total: 0, remaining: 0 });
+  });
+});
+
+describe("feature.phaseShares (T044, FR-032)", () => {
+  test("largest-remainder shares of each phase's tasks; empty phases get 0", async () => {
+    const m = await model({
+      "specs/001-x/spec.md": "# Feature Specification: X",
+      "specs/001-x/tasks.md": [
+        "## Phase 1: A",
+        ...taskLines(1, 1),
+        "## Phase 2: Empty",
+        "## Phase 3: B",
+        ...taskLines(1, 0, { start: 2 }),
+        "## Phase 4: C",
+        ...taskLines(1, 0, { start: 3 }),
+      ].join("\n"),
+    });
+    assert.deepEqual(m.features[0].phaseShares, [34, 0, 33, 33]);
+  });
+
+  test("proportional to task counts and summing to 100", async () => {
+    const m = await model({
+      "specs/001-x/tasks.md": ["## Phase 1: A", ...taskLines(3, 3), "## Phase 2: B", ...taskLines(1, 0, { start: 4 })].join("\n"),
+    });
+    assert.deepEqual(m.features[0].phaseShares, [75, 25]);
+  });
+
+  test("a feature without tasks.md has no shares", async () => {
+    const m = await model({ "specs/001-x/spec.md": "# Feature Specification: X" });
+    assert.deepEqual(m.features[0].phaseShares, []);
   });
 });

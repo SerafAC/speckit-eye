@@ -14,10 +14,15 @@
  *   servers (FR-038) and no project file is exposed through an image.
  * - Headings get `id`s from `slugify`, unique per page.
  * - Fenced blocks, including `mermaid`, are escaped `<pre><code>` blocks.
+ * - In a `tasks.md`, every task line is wrapped in `<span id="L<line>">` so
+ *   "View source line" can link to it and `:target` highlights it (FR-044).
+ * - `renderInline` renders one line of inline Markdown (task texts) with the
+ *   same instance and rules.
  */
 
 import path from "node:path";
 import MarkdownIt from "markdown-it";
+import { taskLineNumbers } from "../parse/tasks.js";
 
 /** @typedef {{ url: string }} ArtifactRef */
 
@@ -96,7 +101,7 @@ function inlineText(children) {
  * @param {Map<string, ArtifactRef> | Record<string, ArtifactRef>} options.artifactsBySource
  *   known artifacts, keyed by project-relative source path
  * @param {string} options.base normalized base path with leading and trailing `/`
- * @returns {(source: string, text: string) => string}
+ * @returns {MarkdownRender} `render(source, text)`, with the instance as `.md`
  */
 export function createMarkdown({ artifactsBySource, base }) {
   const known =
@@ -182,5 +187,55 @@ export function createMarkdown({ artifactsBySource, base }) {
     }
   });
 
-  return (source, text) => md.render(String(text ?? ""), { source });
+  // tasks.md: every task line addressable as #L<line> (FR-044). The task
+  // lines are those parseTasks reads (fences and comments excluded); each one
+  // wraps the content of the first inline token that starts on it.
+  md.core.ruler.push("speckit_task_lines", (state) => {
+    const source = String(state.env.source ?? "");
+    if (state.inlineMode || !(source === "tasks.md" || source.endsWith("/tasks.md"))) return;
+    const lines = taskLineNumbers(state.src);
+    if (lines.size === 0) return;
+    for (const token of state.tokens) {
+      if (token.type !== "inline" || !token.map || !token.children) continue;
+      const line = token.map[0] + 1;
+      if (!lines.has(line)) continue;
+      lines.delete(line);
+      const open = new state.Token("html_inline", "", 0);
+      open.content = `<span id="L${line}" data-source-line>`;
+      const close = new state.Token("html_inline", "", 0);
+      close.content = "</span>";
+      token.children = [open, ...token.children, close];
+    }
+  });
+
+  /** @type {MarkdownRender} */
+  const render = (source, text) => md.render(String(text ?? ""), { source });
+  render.md = md;
+  return render;
+}
+
+/**
+ * @typedef {((source: string, text: string) => string) & {md: MarkdownIt}} MarkdownRender
+ */
+
+/**
+ * One line of inline Markdown (a task text) rendered with the shared
+ * instance of `createMarkdown`: raw HTML stays text, and links follow the
+ * same rules as documents (relative links resolved from `source`).
+ * `transform` may rewrite the inline tokens (after every core rule) before
+ * they are rendered.
+ * @param {MarkdownRender | MarkdownIt} md the renderer from createMarkdown, or its instance
+ * @param {string} text
+ * @param {string | {source?: string, transform?: (children: any[], Token: any) => any[]}} [options]
+ *   the project-relative path the text comes from, or options
+ * @returns {string}
+ */
+export function renderInline(md, text, options = {}) {
+  const { source = "", transform = null } = typeof options === "string" ? { source: options } : options;
+  const instance = /** @type {MarkdownIt} */ ("md" in md ? md.md : md);
+  const env = { source };
+  if (!transform) return instance.renderInline(String(text ?? ""), env);
+  const tokens = instance.parseInline(String(text ?? ""), env);
+  for (const t of tokens) if (t.children) t.children = transform(t.children, t.constructor);
+  return instance.renderer.render(tokens, instance.options, env);
 }

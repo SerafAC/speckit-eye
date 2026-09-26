@@ -320,7 +320,7 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     assert.doesNotMatch(sidebar, /<a data-key="side:002-partial"[^>]*aria-current/);
     assert.match(body, /<main><header data-region="feature-head">/);
     assert.match(body, /<h1>Full<\/h1>/);
-    assert.match(body, /<a href="\/repo\/features\/001-full\/plan\.html">Plan<\/a>/);
+    assert.match(body, /<a data-part="tab" href="\/repo\/features\/001-full\/plan\.html">Plan<\/a>/);
     assert.match(s.get("features/002-partial/index.html").body, /<h1>Partial<\/h1>/);
   });
 

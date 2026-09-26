@@ -140,3 +140,18 @@ export function parseTasks(text, file) {
   if (tasks.length === 0) warnings.unshift({ code: "W8", file, line: null, message: MSG.W8() });
   return { phases, tasks, warnings };
 }
+
+/**
+ * The 1-based numbers of the task lines of a tasks.md (checkbox lines outside
+ * code fences and comments, the same lines parseTasks reads as tasks).
+ * @param {unknown} text contents of tasks.md
+ * @returns {Set<number>}
+ */
+export function taskLineNumbers(text) {
+  const out = new Set();
+  for (const { line, text: visible } of visibleLines(text)) {
+    if (PHASE_RE.test(visible)) continue;
+    if (TASK_RE.test(visible)) out.add(line);
+  }
+  return out;
+}
