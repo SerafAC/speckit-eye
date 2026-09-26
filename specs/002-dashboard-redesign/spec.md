@@ -19,6 +19,7 @@ The approved redesign lives in `mockups/001-first-redesign/`: `DESIGN_HANDOFF.md
 - Q: How should blocked tasks look, now that the redesign has no blocked color? → A: Keep a fourth, distinct color for blocked tasks in the map, the tree and the legend, and have the task detail panel say which open tasks the task is waiting on (for example "Waiting on T012").
 - Q: Must every page stay readable and navigable, with the tree, phases, task rows and collapsible document parts still opening and closing, when JavaScript is turned off? → A: Yes: keep today's promise. Without scripts, all content is readable, links and tabs work, and those parts open and close; everything else is an enhancement that needs scripts.
 - Q: Which browsers must the redesigned pages fully support? → A: The last two major versions of Chrome, Edge, Firefox and Safari, with end-to-end tests in all three browser engines (Chromium, Firefox, WebKit).
+- Q: Must the page addresses of the current version keep working after the redesign? → A: No: addresses may change freely and old links may break, because no version has been released yet.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -261,8 +262,8 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **FR-051**: Live updates MUST keep all view state of every page: theme, order, depth, filters, text filter, map mode, expanded rows, open phase, selected task, reader expansions and raw view, and scroll positions (page, tree card and task list); items whose status or counts changed are still briefly highlighted (001 FR-028).
 - **FR-052**: Static builds MUST contain the same pages and behavior as serve mode (except live updates and with the generation time shown), work under a sub-path, and support every redesign behavior that runs in the browser (theme, map, filters, reader, search).
 - **FR-053**: Without scripts, every page's content MUST stay readable, every link and tab MUST work, and the tree, phases, task rows and collapsible document parts MUST still open and close (001 FR-037; the README's "Works without JavaScript" promise stands). Any design choice that needs scripts to show content or to navigate is ruled out.
-- **FR-055**: Every page and behavior in this spec MUST work in the last two major versions of Chrome, Edge, Firefox and Safari; a browser feature not available in all of them may only be used where the page stays correct without it.
 - **FR-054**: The user documentation (`README.md` screenshot and feature list, `docs/usage.md`) and `CHANGELOG.md` MUST describe the new layout, the task map, feature pages, the document reader, the theme switch and search.
+- **FR-055**: Every page and behavior in this spec MUST work in the last two major versions of Chrome, Edge, Firefox and Safari; a browser feature not available in all of them may only be used where the page stays correct without it.
 
 ### Key Entities
 
@@ -294,8 +295,8 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **SC-012**: For every `spec.md` in the fixtures and in this repository, 100 % of the source's non-blank lines appear in the reader's formatted view.
 - **SC-013**: No page makes a request to any server other than the one it was loaded from (zero third-party requests in the end-to-end tests).
 - **SC-014**: For a project of 50 features and 2,000 tasks, search results update within 200 ms of each keystroke in serve mode and in a static build, and a task ID typed in full is always the first result.
-- **SC-016**: The end-to-end suite passes in all three browser engines (Chromium, Firefox, WebKit).
 - **SC-015**: Every user story in this spec has at least one passing end-to-end test that exercises it as a user would (constitution §V).
+- **SC-016**: The end-to-end suite passes in all three browser engines (Chromium, Firefox, WebKit).
 
 ## Assumptions
 
@@ -313,4 +314,4 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **Scripts**: the redesign keeps the no-scripts baseline of spec 001 for content and navigation; the new interactive behaviors are enhancements that need scripts (see Edge Cases).
 - **Version**: this is a user-visible change recorded in `CHANGELOG.md`; the version number of the release is decided at planning.
 - **Out of scope**: editing tasks or documents from the dashboard; switching between projects; a settings page; rendering diagrams; searching the body text of documents; structured rendering for documents other than `spec.md` (they get the reader layout with ordinary formatting).
-- **Deferred to planning (technical decisions, not scope)**: whether an existing UI framework or library would simplify the richer page behavior (theme switching, task map, filters, accordion, contents panel, keeping view state across live updates) — to be evaluated in the plan's research and justified in Complexity Tracking (constitution §I) against the constraints above: pages work without scripts, static builds equal serve mode under a sub-path, no third-party requests, serve mode's security rules unchanged, one-command start with few runtime dependencies, and unit tests without a browser (constitution §IV). Also deferred: page addresses for feature pages and selected tasks, how bundled fonts and icons are packaged, and how the structured `spec.md` view is recognized.
+- **Deferred to planning (technical decisions, not scope)**: whether an existing UI framework or library would simplify the richer page behavior (theme switching, task map, filters, accordion, contents panel, keeping view state across live updates) — to be evaluated in the plan's research and justified in Complexity Tracking (constitution §I) against the constraints above: pages work without scripts, static builds equal serve mode under a sub-path, no third-party requests, serve mode's security rules unchanged, one-command start with few runtime dependencies, and unit tests without a browser (constitution §IV). Also deferred: page addresses for every page and for selected tasks (existing addresses need not be kept, since no version has been released), how bundled fonts and icons are packaged, and how the structured `spec.md` view is recognized.
