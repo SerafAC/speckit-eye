@@ -14,7 +14,7 @@ Rebuild the pages of speckit-eye to the approved redesign in `mockups/001-first-
 
 **Language/Version**: JavaScript (ES modules) on Node.js ≥ 22, unchanged (001 R1).
 
-**Primary Dependencies**: Runtime: `markdown-it` ^15 only (unchanged). Dev, existing: `tailwindcss` + `@tailwindcss/cli` ^4 (needs ≥ 4.1 for `@source inline`), `@tailwindcss/typography`, `@playwright/test`. Dev, new: `@fontsource-variable/geist`, `@fontsource-variable/geist-mono`, `@fontsource/instrument-serif` (fonts copied into `dist/fonts`, D4), `happy-dom` (unit tests of browser modules, D11). Icons are copied from Lucide into source (D5), not a dependency.
+**Primary Dependencies**: Runtime: `markdown-it` ^15 only (unchanged). Dev, existing: `tailwindcss` + `@tailwindcss/cli` ^4.1 (raised from ^4 for `@source inline`; locked at 4.3.3), `@tailwindcss/typography`, `@playwright/test`. Dev, new: `@fontsource-variable/geist`, `@fontsource-variable/geist-mono`, `@fontsource/instrument-serif` (fonts copied into `dist/fonts`, D4), `happy-dom` (unit tests of browser modules, D11). Icons are copied from Lucide into source (D5), not a dependency.
 
 **Storage**: None on the server. In the browser, `localStorage` for four viewer preferences (D9).
 
@@ -41,7 +41,7 @@ Rebuild the pages of speckit-eye to the approved redesign in `mockups/001-first-
 | III | DRY | ✅ | ✅ | One renderer for serve and build; one site map. Color tokens defined once with `light-dark()` (D3). Ordering rules only in the model, emitted as `data-rank-*` (D10). One `shares()` function for every proportional width. Task states keep 001's single rule set (renamed for display). Version stays in `package.json` only. |
 | IV | Unit tests for all code | ✅ | ✅ | New parse/model/render modules are pure. Browser modules take injected `document`/`window`/`storage`/timers/`fetch` and are tested with `happy-dom` (D11). `scripts/copy-assets.js` exposes a pure file-selection function that is unit tested. The `spec-structure` coverage invariant is tested over every fixture and this repository's specs (SC-012). |
 | V | E2E coverage of major requirements | ✅ | ✅ | One suite per user story (`us1-overview` … `us6-search`) plus cross-cutting suites (`live-state`, `nojs`, `mobile`, `security`, `scale`, `self-counts`), all run in three browser engines. Test names start with `USn FR-xxx` (DEVELOPMENT.md rule). |
-| VI | SemVer + CHANGELOG | ✅ | ✅ | Every user-visible change adds lines under `## [Unreleased]`. No release has been made yet (clarified); the version is set by the release process (D18). |
+| VI | SemVer + CHANGELOG | ✅ | ✅ | Every user-visible change adds lines under `## [Unreleased]`. No release has been made yet (clarified): the premature `[1.0.0]` heading was folded into `[Unreleased]`, and the version is set by the release process (D18). |
 | VII | Docs under ./docs | ✅ | ✅ | `docs/usage.md` (new layout, feature pages, reader, theme, search, map modes, blocked color, browser support), `docs/architecture.md` (new modules, browser module convention, site map entries, fonts), `docs/hosting.md` (unchanged content; check that the screenshot/text still match). |
 | VIII | README user-facing | ✅ | ✅ | New screenshot and feature list (FR-054); still user-only content. |
 | IX | DEVELOPMENT.md | ✅ | ✅ | `build:assets` instead of `build:css`, three Playwright browsers, `happy-dom` in unit tests, updated project structure, updated release checklist (package contents now include `dist/fonts/`). |

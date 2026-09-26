@@ -173,7 +173,7 @@ The stats bar segments, their done/open/next parts, the phase rail blocks and th
 
 ## D18. Version
 
-**Decision**: No release has been made yet (clarification), so all changes go under `## [Unreleased]` in `CHANGELOG.md`. The version in `package.json` stays `1.0.0` until the release process runs; at release, the entry for 1.0.0 is merged with Unreleased, since 1.0.0 was never published.
+**Decision**: No release has been made yet (clarification; no git tag, nothing on npm), so `CHANGELOG.md` keeps everything under `## [Unreleased]`: the premature `[1.0.0] - 2026-09-25` heading was removed on 2026-09-26 and its entries now sit under Unreleased. The redesign adds its entries there too. The version number is chosen when the release process runs (DEVELOPMENT.md).
 
 ## D19. Performance (SC-007, SC-014)
 
