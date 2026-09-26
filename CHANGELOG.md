@@ -25,3 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its own previous build without leaving stale pages. See `docs/hosting.md` for
   a sample GitHub Pages workflow.
 - Added: click a grid square to jump to its task; compact grid for large projects.
+- Added: dark sidebar on the overview and feature pages with the project's
+  navigation, the Features list ("Features N / M done", status dot and open
+  count per feature) and the version; document pages get a narrow icon rail,
+  and narrow screens get a menu that works without JavaScript. Replaces the
+  old header and Menu.
+- Added: light, dark and system theme; the choice is remembered in the browser
+  and applied before the page is drawn.

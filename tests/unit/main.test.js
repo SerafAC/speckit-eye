@@ -395,7 +395,7 @@ describe("run: build mode (US4, T055)", () => {
     const index = fs.files.get(path.join(out, "index.html"));
     assert.match(index, /<body data-mode="static"/);
     assert.match(index, /href="\/repo\/assets\/styles\.css"/);
-    assert.match(index, /generated at <time datetime="2026-09-25T10:00:00\.000Z">/);
+    assert.match(index, / · generated <time datetime="2026-09-25T10:00:00\.000Z">/);
     assert.doesNotMatch(index, /live\.js|__events/);
     assert.ok(fs.files.has(path.join(out, "features", "001-a", "spec.html")));
     assert.ok(fs.files.has(path.join(out, "constitution.html")));

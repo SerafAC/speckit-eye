@@ -4,8 +4,9 @@
  * clicking a square opens them and scrolls smoothly to the task (spec
  * Assumptions "Open design items"). Optional: the overview is complete
  * without it (FR-037); a square's `href` already jumps to the task. Loaded as an ES
- * module (`assets/overview.js`); `document` is injected so it can be unit
- * tested with fakes.
+ * module (`assets/overview.js`) and started by `assets/app.js` on the overview
+ * until US1/US2 replace it; `document` is injected so it can be unit tested
+ * with fakes.
  */
 
 /**
@@ -100,5 +101,3 @@ export function attachClick(doc, win = /** @type {any} */ (doc).defaultView) {
     task.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
   });
 }
-
-if (typeof document !== "undefined") for (const attach of [attachHover, attachClick]) attach(document);

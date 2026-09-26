@@ -4,6 +4,7 @@ import { renderSite, allArtifacts, HTML_TYPE, CSS_TYPE, JS_TYPE, FONT_TYPE, JSON
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
+import { themeScript } from "../../src/render/theme-script.js";
 
 async function model(files) {
   return buildModel(await scan(createFakeReader(files), "proj"));
@@ -35,6 +36,7 @@ const ASSET_KEYS = [
   "assets/overview.js",
   "assets/prefs.js",
   "assets/styles.css",
+  "assets/theme.js",
 ];
 
 const site = async (opts = {}) =>
@@ -68,7 +70,7 @@ describe("renderSite", () => {
 
   test("the live script and banner are on serve pages and absent from static pages (FR-032)", async () => {
     const serve = (await site()).get("index.html").body;
-    assert.match(serve, /<script type="module" src="\/assets\/live\.js" defer><\/script>/);
+    assert.match(serve, /<script type="module" src="\/assets\/live\.js"><\/script>/);
     assert.match(serve, /<div data-region="live-status" hidden>Live updates paused — reconnecting…<\/div>/);
     const stat = (await site({ mode: "static", base: "/repo/" })).get("index.html").body;
     assert.doesNotMatch(stat, /live\.js/);
@@ -81,7 +83,7 @@ describe("renderSite", () => {
     assert.equal(type, HTML_TYPE);
     assert.match(body, /^<!doctype html>/);
     assert.match(body, /<title>proj · speckit-eye<\/title>/);
-    assert.match(body, /<body data-mode="serve" data-version="9\.9\.9">/);
+    assert.match(body, /<body data-mode="serve" data-version="9\.9\.9" data-page="overview" data-base="\/">/);
     assert.match(body, /<main><section data-region="progress">/);
     assert.match(body, /<div data-region="tree">/);
     assert.match(body, /<div data-region="grid">/);
@@ -96,6 +98,17 @@ describe("renderSite", () => {
     for (const name of Object.keys(ASSETS.modules)) {
       assert.deepEqual(s.get(`assets/${name}`), { type: JS_TYPE, body: ASSETS.modules[name] }, name);
     }
+  });
+
+  test("assets/theme.js is generated from themeScript() in both modes, not passed in as a module (research D3)", async () => {
+    for (const mode of ["serve", "static"]) {
+      const s = await site({ mode });
+      assert.deepEqual(s.get("assets/theme.js"), { type: JS_TYPE, body: themeScript() });
+      assert.match(s.get("assets/theme.js").body, /applyStoredTheme/);
+    }
+    const m = await model(FILES);
+    const bare = renderSite(m, { base: "/", mode: "static", version: "1", assets: { styles: "", modules: {}, fonts: {} } });
+    assert.equal(bare.get("assets/theme.js").body, themeScript());
   });
 
   test("font files are published under assets/fonts/ with their types; bytes stay a Uint8Array (research D12)", async () => {
@@ -134,7 +147,8 @@ describe("renderSite", () => {
     const { body } = (await site({ base: "/repo/", mode: "static" })).get("index.html");
     assert.match(body, /data-mode="static"/);
     assert.match(body, /href="\/repo\/assets\/styles\.css"/);
-    assert.match(body, /src="\/repo\/assets\/overview\.js"/);
+    assert.match(body, /src="\/repo\/assets\/theme\.js"/);
+    assert.match(body, /src="\/repo\/assets\/app\.js"/);
     assert.match(body, /href="\/repo\/constitution\.html"/);
   });
 
@@ -150,7 +164,7 @@ describe("renderSite", () => {
       assert.equal(main(stat.get(key).body), main(serve.get(key).body), key);
     }
     const index = stat.get("index.html").body;
-    assert.match(index, /<footer>generated at <time datetime="2026-09-25T10:00:00\.000Z">/);
+    assert.match(index, /<footer[^>]*>speckit-eye 1 · generated <time datetime="2026-09-25T10:00:00\.000Z">/);
     assert.doesNotMatch(index, /__events|live\.js|live-status/);
   });
 
@@ -258,7 +272,7 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     assert.equal(type, HTML_TYPE);
     assert.match(body, /^<!doctype html>/);
     assert.match(body, /<title>Plan · proj · speckit-eye<\/title>/);
-    assert.match(body, /<details data-region="menu">/);
+    assert.match(body, /<details data-region="mobile-menu">/);
     assert.match(body, /<main><nav data-region="breadcrumb"[^>]*><a href="\/index.html">Overview<\/a>[\s\S]*Full[\s\S]*Plan<\/span><\/nav>/);
     assert.match(body, /<article class="prose" data-region="artifact" data-key="specs\/001-full\/plan.md">/);
     assert.match(body, /<h1 id="plan">Plan<\/h1>/);

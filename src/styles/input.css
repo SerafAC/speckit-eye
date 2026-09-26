@@ -204,33 +204,310 @@
 }
 
 /* ------------------------------------------------------------------------ */
-/* Page shell                                                                */
+/* Page shell (contracts/routes.md "Page shell", FR-005–FR-009, FR-050)      */
+/* Wide screens (≥ 64rem): fixed 272 px sidebar on overview and feature      */
+/* pages, fixed 72 px icon rail on document pages (handoff "Global layout"). */
+/* Narrow screens: both are hidden and the <details> mobile menu at the top  */
+/* carries the same navigation; nothing may scroll the page sideways.        */
 /* ------------------------------------------------------------------------ */
 
+:root {
+  --sidebar-w: 272px;
+  --rail-w: 72px;
+  --hit: 36px;
+}
+
 @layer base {
+  html {
+    background-color: var(--bg);
+  }
+
   body {
-    @apply mx-auto max-w-7xl bg-(--bg) px-4 py-4 font-sans text-(--text) antialiased md:px-8;
+    @apply min-h-screen bg-(--bg) font-sans text-(--text) antialiased;
+    overflow-x: clip;
   }
 
-  header[data-region="header"] {
-    @apply mb-4 flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-gray-200 pb-3;
+  main {
+    @apply min-w-0 px-4 py-6 md:px-8;
+    overflow-wrap: anywhere;
   }
 
-  header[data-region="header"] [data-region="project-name"] {
-    @apply text-xl font-semibold text-gray-900 no-underline;
+  body > footer {
+    @apply px-4 pb-6 text-xs text-(--muted) md:px-8;
+  }
+}
+
+/* Shared navigation markup (sidebar, rail and mobile menu). */
+[data-region="sidebar"] ul,
+[data-region="rail"] ul,
+[data-region="mobile-menu"] ul {
+  @apply m-0 list-none p-0;
+}
+
+[data-region="sidebar"] a,
+[data-region="rail"] a,
+[data-region="mobile-menu"] a {
+  @apply no-underline;
+  color: inherit;
+}
+
+/* ---- Sidebar ---- */
+
+[data-region="sidebar"] {
+  @apply hidden flex-col gap-3 px-3 py-4 text-sm;
+  background-color: var(--chrome);
+  color: var(--text-3);
+}
+
+[data-region="sidebar"] [data-part="brand"] {
+  @apply flex items-center gap-2 px-2 font-semibold text-(--text);
+  min-height: var(--hit);
+}
+
+[data-region="sidebar"] [data-part="project-name"] {
+  @apply m-0 truncate px-2 font-mono text-xs text-(--muted);
+}
+
+[data-region="sidebar"] nav[aria-label="Main"] a,
+[data-region="mobile-menu"] nav[aria-label="Main"] a {
+  @apply flex items-center gap-2 rounded-md px-2;
+  min-height: var(--hit);
+}
+
+[data-region="sidebar"] nav a:hover,
+[data-region="mobile-menu"] nav a:hover {
+  background-color: var(--subtle);
+}
+
+[data-region="sidebar"] nav a[aria-current="page"],
+[data-region="mobile-menu"] nav a[aria-current="page"] {
+  @apply font-medium text-(--text);
+  background-color: var(--subtle-2);
+}
+
+/* The Features list scrolls on its own; the rest of the sidebar stays put. */
+[data-region="sidebar"] nav[data-part="features"] {
+  @apply flex min-h-0 flex-1 flex-col;
+}
+
+[data-region="sidebar"] nav[data-part="features"] > ul {
+  @apply min-h-0 flex-1 overflow-y-auto;
+  overscroll-behavior: contain;
+}
+
+nav[data-part="features"] h2 {
+  @apply m-0 mb-1 flex items-baseline justify-between px-2 text-xs font-medium tracking-wide text-(--muted) uppercase;
+}
+
+nav[data-part="features"] [data-part="features-count"] {
+  @apply font-mono normal-case tabular-nums;
+}
+
+nav[data-part="features"] a {
+  @apply flex items-center gap-2 rounded-md px-2;
+  min-height: var(--hit);
+}
+
+nav[data-part="features"] [data-part="name"] {
+  @apply min-w-0 flex-1 truncate;
+}
+
+nav[data-part="features"] [data-part="count"] {
+  @apply shrink-0 font-mono text-xs text-(--muted) tabular-nums;
+}
+
+nav[data-part="features"] a[data-status="done"] [data-part="count"] {
+  color: var(--green);
+}
+
+[data-region="sidebar"] > footer {
+  @apply mt-auto px-2 font-mono text-xs text-(--muted);
+}
+
+/* ---- Search entry and theme switch (shown by assets/app.js) ---- */
+
+[data-part="search"] {
+  @apply flex w-full cursor-pointer items-center gap-2 rounded-md border border-(--border) px-2 text-left text-(--muted);
+  min-height: var(--hit);
+  background-color: var(--surface-2);
+}
+
+[data-part="search"] span {
+  @apply flex-1 truncate;
+}
+
+[data-part="search"] kbd {
+  @apply rounded border border-(--border) px-1 font-mono text-xs;
+}
+
+[data-part="theme"] {
+  @apply flex gap-1 rounded-md p-1;
+  background-color: var(--subtle);
+}
+
+[data-part="theme"] button {
+  @apply inline-flex flex-1 cursor-pointer items-center justify-center rounded text-(--muted);
+  min-width: var(--hit);
+  min-height: var(--hit);
+}
+
+[data-part="theme"] button[aria-pressed="true"] {
+  @apply text-(--text);
+  background-color: var(--surface);
+}
+
+/* ---- Icon rail (document pages) ---- */
+
+[data-region="rail"] {
+  @apply hidden flex-col items-center gap-2 py-4;
+  background-color: var(--chrome);
+  color: var(--text-3);
+}
+
+[data-region="rail"] > ul {
+  @apply flex flex-col gap-1;
+}
+
+[data-region="rail"] a,
+[data-region="rail"] [data-part="search"] {
+  @apply inline-flex items-center justify-center rounded-md p-0;
+  width: 44px;
+  height: 44px;
+}
+
+[data-region="rail"] a:hover,
+[data-region="rail"] a[aria-current="page"] {
+  @apply text-(--text);
+  background-color: var(--subtle);
+}
+
+[data-region="rail"] [data-part="theme"] {
+  @apply mt-auto flex-col;
+}
+
+/* ---- Mobile menu (narrow screens, works without JavaScript) ---- */
+
+[data-region="mobile-menu"] {
+  @apply sticky top-0 z-20 border-b border-(--border) text-sm;
+  background-color: var(--surface);
+}
+
+[data-region="mobile-menu"] > summary {
+  @apply flex cursor-pointer list-none items-center gap-2 px-4 font-medium;
+  min-height: 44px;
+}
+
+[data-region="mobile-menu"] > summary::-webkit-details-marker {
+  display: none;
+}
+
+[data-region="mobile-menu"][open] {
+  @apply max-h-screen overflow-y-auto pb-3;
+}
+
+[data-region="mobile-menu"] nav {
+  @apply px-2;
+}
+
+@media (width >= 64rem) {
+  [data-region="mobile-menu"] {
+    display: none;
   }
 
-  header[data-region="header"] nav {
-    @apply flex flex-wrap gap-4 text-sm;
+  [data-region="sidebar"] {
+    @apply fixed inset-y-0 left-0 z-10 flex;
+    width: var(--sidebar-w);
   }
 
-  header[data-region="header"] nav a {
-    @apply text-gray-600 underline-offset-2 hover:text-gray-900 hover:underline;
+  [data-region="rail"] {
+    @apply fixed inset-y-0 left-0 z-10 flex;
+    width: var(--rail-w);
   }
 
-  footer {
-    @apply mt-8 border-t border-gray-200 pt-3 text-xs text-gray-500;
+  body[data-page="overview"] > main,
+  body[data-page="feature"] > main {
+    margin-left: var(--sidebar-w);
   }
+
+  body[data-page="document"] > main,
+  body[data-page="document"] > footer {
+    margin-left: var(--rail-w);
+  }
+}
+
+/* ---- Components shared by the pages ---- */
+
+/* Status dot: done filled green, in progress blue ring, otherwise grey. */
+[data-part="dot"] {
+  @apply inline-block size-2 shrink-0 rounded-full;
+  background-color: var(--muted-2);
+}
+
+[data-part="dot"][data-status="done"] {
+  background-color: var(--green);
+}
+
+[data-part="dot"][data-status="in-progress"] {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 2px var(--blue);
+}
+
+/* Pill: short status text ("3 open", "Complete", "Next", "Blocked"). */
+.pill {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap;
+  background-color: var(--subtle);
+  color: var(--text-4);
+}
+
+.pill[data-status="done"] {
+  background-color: var(--green-bg);
+  color: var(--green-text);
+}
+
+.pill[data-status="in-progress"],
+.pill[data-status="open"] {
+  background-color: var(--blue-bg);
+  color: var(--blue-text);
+}
+
+.pill[data-status="next"] {
+  background-color: var(--next);
+  color: #fff;
+}
+
+.pill[data-status="blocked"] {
+  background-color: var(--rose-bg);
+  color: var(--rose-text);
+}
+
+.pill[data-status="warning"] {
+  background-color: var(--amber-bg);
+  color: var(--amber-text);
+}
+
+/* Chip: mono label for IDs, numbers, kinds, files and references. */
+.chip {
+  @apply inline-flex max-w-full items-center truncate rounded px-1.5 font-mono text-xs;
+  background-color: var(--subtle);
+  color: var(--text-3);
+  height: 22px;
+}
+
+/* Button: every control has a hit target of at least 36 px (FR-050). */
+.btn {
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-(--border) px-3 text-sm font-medium text-(--text-2);
+  min-height: var(--hit);
+  background-color: var(--surface);
+}
+
+.btn:hover {
+  background-color: var(--surface-2);
+}
+
+.btn[aria-pressed="true"] {
+  background-color: var(--inv-bg);
+  border-color: var(--inv-bg);
+  color: var(--inv-fg);
 }
 
 /* ------------------------------------------------------------------------ */
