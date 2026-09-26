@@ -153,3 +153,51 @@ and `<img src=x onerror=alert(1)>` (shown as text), and the links
 (→ `contracts/cli.html#synopsis`), `[src](../../src/index.js)` (plain text),
 `[x](javascript:alert(1))` (not a link) and `[docs](https://example.com)`
 (kept).
+
+## Overview expectations (spec 002)
+
+What the redesigned overview shows for each fixture (stats card, segmented
+bar, Up next bar and the feature ranks behind the tree's Order control). Ranks
+are 0-based positions from `src/model/ranks.js`; `progress` is the default
+"In progress first" order, also used by the sidebar Features list. Segment
+shares are the `w-pct-N` widths, in folder order, of the features with tasks.
+
+### Stats card and Up next bar
+
+| Fixture | Percent | Detail | Features | Phases | Open tasks | Up next |
+|---|---|---|---|---|---|---|
+| `mixed` | 62 % | 40 of 65 tasks | 1 / 4, 1 in progress | 5 / 9, 4 remaining | 25, across 2 features | `002-beta` T011 "List paging" |
+| `complete` | 100 % | 8 of 8 tasks | 2 / 2, 0 in progress | 4 / 4, 0 remaining | 0, across 0 features | none: "Every task is complete" (`data-empty="complete"`) |
+| `empty` | 0 % | 0 of 0 tasks | 0 / 0, 0 in progress | 0 / 0, 0 remaining | 0, across 0 features | none: "No tasks yet" (`data-empty="no-tasks"`); no segments, empty-state text |
+| `nonstandard` | 56 % | 5 of 9 tasks | 0 / 2, 1 in progress | 2 / 4, 2 remaining | 4, across 1 feature | `001-odd` T004 |
+| `artifacts` | 25 % | 1 of 4 tasks | 0 / 2, 1 in progress | 0 / 2, 2 remaining | 3, across 1 feature | `001-full` T002 |
+
+### Segments
+
+| Fixture | Segments (share %, label; done / open / next) |
+|---|---|
+| `mixed` | `001-alpha` 46 "001" (30 / 0 / 0), `002-beta` 31 "002" (10 / 9 / 1; the blocked T018 counts as open), `003-gamma` 23 "003" (0 / 15 / 0); `004-delta` has no tasks and no segment |
+| `complete` | `001-first` 50 "001" (4 / 0 / 0), `002-second` 50 "002" (4 / 0 / 0) |
+| `empty` | none |
+| `nonstandard` | `001-odd` 100 "001" (5 / 3 / 1); `002-emptytasks` has no tasks |
+| `artifacts` | `001-full` 100 "001" (1 / 2 / 1); `002-partial` has no tasks |
+
+### Ranks (tree order per Order control)
+
+| Fixture | In progress first | Number | Least complete | Name A–Z |
+|---|---|---|---|---|
+| `mixed` | 002-beta, 003-gamma, 004-delta, 001-alpha | 001-alpha, 002-beta, 003-gamma, 004-delta | 003-gamma, 002-beta, 001-alpha, 004-delta | 001-alpha (Alpha), 002-beta (Beta), 004-delta (Delta), 003-gamma (Gamma) |
+| `complete` | 002-second, 001-first | 001-first, 002-second | 001-first, 002-second | 001-first (First), 002-second (Second) |
+| `empty` | — | — | — | — |
+| `nonstandard` | 001-odd, 002-emptytasks | 001-odd, 002-emptytasks | 001-odd, 002-emptytasks | 002-emptytasks, 001-odd |
+| `artifacts` | 001-full, 002-partial | 001-full, 002-partial | 001-full, 002-partial | 001-full, 002-partial |
+
+### Warning rows
+
+`nonstandard`: `001-odd` shows the badge "8 warnings" and eight amber rows,
+one per code in this order: W3 (L5), W1 (L10, "1 checkbox without a task ID in
+tasks.md — counted, not linkable"), W2 (L11), W7 (L15), W5 (L17), W4 (L18),
+W6 (L18), W12 (L28), each with a "Details" link to
+`features/001-odd/index.html#warnings`; `002-emptytasks` shows "1 warning"
+(W8). `artifacts`: `001-full` shows "1 warning" (W11 for `bad name.md`). `mixed`, `complete`
+and `empty` have none.

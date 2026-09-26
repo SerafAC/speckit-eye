@@ -11,6 +11,7 @@
 
 import { createPrefs, browserStorage, ALLOWED } from "./prefs.js";
 import { attachHover, attachClick } from "./overview.js";
+import * as tree from "./tree.js";
 
 /**
  * @typedef {object} Deps
@@ -52,12 +53,19 @@ const legacyOverview = {
 };
 
 /**
+ * The overview feature tree: order, depth, view filter and `reveal()`
+ * (src/client/tree.js). Its depth is page-local state kept across live swaps.
+ * @type {PageModule}
+ */
+const treeModule = { name: "tree", init: tree.init, save: tree.save };
+
+/**
  * The modules run on each page type; `all` runs on every page first.
  * @type {Record<"overview" | "feature" | "document" | "all", PageModule[]>}
  */
 export const MODULES = {
   all: [],
-  overview: [legacyOverview],
+  overview: [treeModule, legacyOverview],
   feature: [],
   document: [],
 };
