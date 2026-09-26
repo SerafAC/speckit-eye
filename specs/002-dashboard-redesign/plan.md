@@ -100,13 +100,13 @@ src/
 │   ├── spec-view.js           # **new** structured spec.md blocks → HTML
 │   ├── artifact.js            # *removed; replaced by reader.js*
 │   ├── search-index.js        # **new** model → search-index.json
+│   ├── theme-script.js        # **new** assets/theme.js text generated from prefs.applyStoredTheme
 │   └── site.js                # *adds feature pages, search index, fonts, modules; binary bodies (D12)*
 ├── serve/handler.js           # *serves Uint8Array bodies; new content types*
 ├── build/build.js             # *writes Uint8Array bodies*
 ├── client/
 │   ├── app.js                 # **new** bootstrap: runs init per data-page, reinit for live.js
-│   ├── prefs.js               # **new** safe localStorage
-│   ├── theme.js               # **new** blocking head script
+│   ├── prefs.js               # **new** safe localStorage + applyStoredTheme (source reused for assets/theme.js)
 │   ├── tree.js                # **new** order, depth, filter, reveal
 │   ├── taskmap.js             # **new** mode, hover highlight, tooltip, click
 │   ├── feature.js             # **new** rail/list sync, filters, selection, detail panel, copy
@@ -142,7 +142,7 @@ The order follows the spec's priorities so every step leaves a working tool (det
 2. **US1 overview** (P1): model additions (status, ranks, stats, segments, warning groups), `overview.js`, `client/tree.js`.
 3. **US2 task map** (P2): `render/taskmap.js`, `client/taskmap.js`, blocked color.
 4. **US3 feature page** (P2): `task-files.js`, `task-text.js`, `render/feature.js`, `client/feature.js`, tasks.md line anchors.
-5. **US4 theme** (P2): `theme.js`, switch wiring, contrast check.
+5. **US4 theme** (P2): generated `assets/theme.js`, switch wiring, contrast check.
 6. **US5 reader** (P3): `spec-structure.js`, `spec-view.js`, `render/reader.js`, `client/reader.js`.
 7. **US6 search** (P3): `search-index.js`, `client/search.js`.
 8. **Polish**: no-JS, mobile, scale and security suites in three browsers; docs, README screenshot, CHANGELOG.
