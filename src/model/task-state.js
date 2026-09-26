@@ -22,6 +22,15 @@ export function statusOf(counts) {
 }
 
 /**
+ * The 001 task state under the name the redesign shows (data-model Task
+ * `display`): same rules and precedence, only renamed.
+ */
+const DISPLAY_OF = Object.freeze({ completed: "done", current: "next", blocked: "blocked", future: "open" });
+
+/** Label shown for each display state (pills, tooltips, detail panel). */
+export const DISPLAY_LABEL = Object.freeze({ done: "Done", next: "Next", blocked: "Blocked", open: "Open" });
+
+/**
  * @param {Counts} counts
  * @param {string} status
  * @param {boolean} active
@@ -40,8 +49,11 @@ function taskName(task) {
 }
 
 /**
- * Sets `state` on every task, adds W7 for a current task with an open
- * dependency, and sets `sig` on the project, features, phases, groups and tasks.
+ * Sets `state`, `display` and `waitingOn` on every task, adds W7 for a
+ * current task with an open dependency, and sets `sig` on the project,
+ * features, phases, groups and tasks. `waitingOn` lists, for a blocked task
+ * only, the IDs in `dependsOn` whose tasks are still open, in written order
+ * (IDs without a task are ignored); it is empty for every other task.
  * Requires `project.active` (selectActive). Idempotent.
  * @param {Project} project
  * @returns {Project}
@@ -77,6 +89,8 @@ export function applyTaskStates(project) {
         }
       } else if (openDeps.length > 0) t.state = "blocked";
       else t.state = "future";
+      t.display = DISPLAY_OF[t.state];
+      t.waitingOn = t.state === "blocked" ? openDeps : [];
       t.sig = `${t.state}${t.key === active.nextTaskKey ? ":a" : ""}`;
     }
 

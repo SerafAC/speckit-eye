@@ -34,14 +34,41 @@ export function allArtifacts(project) {
 /**
  * @typedef {object} SiteEntry
  * @property {string} type MIME type of the body
- * @property {string} body
+ * @property {string | Uint8Array} body text, or bytes for binary assets
+ *   (fonts, research D12); bytes are served and written unchanged
  */
 
 /** @typedef {Map<string, SiteEntry>} Site */
 
+/**
+ * @typedef {object} SiteAssets
+ * @property {string} styles the compiled stylesheet (`dist/styles.css`)
+ * @property {Record<string, string>} modules browser module sources by file
+ *   name (`app.js`, `prefs.js`, …); `live.js` is required in serve mode and
+ *   never published in static mode
+ * @property {Record<string, Uint8Array | string>} fonts the files of
+ *   `dist/fonts/` by name: `.woff2` bytes and `OFL-*.txt` licence texts
+ */
+
 export const HTML_TYPE = "text/html; charset=utf-8";
 export const CSS_TYPE = "text/css; charset=utf-8";
 export const JS_TYPE = "text/javascript; charset=utf-8";
+export const FONT_TYPE = "font/woff2";
+export const JSON_TYPE = "application/json; charset=utf-8";
+export const TEXT_TYPE = "text/plain; charset=utf-8";
+
+/** The browser module that exists in serve mode only (live updates). */
+const LIVE_MODULE = "live.js";
+
+/**
+ * @param {string} file a file name from `dist/fonts/`
+ * @returns {string} its content type
+ */
+function fontFileType(file) {
+  if (file.endsWith(".woff2")) return FONT_TYPE;
+  if (file.endsWith(".txt")) return TEXT_TYPE;
+  throw new Error(`renderSite: unexpected font file ${file}`);
+}
 
 /**
  * @param {Project} project
@@ -50,9 +77,7 @@ export const JS_TYPE = "text/javascript; charset=utf-8";
  * @param {"serve" | "static"} options.mode
  * @param {string} options.version
  * @param {string | null} [options.generatedAt] ISO time, static mode only
- * @param {{styles: string, overview: string, live?: string}} options.assets
- *   contents of the compiled stylesheet and the client scripts (`live` is
- *   needed in serve mode only)
+ * @param {SiteAssets} options.assets contents of the packaged assets
  * @returns {Site}
  */
 export function renderSite(project, { base, mode, version, generatedAt = null, assets }) {
@@ -95,10 +120,16 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
   }
 
   site.set("assets/styles.css", { type: CSS_TYPE, body: assets.styles });
-  site.set("assets/overview.js", { type: JS_TYPE, body: assets.overview });
-  if (mode === "serve") {
-    if (typeof assets.live !== "string") throw new Error("renderSite: serve mode needs assets.live");
-    site.set("assets/live.js", { type: JS_TYPE, body: assets.live });
+  const modules = assets.modules ?? {};
+  if (mode === "serve" && typeof modules[LIVE_MODULE] !== "string") {
+    throw new Error(`renderSite: serve mode needs assets.modules["${LIVE_MODULE}"]`);
+  }
+  for (const [name, source] of Object.entries(modules)) {
+    if (name === LIVE_MODULE && mode !== "serve") continue;
+    site.set(`assets/${name}`, { type: JS_TYPE, body: source });
+  }
+  for (const [file, body] of Object.entries(assets.fonts ?? {})) {
+    site.set(`assets/fonts/${file}`, { type: fontFileType(file), body });
   }
 
   return site;

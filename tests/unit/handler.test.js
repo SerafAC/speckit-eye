@@ -72,6 +72,8 @@ describe("contentTypeFor", () => {
     assert.equal(contentTypeFor("index.html"), "text/html; charset=utf-8");
     assert.equal(contentTypeFor("assets/styles.css"), "text/css; charset=utf-8");
     assert.equal(contentTypeFor("assets/overview.js"), "text/javascript; charset=utf-8");
+    assert.equal(contentTypeFor("assets/fonts/geist-latin-wght-normal.woff2"), "font/woff2");
+    assert.equal(contentTypeFor("assets/fonts/OFL-geist.txt"), "text/plain; charset=utf-8");
     assert.equal(contentTypeFor("x.unknown"), "application/octet-stream");
     assert.equal(contentTypeFor("noext"), "application/octet-stream");
   });
@@ -160,6 +162,36 @@ describe("createHandler: defaults", () => {
     assert.equal(res.body, bytes);
     assert.equal(res.headers["Content-Length"], 4);
     assert.equal(res.headers["Content-Type"], "image/png");
+  });
+});
+
+describe("createHandler: binary font bodies (research D12)", () => {
+  // A view into a larger buffer: only its own bytes may be sent.
+  const backing = new Uint8Array([0xaa, 0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80, 0xc3, 0xbb]);
+  const font = backing.subarray(1, 9);
+  const fontSite = new Map([["assets/fonts/geist-latin-wght-normal.woff2", { type: "font/woff2", body: font }]]);
+  const h = createHandler({ getSite: () => fontSite });
+
+  test("a Uint8Array body is sent byte-exact with its own length and the font type", () => {
+    const res = fakeRes();
+    h({ method: "GET", url: "/assets/fonts/geist-latin-wght-normal.woff2" }, res);
+    assert.equal(res.status, 200);
+    assert.equal(res.body, font);
+    assert.deepEqual([...res.body], [0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80, 0xc3]);
+    assert.equal(res.headers["Content-Length"], 8);
+    assert.equal(res.headers["Content-Type"], "font/woff2");
+  });
+
+  test("the CSP and the other 001 headers are unchanged on binary responses", () => {
+    for (const method of ["GET", "HEAD"]) {
+      const res = fakeRes();
+      h({ method, url: "/assets/fonts/geist-latin-wght-normal.woff2" }, res);
+      assert.equal(res.headers["Content-Security-Policy"], "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:");
+      assert.equal(res.headers["Cache-Control"], "no-store");
+      assert.equal(res.headers["X-Content-Type-Options"], "nosniff");
+      assert.equal(res.headers["Content-Length"], 8);
+      if (method === "HEAD") assert.equal(res.body, undefined);
+    }
   });
 });
 

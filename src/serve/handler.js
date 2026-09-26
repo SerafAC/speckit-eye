@@ -24,6 +24,7 @@ const TYPES = /** @type {Record<string, string>} */ ({
   svg: "image/svg+xml",
   png: "image/png",
   txt: "text/plain; charset=utf-8",
+  woff2: "font/woff2",
 });
 
 /**
@@ -68,6 +69,7 @@ export function routeKey(url) {
  * @param {Record<string, string>} [extra]
  */
 function send(res, status, method, type, body, extra = {}) {
+  // Text is encoded as UTF-8; bytes (fonts, research D12) go out unchanged.
   const buffer = typeof body === "string" ? Buffer.from(body, "utf8") : body;
   res.writeHead(status, {
     ...BASE_HEADERS,

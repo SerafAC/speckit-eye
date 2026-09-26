@@ -4,20 +4,196 @@
 @source "../render";
 @source "../client";
 
-/*
- * Status colors: the single definition used by the feature tree and the task
- * grid (constitution §III, FR-015b, FR-019a). Do not repeat these values
- * anywhere else.
- */
-:root {
-  --status-done: #16a34a;        /* green: completed feature/phase/story/task */
-  --status-active: #f59e0b;      /* highlight: the active item and the next task */
-  --status-started: #2563eb;     /* blue: started but incomplete */
-  --status-not-started: #4b5563; /* dark grey: not started; also `future` tasks */
-  --status-blocked: #dc2626;     /* red: task waiting on an open dependency */
+/* ------------------------------------------------------------------------ */
+/* Fonts (research D4): bundled Fontsource files copied into dist/fonts by   */
+/* scripts/copy-assets.js. URLs are relative to this stylesheet, so they     */
+/* resolve to assets/fonts/<file> under any --base. Latin + Latin-ext only.  */
+/* ------------------------------------------------------------------------ */
+
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(fonts/geist-latin-ext-wght-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* FR-036: honor the viewer's reduced-motion preference everywhere. */
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(fonts/geist-latin-wght-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Geist Mono Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(fonts/geist-mono-latin-ext-wght-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Geist Mono Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(fonts/geist-mono-latin-wght-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/instrument-serif-latin-ext-400-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/instrument-serif-latin-400-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/instrument-serif-latin-ext-400-italic.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/instrument-serif-latin-400-italic.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Color tokens (research D3, D15, FR-047): the single definition of every   */
+/* color. Values from mockups/001-first-redesign/DESIGN_HANDOFF.md's token   */
+/* table plus the rose "blocked" tokens. `color-scheme` picks the branch of  */
+/* each light-dark() pair: the OS by default (System), or the stored choice  */
+/* that assets/theme.js writes to <html data-theme> before first paint.      */
+/* Do not repeat these values anywhere else; utilities use the tokens, for   */
+/* example `bg-(--surface)`.                                                 */
+/* ------------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: light-dark(#F4F3EF, #0E1013);
+  --surface: light-dark(#FFFFFF, #171A1F);
+  --surface-2: light-dark(#FAF9F6, #1C1F25);
+  --subtle: light-dark(#EEECE6, #23272E);
+  --subtle-2: light-dark(#F1EFEA, #262A31);
+  --track: light-dark(#EAE8E2, #22262D);
+  --border: light-dark(#E4E1D9, #2A2E36);
+  --border-strong: light-dark(#DEDBD3, #363B45);
+  --text: light-dark(#15171C, #ECEDF0);
+  --text-2: light-dark(#2E3238, #D6D8DD);
+  --text-3: light-dark(#3E434C, #BEC2C9);
+  --text-4: light-dark(#4A4F59, #A9AEB7);
+  --muted: light-dark(#5B606A, #9197A1);
+  --muted-2: light-dark(#6B7079, #8A909A);
+  --inv-bg: light-dark(#15171C, #ECEDF0);
+  --inv-fg: light-dark(#FFFFFF, #15171C);
+  --chrome: light-dark(#15171C, #0A0B0E);
+  --chrome-2: light-dark(#15171C, #1F232A);
+  --green: light-dark(#1F7A5A, #3FB27F);
+  --green-text: light-dark(#16603F, #7FD8AE);
+  --green-bg: light-dark(#E3F1EA, #163A2B);
+  --blue: light-dark(#2F5BD3, #7C9CF0);
+  --blue-text: light-dark(#1E3F9E, #B4C6F8);
+  --blue-bg: light-dark(#E6ECFB, #1F2A48);
+  --blue-bg-2: light-dark(#EEF2FD, #1B2440);
+  --blue-soft: light-dark(#C9D5F5, #33456E);
+  --amber-bg: light-dark(#FEF3C7, #3A2E0F);
+  --amber-text: light-dark(#713F12, #F6D77E);
+  --purple-bg: light-dark(#EFE9FB, #2B2242);
+  --purple-text: light-dark(#4C2D91, #C9B8F5);
+  --red-bg: light-dark(#FDE7DC, #3D1F14);
+  --red-text: light-dark(#9A3412, #F7AD8A);
+  /* Blocked tasks (research D15). */
+  --rose: light-dark(#BE123C, #FB7185);
+  --rose-bg: light-dark(#FFE4E6, #3F1522);
+  --rose-text: light-dark(#9F1239, #FDA4AF);
+  /* The next task: the same orange in both themes (FR-047). */
+  --next: #C2410C;
+
+  /* 001 status names, kept as aliases of the tokens above until the 001
+     components are replaced; they add no color values of their own. */
+  --status-done: var(--green);
+  --status-active: var(--next);
+  --status-started: var(--blue);
+  --status-not-started: var(--muted-2);
+  --status-blocked: var(--rose);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Regions that stay dark in both themes (sidebar, icon rail, Up next bar,
+   map tooltip): the same tokens resolve to their dark values inside. */
+.always-dark {
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Data-driven widths without inline styles (research D6): w-pct-0 …         */
+/* w-pct-100, all generated because the markup builds the class at run time. */
+/* ------------------------------------------------------------------------ */
+
+@utility w-pct-* {
+  width: calc(--value(integer) * 1%);
+}
+
+@source inline("w-pct-{0..100}");
+
+/* ------------------------------------------------------------------------ */
+/* Focus ring (FR-050): a visible outline for keyboard focus on every        */
+/* control; `focus-ring` applies the same ring to custom focusable elements. */
+/* ------------------------------------------------------------------------ */
+
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+}
+
+@layer base {
+  :where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+}
+
+/* 001 FR-036: honor the viewer's reduced-motion preference everywhere. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -33,8 +209,7 @@
 
 @layer base {
   body {
-    @apply mx-auto max-w-7xl bg-white px-4 py-4 text-gray-900 antialiased md:px-8;
-    font-family: ui-sans-serif, system-ui, sans-serif;
+    @apply mx-auto max-w-7xl bg-(--bg) px-4 py-4 font-sans text-(--text) antialiased md:px-8;
   }
 
   header[data-region="header"] {

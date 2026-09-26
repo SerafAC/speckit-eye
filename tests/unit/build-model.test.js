@@ -227,8 +227,8 @@ describe("phases and story groups", () => {
     const f = (await model({ "specs/001-x/tasks.md": "## Phase 1: P\n- [ ] T001 [P] a\n- [x] no id depends on T001" }))
       .features[0];
     assert.deepEqual(f.phases[0].tasks, [
-      { id: "T001", done: false, parallel: true, story: null, description: "a", dependsOn: [], line: 2, key: "001-x/T001", state: "current", sig: "current:a" },
-      { id: null, done: true, parallel: false, story: null, description: "no id depends on T001", dependsOn: ["T001"], line: 3, key: "001-x/L3", state: "completed", sig: "completed" },
+      { id: "T001", done: false, parallel: true, story: null, description: "a", dependsOn: [], line: 2, key: "001-x/T001", state: "current", display: "next", waitingOn: [], sig: "current:a" },
+      { id: null, done: true, parallel: false, story: null, description: "no id depends on T001", dependsOn: ["T001"], line: 3, key: "001-x/L3", state: "completed", display: "done", waitingOn: [], sig: "completed" },
     ]);
   });
 });

@@ -40,6 +40,10 @@ import { applyTaskStates } from "./task-state.js";
  * @property {number} line
  * @property {string} key
  * @property {"completed" | "current" | "blocked" | "future" | null} state set by applyTaskStates
+ * @property {"done" | "next" | "blocked" | "open"} [display] `state` under the
+ *   redesign's names, set by applyTaskStates
+ * @property {string[]} [waitingOn] open dependencies of a blocked task, set by
+ *   applyTaskStates
  * @property {string} [sig] change signature, set by applyTaskStates
  */
 

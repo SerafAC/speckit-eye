@@ -4,7 +4,8 @@ import path from "node:path";
 
 /**
  * An in-memory `fs/promises`-like object: `files` maps absolute paths to
- * contents, `dirs` holds absolute folder paths.
+ * contents (strings, or `Uint8Array` copies for bytes), `dirs` holds
+ * absolute folder paths, `encodings` the encoding each file was written with.
  * @param {Record<string, string>} [initial] absolute file path → content
  */
 export function fakeFs(initial = {}) {
@@ -17,8 +18,11 @@ export function fakeFs(initial = {}) {
   for (const f of files.keys()) addParents(f);
   const enoent = (p) => Object.assign(new Error(`ENOENT: ${p}`), { code: "ENOENT" });
   const writes = [];
+  /** @type {Map<string, string | null>} file → encoding passed to the last writeFile */
+  const encodings = new Map();
   const fs = {
     files,
+    encodings,
     dirs,
     writes,
     async readdir(dir) {
@@ -41,9 +45,11 @@ export function fakeFs(initial = {}) {
       dirs.add(dir);
       addParents(dir);
     },
-    async writeFile(file, data) {
+    async writeFile(file, data, encoding) {
       if (!dirs.has(path.dirname(file))) throw enoent(file);
-      files.set(file, String(data));
+      // Bytes are kept as a copy of the Uint8Array, text as a string.
+      files.set(file, data instanceof Uint8Array ? new Uint8Array(data) : String(data));
+      encodings.set(file, encoding ?? null);
       writes.push(file);
     },
   };

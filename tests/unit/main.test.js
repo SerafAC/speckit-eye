@@ -2,7 +2,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { readFileSync } from "node:fs";
-import { run, formatWarning, allWarnings, siteChanged, VERSION, EXPOSURE_NOTE, defaultReadAsset, defaultOnSignal } from "../../src/cli/main.js";
+import { run, formatWarning, allWarnings, siteChanged, VERSION, EXPOSURE_NOTE, CLIENT_MODULES, defaultLoadAssets, defaultOnSignal } from "../../src/cli/main.js";
 import { EventEmitter } from "node:events";
 import { USAGE } from "../../src/cli/args.js";
 import { createFakeReader } from "./fake-reader.js";
@@ -20,6 +20,53 @@ const NONSTANDARD = {
   "specs/001-odd/tasks.md": "## Phase 1: Setup\n- [ ] no id here\n- [x] T002 fine",
 };
 
+const PKG = new URL("../../", import.meta.url).href;
+const FONT_BYTES = new Uint8Array([0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80]);
+
+/** The packaged asset files as the fake asset file system holds them (package-relative paths). */
+function assetFiles() {
+  return {
+    "dist/styles.css": "/* styles.css */",
+    ...Object.fromEntries(CLIENT_MODULES.map((name) => [`src/client/${name}`, `/* ${name} */`])),
+    "dist/fonts/geist-latin-wght-normal.woff2": FONT_BYTES,
+    "dist/fonts/OFL-geist.txt": "OFL text ©",
+  };
+}
+
+/**
+ * An in-memory `readFile`/`readdir` over package-relative paths; `readFile`
+ * returns text with "utf8" and bytes without an encoding, like node:fs.
+ */
+function fakeAssetFs({ files = assetFiles(), error = null } = {}) {
+  const reads = [];
+  const enoent = (p) => Object.assign(new Error(`ENOENT: ${p}`), { code: "ENOENT" });
+  const rel = (url) => {
+    assert.ok(url instanceof URL && url.href.startsWith(PKG), String(url));
+    return url.href.slice(PKG.length);
+  };
+  return {
+    reads,
+    async readFile(url, encoding) {
+      if (error) throw error;
+      const key = rel(url);
+      reads.push([key, encoding ?? null]);
+      if (!(key in files)) throw enoent(key);
+      const v = files[key];
+      if (encoding === "utf8") return typeof v === "string" ? v : Buffer.from(v).toString("utf8");
+      return typeof v === "string" ? new Uint8Array(Buffer.from(v, "utf8")) : new Uint8Array(v);
+    },
+    async readdir(url) {
+      if (error) throw error;
+      const dir = rel(url);
+      const names = Object.keys(files)
+        .filter((k) => k.startsWith(dir) && !k.slice(dir.length).includes("/"))
+        .map((k) => k.slice(dir.length));
+      if (names.length === 0) throw enoent(dir);
+      return names.reverse();
+    },
+  };
+}
+
 function sink() {
   const s = { text: "", write: (chunk) => (s.text += chunk) };
   return s;
@@ -29,7 +76,7 @@ function sink() {
  * Fakes for every dependency. `files` = null means the folder is missing.
  */
 function fakes({ files = MIXED, listenError = null, assetError = null } = {}) {
-  const calls = { roots: [], startServer: [], closed: 0, signalHandler: null, watchers: [], hubs: [] };
+  const calls = { roots: [], startServer: [], closed: 0, signalHandler: null, watchers: [], hubs: [], assetModes: [] };
   const deps = {
     stdout: sink(),
     stderr: sink(),
@@ -52,9 +99,9 @@ function fakes({ files = MIXED, listenError = null, assetError = null } = {}) {
         },
       };
     },
-    readAsset: async (name) => {
-      if (assetError) throw assetError;
-      return `/* ${name} */`;
+    loadAssets: (mode) => {
+      calls.assetModes.push(mode);
+      return defaultLoadAssets(mode, fakeAssetFs({ error: assetError }));
     },
     onSignal: (handler) => {
       calls.signalHandler = handler;
@@ -178,8 +225,13 @@ describe("run: serve mode", () => {
     assert.match(page.body, /<title>proj · speckit-eye<\/title>/);
     assert.match(page.body, /1 \/ 2 tasks \(50 %\)/);
     assert.equal(get(handler, "/assets/styles.css").body, "/* styles.css */");
-    assert.equal(get(handler, "/assets/overview.js").body, "/* overview.js */");
-    assert.equal(get(handler, "/assets/live.js").body, "/* live.js */");
+    for (const name of CLIENT_MODULES) assert.equal(get(handler, `/assets/${name}`).body, `/* ${name} */`, name);
+    assert.equal(get(handler, "/assets/fonts/OFL-geist.txt").body, "OFL text ©");
+    const font = get(handler, "/assets/fonts/geist-latin-wght-normal.woff2");
+    assert.equal(font.status, 200);
+    assert.equal(font.headers["Content-Type"], "font/woff2");
+    assert.equal(font.headers["Content-Length"], FONT_BYTES.length);
+    assert.deepEqual(f.calls.assetModes, ["serve"]);
     assert.equal(get(handler, "/constitution.md").status, 404);
 
     f.calls.signalHandler();
@@ -218,42 +270,77 @@ describe("run: non-Error failures", () => {
   });
 });
 
-describe("defaultReadAsset", () => {
-  test("reads a packaged asset by name", async () => {
-    const calls = [];
-    const text = await defaultReadAsset("overview.js", async (url, enc) => {
-      calls.push([url.pathname, enc]);
-      return "js";
-    });
-    assert.equal(text, "js");
-    assert.equal(calls.length, 1);
-    assert.match(calls[0][0], /\/src\/client\/overview\.js$/);
-    assert.equal(calls[0][1], "utf8");
+describe("defaultLoadAssets (T011)", () => {
+  test("the module list is app.js, prefs.js, live.js and the 001 overview.js", () => {
+    assert.deepEqual([...CLIENT_MODULES], ["app.js", "prefs.js", "live.js", "overview.js"]);
+    assert.ok(Object.isFrozen(CLIENT_MODULES));
   });
 
-  test("an unknown name is rejected without reading", async () => {
-    await assert.rejects(
-      defaultReadAsset("secret.txt", async () => assert.fail("must not read")),
-      /unknown asset secret\.txt/,
-    );
+  test("serve mode reads the stylesheet and every module as text, and every font file as bytes", async () => {
+    const fs = fakeAssetFs();
+    const assets = await defaultLoadAssets("serve", fs);
+    assert.equal(assets.styles, "/* styles.css */");
+    assert.deepEqual(Object.keys(assets.modules), [...CLIENT_MODULES]);
+    for (const name of CLIENT_MODULES) assert.equal(assets.modules[name], `/* ${name} */`);
+    assert.deepEqual(Object.keys(assets.fonts), ["OFL-geist.txt", "geist-latin-wght-normal.woff2"]);
+    for (const body of Object.values(assets.fonts)) assert.ok(body instanceof Uint8Array);
+    assert.deepEqual([...assets.fonts["geist-latin-wght-normal.woff2"]], [...FONT_BYTES]);
+    assert.equal(Buffer.from(assets.fonts["OFL-geist.txt"]).toString("utf8"), "OFL text ©");
+    assert.deepEqual(fs.reads, [
+      ["dist/styles.css", "utf8"],
+      ...CLIENT_MODULES.map((name) => [`src/client/${name}`, "utf8"]),
+      ["dist/fonts/OFL-geist.txt", null],
+      ["dist/fonts/geist-latin-wght-normal.woff2", null],
+    ]);
+  });
+
+  test("static mode does not read or return live.js", async () => {
+    const fs = fakeAssetFs();
+    const assets = await defaultLoadAssets("static", fs);
+    assert.deepEqual(Object.keys(assets.modules), CLIENT_MODULES.filter((n) => n !== "live.js"));
+    assert.ok(!fs.reads.some(([key]) => key === "src/client/live.js"));
   });
 
   test("a missing dist/styles.css names the build command", async () => {
-    const enoent = async () => {
-      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
-    };
-    await assert.rejects(defaultReadAsset("styles.css", enoent), /run `pnpm run build:css` first/);
+    const files = assetFiles();
+    delete files["dist/styles.css"];
+    await assert.rejects(defaultLoadAssets("serve", fakeAssetFs({ files })), /^Error: dist\/styles\.css is missing; run `pnpm run build:assets` first$/);
+  });
+
+  test("a missing dist/fonts names the build command", async () => {
+    const files = Object.fromEntries(Object.entries(assetFiles()).filter(([k]) => !k.startsWith("dist/fonts/")));
+    await assert.rejects(defaultLoadAssets("static", fakeAssetFs({ files })), /^Error: dist\/fonts is missing; run `pnpm run build:assets` first$/);
   });
 
   test("other read errors are passed through", async () => {
-    const enoent = async () => {
-      throw Object.assign(new Error("ENOENT live"), { code: "ENOENT" });
+    const files = assetFiles();
+    delete files["src/client/live.js"];
+    await assert.rejects(defaultLoadAssets("serve", fakeAssetFs({ files })), /^Error: ENOENT: src\/client\/live\.js$/);
+    const eacces = Object.assign(new Error("EACCES"), { code: "EACCES" });
+    await assert.rejects(defaultLoadAssets("serve", fakeAssetFs({ error: eacces })), /^Error: EACCES$/);
+    const fs = fakeAssetFs();
+    fs.readdir = async () => {
+      throw eacces;
     };
-    await assert.rejects(defaultReadAsset("live.js", enoent), /^Error: ENOENT live$/);
-    const eacces = async () => {
-      throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+    await assert.rejects(defaultLoadAssets("serve", fs), /^Error: EACCES$/);
+  });
+
+  test("the default file system reads the real package paths", async () => {
+    const seen = [];
+    const fs = {
+      readFile: async (url, enc) => {
+        seen.push([url.href.slice(PKG.length), enc ?? null]);
+        return enc === "utf8" ? "" : new Uint8Array();
+      },
+      readdir: async (url) => {
+        seen.push([url.href.slice(PKG.length), "dir"]);
+        return ["a.woff2"];
+      },
     };
-    await assert.rejects(defaultReadAsset("styles.css", eacces), /^Error: EACCES$/);
+    await defaultLoadAssets("serve", fs);
+    assert.deepEqual(seen.at(0), ["dist/styles.css", "utf8"]);
+    assert.deepEqual(seen.at(-2), ["dist/fonts/", "dir"]);
+    assert.deepEqual(seen.at(-1), ["dist/fonts/a.woff2", null]);
   });
 });
 
@@ -314,6 +401,11 @@ describe("run: build mode (US4, T055)", () => {
     assert.ok(fs.files.has(path.join(out, "constitution.html")));
     assert.equal(fs.files.get(path.join(out, "assets", "styles.css")), "/* styles.css */");
     assert.ok(!fs.files.has(path.join(out, "assets", "live.js")));
+    for (const name of CLIENT_MODULES.filter((n) => n !== "live.js")) {
+      assert.equal(fs.files.get(path.join(out, "assets", name)), `/* ${name} */`, name);
+    }
+    assert.deepEqual([...fs.files.get(path.join(out, "assets", "fonts", "geist-latin-wght-normal.woff2"))], [...FONT_BYTES]);
+    assert.deepEqual(f.calls.assetModes, ["static"]);
     assert.ok(fs.files.has(path.join(out, ".speckit-eye-build")));
   });
 
@@ -605,5 +697,18 @@ describe("siteChanged", () => {
     assert.equal(siteChanged(site([["a", "1"]]), site([["a", "1"], ["b", "2"]])), true);
     assert.equal(siteChanged(site([["a", "1"], ["b", "2"]]), site([["a", "1"]])), true);
     assert.equal(siteChanged(site([["a", "1"], ["b", "2"]]), site([["a", "1"], ["c", "2"]])), true);
+  });
+  test("byte bodies compare by content (fonts, research D12)", () => {
+    const bytes = (...b) => new Uint8Array(b);
+    assert.equal(siteChanged(site([["f", bytes(1, 2, 3)]]), site([["f", bytes(1, 2, 3)]])), false);
+    assert.equal(siteChanged(site([["f", bytes(0, 1, 2, 3).subarray(1)]]), site([["f", bytes(1, 2, 3)]])), false);
+    assert.equal(siteChanged(site([["f", bytes(1, 2, 3)]]), site([["f", bytes(1, 2, 4)]])), true);
+    assert.equal(siteChanged(site([["f", bytes(1, 2)]]), site([["f", bytes(1, 2, 3)]])), true);
+    assert.equal(siteChanged(site([["f", "abc"]]), site([["f", bytes(97, 98, 99)]])), true);
+  });
+  test("a changed type is a change", () => {
+    const a = new Map([["x", { type: "a", body: "1" }]]);
+    const b = new Map([["x", { type: "b", body: "1" }]]);
+    assert.equal(siteChanged(a, b), true);
   });
 });

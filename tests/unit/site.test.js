@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { renderSite, allArtifacts, HTML_TYPE, CSS_TYPE, JS_TYPE } from "../../src/render/site.js";
+import { renderSite, allArtifacts, HTML_TYPE, CSS_TYPE, JS_TYPE, FONT_TYPE, JSON_TYPE, TEXT_TYPE } from "../../src/render/site.js";
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
@@ -15,7 +15,27 @@ const FILES = {
   "specs/001-a/tasks.md": "## Phase 1: Setup\n- [x] T001 one\n- [ ] T002 two <b>",
 };
 
-const ASSETS = { styles: "body{color:red}", overview: "export const x = 1;", live: "export const live = 1;" };
+const WOFF2 = new Uint8Array([0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80]);
+
+const ASSETS = {
+  styles: "body{color:red}",
+  modules: {
+    "app.js": "export const app = 1;",
+    "prefs.js": "export const prefs = 1;",
+    "live.js": "export const live = 1;",
+    "overview.js": "export const x = 1;",
+  },
+  fonts: { "geist-latin-wght-normal.woff2": WOFF2, "OFL-geist.txt": "SIL Open Font License" },
+};
+
+const ASSET_KEYS = [
+  "assets/app.js",
+  "assets/fonts/OFL-geist.txt",
+  "assets/fonts/geist-latin-wght-normal.woff2",
+  "assets/overview.js",
+  "assets/prefs.js",
+  "assets/styles.css",
+];
 
 const site = async (opts = {}) =>
   renderSite(await model(FILES), { base: "/", mode: "serve", version: "9.9.9", assets: ASSETS, ...opts });
@@ -34,15 +54,15 @@ describe("renderSite", () => {
     const s = await site();
     assert.ok(s instanceof Map);
     const pages = ["constitution.html", "features/001-a/spec.html", "features/001-a/tasks.html"];
-    assert.deepEqual([...s.keys()].sort(), ["assets/live.js", "assets/overview.js", "assets/styles.css", ...pages, "index.html"].sort());
+    assert.deepEqual([...s.keys()].sort(), ["assets/live.js", ...ASSET_KEYS, ...pages, "index.html"].sort());
     const st = await site({ mode: "static" });
-    assert.deepEqual([...st.keys()].sort(), ["assets/overview.js", "assets/styles.css", ...pages, "index.html"].sort());
+    assert.deepEqual([...st.keys()].sort(), [...ASSET_KEYS, ...pages, "index.html"].sort());
   });
 
   test("serve mode needs the live script; static mode does not", async () => {
     const m = await model(FILES);
-    const assets = { styles: "", overview: "" };
-    assert.throws(() => renderSite(m, { base: "/", mode: "serve", version: "1", assets }), /assets\.live/);
+    const assets = { styles: "", modules: { "app.js": "" }, fonts: {} };
+    assert.throws(() => renderSite(m, { base: "/", mode: "serve", version: "1", assets }), /assets\.modules\["live\.js"\]/);
     assert.ok(renderSite(m, { base: "/", mode: "static", version: "1", assets }).has("index.html"));
   });
 
@@ -73,8 +93,41 @@ describe("renderSite", () => {
   test("assets are passed through unchanged with their types", async () => {
     const s = await site();
     assert.deepEqual(s.get("assets/styles.css"), { type: CSS_TYPE, body: ASSETS.styles });
-    assert.deepEqual(s.get("assets/overview.js"), { type: JS_TYPE, body: ASSETS.overview });
-    assert.deepEqual(s.get("assets/live.js"), { type: JS_TYPE, body: ASSETS.live });
+    for (const name of Object.keys(ASSETS.modules)) {
+      assert.deepEqual(s.get(`assets/${name}`), { type: JS_TYPE, body: ASSETS.modules[name] }, name);
+    }
+  });
+
+  test("font files are published under assets/fonts/ with their types; bytes stay a Uint8Array (research D12)", async () => {
+    for (const mode of ["serve", "static"]) {
+      const s = await site({ mode, base: "/repo/" });
+      const font = s.get("assets/fonts/geist-latin-wght-normal.woff2");
+      assert.equal(font.type, FONT_TYPE);
+      assert.ok(font.body instanceof Uint8Array);
+      assert.equal(font.body, WOFF2);
+      assert.deepEqual([...font.body], [0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80]);
+      assert.deepEqual(s.get("assets/fonts/OFL-geist.txt"), { type: TEXT_TYPE, body: "SIL Open Font License" });
+    }
+  });
+
+  test("an unexpected file in the fonts folder is refused", async () => {
+    const m = await model(FILES);
+    const assets = { ...ASSETS, fonts: { "geist.woff": new Uint8Array([1]) } };
+    assert.throws(() => renderSite(m, { base: "/", mode: "static", version: "1", assets }), /unexpected font file geist\.woff/);
+  });
+
+  test("the live module is published in serve mode only, even when passed in static mode", async () => {
+    assert.ok((await site()).has("assets/live.js"));
+    assert.ok(!(await site({ mode: "static" })).has("assets/live.js"));
+    const m = await model(FILES);
+    const noLive = { ...ASSETS, modules: { "app.js": "a" } };
+    assert.ok(renderSite(m, { base: "/", mode: "static", version: "1", assets: noLive }).has("assets/app.js"));
+  });
+
+  test("the content types are the ones of research D12", () => {
+    assert.equal(FONT_TYPE, "font/woff2");
+    assert.equal(JSON_TYPE, "application/json; charset=utf-8");
+    assert.equal(TEXT_TYPE, "text/plain; charset=utf-8");
   });
 
   test("links use the given base and mode", async () => {
@@ -195,7 +248,7 @@ describe("renderSite: artifact pages (T050, US3)", () => {
   test("W11 names get no page", async () => {
     const s = await artifactSite();
     for (const key of s.keys()) assert.doesNotMatch(key, /bad|\s/);
-    for (const { body } of s.values()) assert.doesNotMatch(body, /href="[^"]*bad/);
+    for (const { body } of s.values()) if (typeof body === "string") assert.doesNotMatch(body, /href="[^"]*bad/);
     // The skipped file is reported as a warning on its feature instead.
     assert.match(s.get("index.html").body, /specs\/001-full\/bad name\.md name not supported for a page \(skipped\)/);
   });
