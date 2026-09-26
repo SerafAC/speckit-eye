@@ -18,6 +18,7 @@ The approved redesign lives in `mockups/001-first-redesign/`: `DESIGN_HANDOFF.md
 - Q: What should clicking a task map square do — reveal the task in the overview tree (handoff) or open it on its feature page ("Task map — all states" board)? → A: Reveal it in the tree, as in the handoff: expand its feature and phase, scroll the tree to it and keep it outlined as selected.
 - Q: How should blocked tasks look, now that the redesign has no blocked color? → A: Keep a fourth, distinct color for blocked tasks in the map, the tree and the legend, and have the task detail panel say which open tasks the task is waiting on (for example "Waiting on T012").
 - Q: Must every page stay readable and navigable, with the tree, phases, task rows and collapsible document parts still opening and closing, when JavaScript is turned off? → A: Yes: keep today's promise. Without scripts, all content is readable, links and tabs work, and those parts open and close; everything else is an enhancement that needs scripts.
+- Q: Which browsers must the redesigned pages fully support? → A: The last two major versions of Chrome, Edge, Firefox and Safari, with end-to-end tests in all three browser engines (Chromium, Firefox, WebKit).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -260,6 +261,7 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **FR-051**: Live updates MUST keep all view state of every page: theme, order, depth, filters, text filter, map mode, expanded rows, open phase, selected task, reader expansions and raw view, and scroll positions (page, tree card and task list); items whose status or counts changed are still briefly highlighted (001 FR-028).
 - **FR-052**: Static builds MUST contain the same pages and behavior as serve mode (except live updates and with the generation time shown), work under a sub-path, and support every redesign behavior that runs in the browser (theme, map, filters, reader, search).
 - **FR-053**: Without scripts, every page's content MUST stay readable, every link and tab MUST work, and the tree, phases, task rows and collapsible document parts MUST still open and close (001 FR-037; the README's "Works without JavaScript" promise stands). Any design choice that needs scripts to show content or to navigate is ruled out.
+- **FR-055**: Every page and behavior in this spec MUST work in the last two major versions of Chrome, Edge, Firefox and Safari; a browser feature not available in all of them may only be used where the page stays correct without it.
 - **FR-054**: The user documentation (`README.md` screenshot and feature list, `docs/usage.md`) and `CHANGELOG.md` MUST describe the new layout, the task map, feature pages, the document reader, the theme switch and search.
 
 ### Key Entities
@@ -282,7 +284,7 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **SC-002**: From the overview, the full text and file paths of the next task are visible after one click, and of any task after at most two clicks.
 - **SC-003**: 100 % of the project's artifacts are reachable from the overview in at most two page navigations (unchanged from 001 SC-004).
 - **SC-004**: All counts shown — stats card, segmented bar, sidebar, tree, map legend and feature pages — match the checkbox counts in `tasks.md` exactly (zero discrepancies across the test fixtures and this repository's own specs).
-- **SC-005**: The chosen theme is in effect from the first paint on 100 % of page loads, navigations and live updates in the tested browsers; no page ever shows a flash of the other theme.
+- **SC-005**: The chosen theme is in effect from the first paint on 100 % of page loads, navigations and live updates in the supported browsers (FR-055); no page ever shows a flash of the other theme.
 - **SC-006**: With 2,000 tasks on the map, the hover growth is visible within 150 ms, the tooltip appears 500 ms (± 100 ms) after the pointer enters a square and disappears within 100 ms after it leaves, and no tooltip is ever cut off at the edges.
 - **SC-007**: For a project of 50 features and 2,000 tasks, the overview and each feature page load within 2 seconds in serve mode, and a static build completes within 30 seconds (unchanged targets from 001 SC-010).
 - **SC-008**: After a live update, 100 % of the view state listed in FR-051 is unchanged in the end-to-end tests, and 95 % of changes still appear within 2 seconds (001 SC-002).
@@ -292,6 +294,7 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **SC-012**: For every `spec.md` in the fixtures and in this repository, 100 % of the source's non-blank lines appear in the reader's formatted view.
 - **SC-013**: No page makes a request to any server other than the one it was loaded from (zero third-party requests in the end-to-end tests).
 - **SC-014**: For a project of 50 features and 2,000 tasks, search results update within 200 ms of each keystroke in serve mode and in a static build, and a task ID typed in full is always the first result.
+- **SC-016**: The end-to-end suite passes in all three browser engines (Chromium, Firefox, WebKit).
 - **SC-015**: Every user story in this spec has at least one passing end-to-end test that exercises it as a user would (constitution §V).
 
 ## Assumptions
