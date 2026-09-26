@@ -464,3 +464,136 @@ describe("documents (T015)", () => {
     assert.deepEqual(bare.documents.groups, []);
   });
 });
+
+/** Same shape as tests/fixtures/projects/mixed (40/65, phases 5/9). */
+const MIXED = {
+  "specs/001-alpha/spec.md": "# Feature Specification: Alpha\n### User Story 1 - A (Priority: P1)\n### User Story 2 - B (Priority: P2)",
+  "specs/001-alpha/tasks.md": [
+    "## Phase 1: Setup",
+    ...taskLines(5, 5),
+    "## Phase 2: One",
+    ...taskLines(15, 15, { start: 6, label: "US1" }),
+    "## Phase 3: Two",
+    ...taskLines(10, 10, { start: 21, label: "US2" }),
+  ].join("\n"),
+  "specs/002-beta/spec.md": "# Feature Specification: Beta\n### User Story 1 - L (Priority: P1)\n### User Story 2 - D (Priority: P2)\n### User Story 3 - S (Priority: P3)",
+  "specs/002-beta/tasks.md": [
+    "## Phase 1: Setup",
+    ...taskLines(4, 4),
+    "## Phase 2: Foundational",
+    ...taskLines(3, 3, { start: 5 }),
+    "## Phase 3: User Story 1",
+    ...taskLines(6, 3, { start: 8, label: "US1" }),
+    "## Phase 4: User Stories 2 and 3",
+    "- [ ] T014 [US2] a",
+    "- [ ] T015 [US2] b",
+    "- [ ] T016 [US2] c",
+    "- [ ] T017 [US3] d",
+    "- [ ] T018 [US3] Search box, depends on T011",
+    "- [ ] T019 e",
+    "- [ ] T020 [US3] f",
+  ].join("\n"),
+  "specs/003-gamma/spec.md": "# Feature Specification: Gamma\n### User Story 1 - I (Priority: P1)",
+  "specs/003-gamma/tasks.md": ["## Phase 1: Setup", ...taskLines(5, 0), "## Phase 2: Import", ...taskLines(10, 0, { start: 6, label: "US1" })].join("\n"),
+  "specs/004-delta/spec.md": "# Feature Specification: Delta",
+};
+
+describe("ranks and warning groups (T024, T025)", () => {
+  test("every feature carries its ranks; progress order of the mixed shape", async () => {
+    const p = await model(MIXED);
+    const by = (order) => [...p.features].sort((a, b) => a.ranks[order] - b.ranks[order]).map((f) => f.dir);
+    assert.deepEqual(by("progress"), ["002-beta", "003-gamma", "004-delta", "001-alpha"]);
+    assert.deepEqual(by("number"), ["001-alpha", "002-beta", "003-gamma", "004-delta"]);
+    assert.deepEqual(by("least"), ["003-gamma", "002-beta", "001-alpha", "004-delta"]);
+    assert.deepEqual(by("name"), ["001-alpha", "002-beta", "004-delta", "003-gamma"]);
+  });
+
+  test("warning groups with titles, merged lines and source lines, W7 included", async () => {
+    const tasks = [
+      "## Phase 1: P", // 1
+      "- [x] no id", // 2
+      "- [ ] T001 first, depends on T002", // 3
+      "- [x] also no id", // 4
+      "- [ ] T002 second", // 5
+      "- [x] still no id", // 6
+    ].join("\n");
+    const f = (await model({ "specs/001-x/tasks.md": tasks })).features[0];
+    assert.deepEqual(
+      f.warningGroups.map((g) => [g.code, g.title, g.lines]),
+      [
+        ["W1", "3 checkboxes without a task ID in tasks.md", [{ from: 2, to: 2 }, { from: 4, to: 4 }, { from: 6, to: 6 }]],
+        ["W7", "1 open dependency of the next task in tasks.md", [{ from: 3, to: 3 }]],
+      ],
+    );
+    assert.deepEqual(f.warningGroups[0].sourceLines[1], { line: 4, text: "- [x] also no id" });
+  });
+
+  test("no warnings → no groups", async () => {
+    assert.deepEqual((await model(MIXED)).features[1].warningGroups, []);
+  });
+});
+
+describe("overview stats (T026)", () => {
+  test("the spec example: 123/123, 24/32, 72/72, 14/15", async () => {
+    const feature = (n, done, total) => ["## Phase 1: Work", ...taskLines(total, done)].join("\n");
+    const p = await model({
+      "specs/001-a/tasks.md": feature(1, 123, 123),
+      "specs/002-b/tasks.md": feature(2, 24, 32),
+      "specs/003-c/tasks.md": feature(3, 72, 72),
+      "specs/004-d/tasks.md": feature(4, 14, 15),
+    });
+    const o = p.overview;
+    assert.equal(o.percent, 96);
+    assert.equal(o.done, 233);
+    assert.equal(o.total, 242);
+    assert.deepEqual(o.features, { completed: 2, total: 4, inProgress: 2 });
+    assert.deepEqual(o.openTasks, { count: 9, features: 2 });
+    assert.deepEqual(o.segments.map((s) => s.dir), ["001-a", "002-b", "003-c", "004-d"]);
+    assert.deepEqual(o.segments.map((s) => s.share), [51, 13, 30, 6]);
+    assert.equal(o.segments.reduce((a, s) => a + s.share, 0), 100);
+    assert.deepEqual(o.segments.map((s) => s.number), ["001", "002", "003", "004"]);
+    assert.deepEqual(o.segments[0].parts, { done: 100, open: 0, next: 0 });
+    for (const s of o.segments) assert.equal(s.parts.done + s.parts.open + s.parts.next, 100);
+    assert.ok(o.segments.every((s) => s.showLabel));
+  });
+
+  test("the mixed shape: 62 %, 40 of 65, features 1/4 with 1 in progress, phases 5/9, open 25 across 2", async () => {
+    const o = (await model(MIXED)).overview;
+    assert.equal(o.percent, 62);
+    assert.equal(o.done, 40);
+    assert.equal(o.total, 65);
+    assert.deepEqual(o.features, { completed: 1, total: 4, inProgress: 1 });
+    assert.deepEqual(o.phases, { completed: 5, total: 9, remaining: 4 });
+    assert.deepEqual(o.openTasks, { count: 25, features: 2 });
+    assert.deepEqual(o.segments.map((s) => [s.dir, s.share]), [
+      ["001-alpha", 46],
+      ["002-beta", 31],
+      ["003-gamma", 23],
+    ]);
+    // 002-beta: 10 done, 9 open (blocked T018 counted as open), 1 next.
+    assert.deepEqual(o.segments[1].parts, { done: 50, open: 45, next: 5 });
+    assert.deepEqual(o.segments[1].counts, { done: 10, total: 20, open: 10, percent: 50 });
+    assert.deepEqual(o.legend, { done: 40, open: 23, blocked: 1, next: 1 });
+  });
+
+  test("a tiny next part is never rounded to 0; small segments get no label", async () => {
+    const p = await model({
+      "specs/001-big/tasks.md": ["## Phase 1: W", ...taskLines(300, 0)].join("\n"),
+      "specs/002-small/tasks.md": ["## Phase 1: W", ...taskLines(5, 0)].join("\n"),
+    });
+    const [big, small] = p.overview.segments;
+    assert.deepEqual(big.parts, { done: 0, open: 99, next: 1 });
+    assert.equal(small.share, 2);
+    assert.equal(small.showLabel, false);
+    assert.equal(big.showLabel, true);
+  });
+
+  test("empty project: zeros, no segments", async () => {
+    const o = (await model({ "specs/.gitkeep": "" })).overview;
+    assert.equal(o.percent, 0);
+    assert.equal(o.total, 0);
+    assert.deepEqual(o.segments, []);
+    assert.deepEqual(o.legend, { done: 0, open: 0, blocked: 0, next: 0 });
+    assert.deepEqual(o.phases, { completed: 0, total: 0, remaining: 0 });
+  });
+});

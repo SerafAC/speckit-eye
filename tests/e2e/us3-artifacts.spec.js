@@ -48,13 +48,16 @@ const PAGES = [
 
 const tree = (page) => page.locator('[data-region="tree"]');
 const feature = (page, key) => tree(page).locator(`details[data-key="${key}"]`);
-const artifactLinks = (page, key) => feature(page, key).locator(':scope > ul[data-part="artifacts"] a');
+// The feature page lists every document of its feature (the overview tree links to the feature page).
+const artifactLinks = (page) => page.locator('[data-region="documents"] a');
 const article = (page) => page.locator('article[data-region="artifact"]');
 
-test("US3 AC1 an expanded feature links every artifact and each opens in one step", async ({ page }) => {
+test("US3 AC1 a feature page links every artifact and each opens in one step", async ({ page }) => {
   const { url } = await serveArtifacts();
   await page.goto(url);
   await expect(feature(page, "001-full")).toHaveAttribute("open", "");
+  await feature(page, "001-full").locator('a[data-part="open-feature"]').click();
+  await expect(page).toHaveURL(`${url}${featurePagePath("001-full")}`);
   const expected = [
     ["features/001-full/spec.html", "specs/001-full/spec.md"],
     ["features/001-full/plan.html", "specs/001-full/plan.md"],
@@ -67,13 +70,13 @@ test("US3 AC1 an expanded feature links every artifact and each opens in one ste
     ["features/001-full/decisions.html", "specs/001-full/decisions.md"],
     ["features/001-full/run-log.html", "specs/001-full/run-log.md"],
   ];
-  const links = artifactLinks(page, "001-full");
+  const links = artifactLinks(page);
   await expect(links).toHaveCount(expected.length);
   for (const [i, [href]] of expected.entries()) await expect(links.nth(i)).toHaveAttribute("href", `/${href}`);
 
   for (const [i, [, source]] of expected.entries()) {
-    await page.goto(url);
-    await artifactLinks(page, "001-full").nth(i).click();
+    await page.goto(`${url}${featurePagePath("001-full")}`);
+    await artifactLinks(page).nth(i).click();
     await expect(article(page)).toHaveAttribute("data-key", source);
     await expect(article(page).locator("h1").first()).toBeVisible();
   }
@@ -140,13 +143,12 @@ test("US3 AC4 no script from a file runs", async ({ page }) => {
 
 test("US3 AC5 no link for a missing artifact", async ({ page }) => {
   const { url } = await serveArtifacts();
-  await page.goto(url);
-  await feature(page, "002-partial").locator(":scope > summary").click();
-  const links = artifactLinks(page, "002-partial");
+  await page.goto(`${url}${featurePagePath("002-partial")}`);
+  const links = artifactLinks(page);
   await expect(links).toHaveCount(2);
   await expect(links.nth(0)).toHaveAttribute("href", "/features/002-partial/spec.html");
   await expect(links.nth(1)).toHaveAttribute("href", "/features/002-partial/plan.html");
-  await expect(feature(page, "002-partial").locator('a[href*="research"], a[href*="tasks"]')).toHaveCount(0);
+  await expect(page.locator('[data-region="documents"] a[href*="research"], [data-region="documents"] a[href*="tasks"]')).toHaveCount(0);
 });
 
 test("US3 AC6 every artifact page links back to the overview and has the rail", async ({ page }) => {
@@ -161,7 +163,7 @@ test("US3 AC6 every artifact page links back to the overview and has the rail", 
   }
   await navLink(page, "Overview").click();
   await expect(page).toHaveURL(`${url}index.html`);
-  await expect(page.locator('[data-region="progress"]')).toBeVisible();
+  await expect(page.locator('[data-region="stats"]')).toBeVisible();
 });
 
 test("US3 FR-029 every feature has a feature page reachable from the sidebar, listing its documents", async ({ page }) => {

@@ -77,7 +77,8 @@ test("SC-005 this repository's own features show open / total equal to their che
   await page.goto(host.url);
   for (const { dir, done, total } of expected) {
     const count = page.locator(`[data-region="tree"] details[data-key="${dir}"] > summary [data-part="count"]`);
-    await expect(count, dir).toHaveText(`${total - done} open / ${total}`);
+    if (total > 0) await expect(count, dir).toHaveText(`${done}/${total}`);
+    else await expect(count, dir).toHaveCount(0);
   }
   // The sidebar shows each feature's open count (or a check mark when done).
   for (const { dir, done, total } of expected) {
@@ -86,9 +87,7 @@ test("SC-005 this repository's own features show open / total equal to their che
     else await expect(count, dir).toHaveText(total - done > 0 ? String(total - done) : "");
   }
   const sum = expected.reduce((acc, e) => ({ done: acc.done + e.done, total: acc.total + e.total }), { done: 0, total: 0 });
-  const bar = page.locator('progress[data-key="project"]');
-  await expect(bar).toHaveAttribute("value", String(sum.done));
-  await expect(bar).toHaveAttribute("max", String(sum.total));
+  await expect(page.locator('[data-stat="percent"] [data-part="detail"]')).toHaveText(`${sum.done} of ${sum.total} tasks`);
 
   // Each feature page states the same done / total.
   for (const { dir, done, total } of expected) {

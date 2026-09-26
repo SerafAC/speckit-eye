@@ -45,13 +45,14 @@ function mainDestinations(project) {
 }
 
 /**
- * Features in the sidebar order: `ranks.progress` when the model has ranks,
- * otherwise folder order (FR-006).
+ * Features in the sidebar order: "In progress first", i.e. `ranks.progress`
+ * from src/model/ranks.js (FR-006, FR-012); folder order only for a partial
+ * model without ranks.
  * @param {Feature[]} features
  * @returns {Feature[]}
  */
 export function sidebarOrder(features) {
-  const rank = (/** @type {Feature} */ f) => /** @type {any} */ (f).ranks?.progress;
+  const rank = (/** @type {Feature} */ f) => f.ranks?.progress;
   if (!features.every((f) => typeof rank(f) === "number")) return [...features];
   return [...features].sort((a, b) => rank(a) - rank(b));
 }

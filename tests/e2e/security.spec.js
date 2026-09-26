@@ -192,7 +192,7 @@ test("FR-006 the project is unchanged after serve, a live update, and a build", 
   const before = await hashTree(dir);
 
   await page.goto(server.url);
-  await expect(page.locator('progress[data-key="project"]')).toHaveAttribute("value", "40");
+  await expect(page.locator('[data-stat="percent"] [data-part="detail"]')).toHaveText("40 of 65 tasks");
   for (const p of PAGES) expect((await rawGet(server.url, p)).status, p).toBe(200);
   expect(await hashTree(dir)).toBe(before);
 
@@ -203,7 +203,7 @@ test("FR-006 the project is unchanged after serve, a live update, and a build", 
   expect(ticked).not.toBe(text);
   await writeFile(tasks, ticked);
   const afterEdit = await hashTree(dir);
-  await expect(page.locator('progress[data-key="project"]')).toHaveAttribute("value", "41", { timeout: 2_000 });
+  await expect(page.locator('[data-stat="percent"] [data-part="detail"]')).toHaveText("41 of 65 tasks", { timeout: 2_000 });
   expect(await hashTree(dir)).toBe(afterEdit);
 
   const outRoot = await mkdtemp(path.join(os.tmpdir(), "speckit-eye-sec-out-"));

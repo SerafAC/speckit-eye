@@ -140,11 +140,12 @@ describe("renderPage", () => {
     const f = region(sidebar(page()), '<nav aria-label="Features"', "</nav>");
     assert.match(f, /<h2>Features <span data-part="features-count">1 \/ 4 done<\/span><\/h2>/);
     const links = [...f.matchAll(/<a data-key="side:([^"]+)" data-sig="[^"]*" data-status="([^"]+)" href="([^"]+)"/g)].map((m) => m.slice(1));
+    // "In progress first" order from the model's ranks (FR-006, FR-012).
     assert.deepEqual(links, [
-      ["001-alpha", "done", "/features/001-alpha/index.html"],
       ["002-beta", "in-progress", "/features/002-beta/index.html"],
       ["003-gamma", "not-started", "/features/003-gamma/index.html"],
       ["004-delta", "no-tasks", "/features/004-delta/index.html"],
+      ["001-alpha", "done", "/features/001-alpha/index.html"],
     ]);
     assert.match(f, /data-key="side:001-alpha" data-sig="3\/3:complete"/);
     assert.match(f, /<span data-part="dot" data-status="done"><\/span><span data-part="name" title="Alpha">Alpha<\/span><span data-part="count"><svg[^>]*role="img" aria-label="Complete"/);
@@ -152,6 +153,26 @@ describe("renderPage", () => {
     assert.match(f, /title="Delta">Delta<\/span><span data-part="count"><\/span>/);
     assert.match(f, /<ul data-keep-scroll="sidebar">/);
     assert.match(f, /^<nav aria-label="Features" data-part="features" data-live="sidebar-features" data-key="side:features" data-sig="1\/4">/);
+  });
+
+  test("the model's ranks put the sidebar in progress-first order; the mobile menu matches", () => {
+    assert.deepEqual(project.features.map((f) => f.ranks.progress), [3, 0, 1, 2]);
+    const doc = page();
+    const menu = region(region(doc, '<details data-region="mobile-menu"', "</details>"), '<nav aria-label="Features"', "</nav>");
+    assert.deepEqual([...menu.matchAll(/href="\/features\/([^/]+)\/index.html"/g)].map((m) => m[1]), ["002-beta", "003-gamma", "004-delta", "001-alpha"]);
+  });
+
+  test("a feature page marks its own sidebar entry, wherever it sits in the order", () => {
+    for (const dir of ["001-alpha", "004-delta"]) {
+      const f = region(sidebar(page({ page: "feature", current: dir })), '<nav aria-label="Features"', "</nav>");
+      const current = [...f.matchAll(/<a data-key="side:([^"]+)"[^>]*aria-current="page"/g)].map((m) => m[1]);
+      assert.deepEqual(current, [dir]);
+    }
+  });
+
+  test("without ranks (partial model) the list keeps folder order", () => {
+    const bare = { ...project, features: project.features.map(({ ranks: _r, ...f }) => f) };
+    assert.deepEqual(sidebarOrder(bare.features).map((f) => f.dir), ["001-alpha", "002-beta", "003-gamma", "004-delta"]);
   });
 
   test("the Features list follows ranks.progress when the model has ranks", () => {

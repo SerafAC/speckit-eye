@@ -223,7 +223,7 @@ describe("run: serve mode", () => {
     assert.equal(page.status, 200);
     assert.match(page.body, /<body data-mode="serve" data-version="/);
     assert.match(page.body, /<title>proj · speckit-eye<\/title>/);
-    assert.match(page.body, /1 \/ 2 tasks \(50 %\)/);
+    assert.match(page.body, /50 %<\/span><span data-part="detail">1 of 2 tasks</);
     assert.equal(get(handler, "/assets/styles.css").body, "/* styles.css */");
     for (const name of CLIENT_MODULES) assert.equal(get(handler, `/assets/${name}`).body, `/* ${name} */`, name);
     assert.equal(get(handler, "/assets/fonts/OFL-geist.txt").body, "OFL text ©");
@@ -547,10 +547,10 @@ describe("run: live updates (US2)", () => {
 
   test("a change rescans, swaps the site, increments the version and broadcasts", async () => {
     const t = await live();
-    assert.match(get(t.handler(), "/").body, /1 \/ 2 tasks \(50 %\)/);
+    assert.match(get(t.handler(), "/").body, /50 %<\/span><span data-part="detail">1 of 2 tasks</);
     t.state.files = { ...MIXED, "specs/001-a/tasks.md": "## Phase 1: Setup\n- [x] T001 one\n- [x] T002 two" };
     await t.change();
-    assert.match(get(t.handler(), "/").body, /2 \/ 2 tasks \(100 %\)/);
+    assert.match(get(t.handler(), "/").body, /100 %<\/span><span data-part="detail">2 of 2 tasks</);
     assert.deepEqual(t.hub().broadcasts, [1]);
     assert.match(t.f.deps.stdout.text, /updated \(1 features, 2\/2 tasks\)\n$/);
 
