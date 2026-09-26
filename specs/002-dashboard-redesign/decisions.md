@@ -3,3 +3,7 @@
 ## 2026-09-26 — Phase 2: Foundational (part 1/3) [T006-T013]
 **Q:** T008 has to publish `assets/theme.js` from `themeScript()`, which T017 creates later (`src/render/theme-script.js` doesn't exist yet). Everything else in T008 is done and tested. How should T008 be finished?
 **A:** Tick T008; T017 adds theme.js — T008 is ticked now. T017 also adds `assets/theme.js` to `renderSite` and tests it in `site.test.js`. Nothing is stubbed.
+
+## 2026-09-26 — Phase 2: Foundational [T022-T023]
+**Q:** The E2E test "US3 SC-004 every artifact page reachable in 2 clicks" fails because the new shell has no Menu (T018 removed it). The second and later documents of each assessment (e.g. `assessments/idea-x/decision.html`, `notes.html`) aren't linked from anywhere, since the sidebar links only each assessment's first document. The document list that fixes this comes in T061 (US5). How should T023 keep the suite green?
+**A:** Interim document list — Add a small list of sibling documents to assessment and constitution document pages in `src/render/artifact.js` now; T061 replaces it later. SC-004 stays fully asserted, and no page is unreachable in the meantime.
