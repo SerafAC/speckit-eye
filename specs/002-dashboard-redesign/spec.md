@@ -17,6 +17,7 @@ The approved redesign lives in `mockups/001-first-redesign/`: `DESIGN_HANDOFF.md
 - Q: Should search be part of this redesign, and how far should it reach? → A: Yes: a ⌘K search over tasks (ID and text), features, and document titles and section headings. The full text of documents is not searched.
 - Q: What should clicking a task map square do — reveal the task in the overview tree (handoff) or open it on its feature page ("Task map — all states" board)? → A: Reveal it in the tree, as in the handoff: expand its feature and phase, scroll the tree to it and keep it outlined as selected.
 - Q: How should blocked tasks look, now that the redesign has no blocked color? → A: Keep a fourth, distinct color for blocked tasks in the map, the tree and the legend, and have the task detail panel say which open tasks the task is waiting on (for example "Waiting on T012").
+- Q: Must every page stay readable and navigable, with the tree, phases, task rows and collapsible document parts still opening and closing, when JavaScript is turned off? → A: Yes: keep today's promise. Without scripts, all content is readable, links and tabs work, and those parts open and close; everything else is an enhancement that needs scripts.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -258,7 +259,7 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **FR-050**: Every clickable element MUST be a real link or button, reachable and usable by keyboard with a visible focus ring, with a hit target of at least 36 px (task map squares excepted, which stay reachable by keyboard).
 - **FR-051**: Live updates MUST keep all view state of every page: theme, order, depth, filters, text filter, map mode, expanded rows, open phase, selected task, reader expansions and raw view, and scroll positions (page, tree card and task list); items whose status or counts changed are still briefly highlighted (001 FR-028).
 - **FR-052**: Static builds MUST contain the same pages and behavior as serve mode (except live updates and with the generation time shown), work under a sub-path, and support every redesign behavior that runs in the browser (theme, map, filters, reader, search).
-- **FR-053**: Without scripts, every page's content MUST stay readable and navigable; the tree, phases, task rows and collapsible document parts MUST still open and close (001 FR-037).
+- **FR-053**: Without scripts, every page's content MUST stay readable, every link and tab MUST work, and the tree, phases, task rows and collapsible document parts MUST still open and close (001 FR-037; the README's "Works without JavaScript" promise stands). Any design choice that needs scripts to show content or to navigate is ruled out.
 - **FR-054**: The user documentation (`README.md` screenshot and feature list, `docs/usage.md`) and `CHANGELOG.md` MUST describe the new layout, the task map, feature pages, the document reader, the theme switch and search.
 
 ### Key Entities
