@@ -1168,16 +1168,17 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
   @apply ml-auto;
 }
 
-/* The shared map tooltip (src/client/taskmap.js): always dark, placed by the
-   script through the CSSOM (left/top), text clamped to two lines. */
+/* The shared map tooltip (src/client/taskmap.js): always dark (the markup
+   carries `.always-dark`, so the tokens below give their dark values in both
+   themes, FR-047), placed by the script through the CSSOM (left/top), text
+   clamped to two lines. */
 [data-region="tooltip"] {
-  color-scheme: dark;
   @apply pointer-events-none fixed z-50 flex w-61 max-w-[calc(100vw-1rem)] flex-col gap-1 rounded-[10px] border px-3 py-2.5;
   top: 0;
   left: 0;
-  background-color: #15171c;
+  background-color: var(--surface);
   border-color: var(--border-strong);
-  color: #fff;
+  color: var(--text);
   box-shadow: 0 8px 24px rgba(21, 23, 28, 0.22);
   opacity: 1;
   transition: opacity 120ms ease-out;
@@ -1198,7 +1199,7 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 }
 
 [data-region="tooltip"] [data-part="id"] {
-  @apply font-mono text-xs text-[#d9dce1];
+  @apply font-mono text-xs text-(--text-2);
 }
 
 [data-region="tooltip"] [data-part="text"] {
@@ -1211,7 +1212,7 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 }
 
 [data-region="tooltip"] [data-part="feature"] {
-  @apply truncate text-xs text-[#bfc3ca];
+  @apply truncate text-xs text-(--text-3);
 }
 
 /* Growth and fade are off under reduced motion (001 FR-036): the square
@@ -1931,19 +1932,39 @@ aside[data-region="detail"] [data-part="copied"]:not([hidden]) {
 /* ------------------------------------------------------------------------ */
 
 [data-region="breadcrumb"] {
-  @apply mb-4 flex flex-wrap items-baseline gap-x-1 text-sm text-gray-500;
+  @apply mb-4 flex flex-wrap items-baseline gap-x-1 text-sm text-(--muted);
 }
 
 [data-region="breadcrumb"] a {
-  @apply text-gray-600 underline underline-offset-2 hover:text-gray-900;
+  @apply text-(--text-4) underline underline-offset-2 hover:text-(--text);
 }
 
 [data-region="breadcrumb"] [data-part="current"] {
-  @apply font-medium text-gray-900;
+  @apply font-medium text-(--text);
 }
 
+/* The typography plugin's colors mapped to the theme tokens, so document
+   text follows Light / Dark / System (FR-047, SC-010). */
 article[data-region="artifact"] {
   @apply max-w-none;
+  --tw-prose-body: var(--text-2);
+  --tw-prose-headings: var(--text);
+  --tw-prose-lead: var(--text-3);
+  --tw-prose-links: var(--blue-text);
+  --tw-prose-bold: var(--text);
+  --tw-prose-counters: var(--muted);
+  --tw-prose-bullets: var(--muted-2);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--text);
+  --tw-prose-quote-borders: var(--border-strong);
+  --tw-prose-captions: var(--muted);
+  --tw-prose-kbd: var(--text);
+  --tw-prose-kbd-shadows: var(--border-strong);
+  --tw-prose-code: var(--text);
+  --tw-prose-pre-code: var(--text-2);
+  --tw-prose-pre-bg: var(--surface-2);
+  --tw-prose-th-borders: var(--border-strong);
+  --tw-prose-td-borders: var(--border);
 }
 
 article[data-region="artifact"] ul.contains-task-list {
