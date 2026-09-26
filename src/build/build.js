@@ -14,7 +14,8 @@ export const MARKER = ".speckit-eye-build";
  * @property {(dir: string) => Promise<string[]>} readdir
  * @property {(p: string, options: {recursive: true, force: true}) => Promise<void>} rm
  * @property {(dir: string, options: {recursive: true}) => Promise<unknown>} mkdir
- * @property {(file: string, data: string) => Promise<void>} writeFile
+ * @property {(file: string, data: string | Uint8Array, encoding?: "utf8") => Promise<void>} writeFile
+ *   strings are written as UTF-8, bytes with no encoding
  */
 
 /**
@@ -91,10 +92,12 @@ export async function writeSite({ site, out, projectRoot, fs }) {
       const file = path.join(target, ...key.split("/"));
       if (!within(target, file) || file === target) throw new Error(`refusing to write outside --out: ${key}`);
       await fs.mkdir(path.dirname(file), { recursive: true });
-      await fs.writeFile(file, body);
+      // Text as UTF-8; bytes (fonts, research D12) exactly as they are.
+      if (typeof body === "string") await fs.writeFile(file, body, "utf8");
+      else await fs.writeFile(file, body);
       if (key.endsWith(".html")) pages += 1;
     }
-    await fs.writeFile(path.join(target, MARKER), "This folder was written by speckit-eye --build and is replaced on the next build.\n");
+    await fs.writeFile(path.join(target, MARKER), "This folder was written by speckit-eye --build and is replaced on the next build.\n", "utf8");
   } catch (err) {
     return { error: `cannot write ${target}: ${/** @type {Error} */ (err)?.message ?? String(err)}`, code: 1 };
   }

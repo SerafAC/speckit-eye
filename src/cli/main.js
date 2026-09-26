@@ -24,30 +24,73 @@ import { writeSite } from "../build/build.js";
 
 export const VERSION = pkg.version;
 
-/** Package-relative locations of the assets served under `assets/`. */
-const ASSET_FILES = /** @type {Record<string, URL>} */ ({
-  "styles.css": new URL("../../dist/styles.css", import.meta.url),
-  "overview.js": new URL("../client/overview.js", import.meta.url),
-  "live.js": new URL("../client/live.js", import.meta.url),
-});
+/**
+ * The browser modules read from `src/client/` and published as
+ * `assets/<name>`, in load order. The single list of modules (constitution
+ * §III): later tasks add their module here. `live.js` is read and published
+ * in serve mode only.
+ */
+export const CLIENT_MODULES = Object.freeze(["app.js", "prefs.js", "live.js", "overview.js"]);
+
+/** The serve-mode-only browser module (live updates). */
+const LIVE_MODULE = "live.js";
+
+const CLIENT_DIR = new URL("../client/", import.meta.url);
+const STYLES_FILE = new URL("../../dist/styles.css", import.meta.url);
+const FONTS_DIR = new URL("../../dist/fonts/", import.meta.url);
 
 /**
- * Reads one packaged asset by name (`styles.css`, `overview.js`, `live.js`).
- * @param {string} name
- * @param {(url: URL, encoding: "utf8") => Promise<string>} [readFile] injected for unit tests
- * @returns {Promise<string>}
+ * @typedef {object} AssetFs
+ * @property {(url: URL, encoding?: "utf8") => Promise<string | Uint8Array>} readFile
+ *   text with `"utf8"`, bytes without an encoding
+ * @property {(url: URL) => Promise<string[]>} readdir
  */
-export async function defaultReadAsset(name, readFile = nodeFs.readFile) {
-  const url = ASSET_FILES[name];
-  if (!url) throw new Error(`unknown asset ${name}`);
+
+/**
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+const isMissing = (err) => /** @type {{code?: string}} */ (err)?.code === "ENOENT";
+
+/**
+ * Reads the packaged assets that `renderSite` publishes: the compiled
+ * stylesheet, the browser modules of {@link CLIENT_MODULES} (without
+ * `live.js` in static mode) and every file of `dist/fonts/` as bytes.
+ * @param {"serve" | "static"} mode
+ * @param {AssetFs} [fs] injected for unit tests
+ * @returns {Promise<import("../render/site.js").SiteAssets>}
+ */
+export async function defaultLoadAssets(mode, fs = nodeFs) {
+  let styles;
   try {
-    return await readFile(url, "utf8");
+    styles = /** @type {string} */ (await fs.readFile(STYLES_FILE, "utf8"));
   } catch (err) {
-    if (name === "styles.css" && /** @type {{code?: string}} */ (err)?.code === "ENOENT") {
-      throw new Error("dist/styles.css is missing; run `pnpm run build:css` first");
-    }
+    if (isMissing(err)) throw new Error("dist/styles.css is missing; run `pnpm run build:assets` first");
     throw err;
   }
+
+  /** @type {Record<string, string>} */
+  const modules = {};
+  for (const name of CLIENT_MODULES) {
+    if (name === LIVE_MODULE && mode !== "serve") continue;
+    modules[name] = /** @type {string} */ (await fs.readFile(new URL(name, CLIENT_DIR), "utf8"));
+  }
+
+  let files;
+  try {
+    files = await fs.readdir(FONTS_DIR);
+  } catch (err) {
+    if (isMissing(err)) throw new Error("dist/fonts is missing; run `pnpm run build:assets` first");
+    throw err;
+  }
+  /** @type {Record<string, Uint8Array | string>} */
+  const fonts = {};
+  for (const file of [...files].sort()) {
+    // Bytes, not text: no encoding for the woff2 files and the licence texts alike.
+    fonts[file] = /** @type {Uint8Array} */ (await fs.readFile(new URL(file, FONTS_DIR)));
+  }
+
+  return { styles, modules, fonts };
 }
 
 /** The public-exposure reminder printed after every build (FR-034). */
@@ -92,6 +135,17 @@ export function allWarnings(project) {
 }
 
 /**
+ * @param {string | Uint8Array} a
+ * @param {string | Uint8Array} b
+ * @returns {boolean} whether both bodies hold the same text or the same bytes
+ */
+function sameBody(a, b) {
+  if (a === b) return true;
+  if (!(a instanceof Uint8Array) || !(b instanceof Uint8Array)) return false;
+  return Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(b);
+}
+
+/**
  * @param {import("../render/site.js").Site} a
  * @param {import("../render/site.js").Site} b
  * @returns {boolean} whether any page or asset differs
@@ -100,7 +154,7 @@ export function siteChanged(a, b) {
   if (a.size !== b.size) return true;
   for (const [key, entry] of b) {
     const old = a.get(key);
-    if (!old || old.body !== entry.body || old.type !== entry.type) return true;
+    if (!old || old.type !== entry.type || !sameBody(old.body, entry.body)) return true;
   }
   return false;
 }
@@ -111,7 +165,7 @@ export function siteChanged(a, b) {
  * @property {Writable} [stderr]
  * @property {(root: string) => import("../project/reader.js").ProjectReader} [createReader]
  * @property {typeof defaultStartServer} [startServer]
- * @property {(name: string) => Promise<string>} [readAsset]
+ * @property {(mode: "serve" | "static") => Promise<import("../render/site.js").SiteAssets>} [loadAssets]
  * @property {(handler: () => void) => void} [onSignal]
  * @property {typeof defaultCreateWatcher} [createWatcher]
  * @property {typeof defaultCreateEventHub} [createEventHub]
@@ -133,7 +187,7 @@ export async function run(argv, deps = {}) {
     stderr = process.stderr,
     createReader = defaultCreateReader,
     startServer = defaultStartServer,
-    readAsset = defaultReadAsset,
+    loadAssets = defaultLoadAssets,
     onSignal = defaultOnSignal,
     createWatcher = defaultCreateWatcher,
     createEventHub = defaultCreateEventHub,
@@ -172,7 +226,7 @@ export async function run(argv, deps = {}) {
     if (args.mode === "build") {
       const out = path.resolve(cwd, /** @type {string} */ (args.out));
       stdout.write(`speckit-eye ${VERSION} — building ${root} → ${args.out} (base ${args.base})\n`);
-      const assets = { styles: await readAsset("styles.css"), overview: await readAsset("overview.js") };
+      const assets = await loadAssets("static");
       const scanResult = await scan(reader, path.basename(root));
       const project = buildModel({ ...scanResult, root });
       const warnings = allWarnings(project).map(formatWarning);
@@ -195,11 +249,7 @@ export async function run(argv, deps = {}) {
       return 0;
     }
 
-    const assets = {
-      styles: await readAsset("styles.css"),
-      overview: await readAsset("overview.js"),
-      live: await readAsset("live.js"),
-    };
+    const assets = await loadAssets("serve");
     const name = path.basename(root);
     const renderOptions = { base: "/", mode: /** @type {"serve"} */ ("serve"), version: VERSION, assets };
     const scanResult = await scan(reader, name);

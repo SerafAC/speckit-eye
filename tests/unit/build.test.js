@@ -27,6 +27,26 @@ describe("writeSite (T053, FR-033)", () => {
     assert.equal(fs.writes.at(-1), at(MARKER));
   });
 
+  test("byte bodies are written with no encoding and text bodies as UTF-8 (research D12)", async () => {
+    const bytes = new Uint8Array([0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80]);
+    const site = new Map([
+      ["index.html", page("<p>ü ✓</p>")],
+      ["assets/fonts/geist-latin-wght-normal.woff2", { type: "font/woff2", body: bytes }],
+      ["assets/fonts/OFL-geist.txt", { type: "text/plain; charset=utf-8", body: "Copyright ©" }],
+    ]);
+    const fs = fakeFs();
+    assert.deepEqual(await writeSite({ site, out: OUT, projectRoot: ROOT, fs }), { pages: 1 });
+    const font = fs.files.get(at("assets", "fonts", "geist-latin-wght-normal.woff2"));
+    assert.ok(font instanceof Uint8Array);
+    assert.deepEqual([...font], [...bytes]);
+    assert.equal(fs.encodings.get(at("assets", "fonts", "geist-latin-wght-normal.woff2")), null);
+    assert.equal(fs.files.get(at("assets", "fonts", "OFL-geist.txt")), "Copyright ©");
+    assert.equal(fs.encodings.get(at("assets", "fonts", "OFL-geist.txt")), "utf8");
+    assert.equal(fs.files.get(at("index.html")), "<p>ü ✓</p>");
+    assert.equal(fs.encodings.get(at("index.html")), "utf8");
+    assert.equal(fs.encodings.get(at(MARKER)), "utf8");
+  });
+
   test("an existing empty folder is used", async () => {
     const fs = fakeFs();
     fs.dirs.add(OUT);
