@@ -2,6 +2,7 @@ import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
 import { renderPage, sidebarOrder } from "../../src/render/layout.js";
 import { html } from "../../src/render/html.js";
+import { renderOverview } from "../../src/render/overview.js";
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
@@ -103,7 +104,7 @@ describe("renderPage", () => {
       const doc = page({ page: kind, current: kind === "feature" ? "002-beta" : null });
       assert.equal(has(doc, /<aside data-region="sidebar" class="always-dark">/), kind !== "document", `${kind} sidebar`);
       assert.equal(has(doc, /<nav data-region="rail" class="always-dark"/), kind === "document", `${kind} rail`);
-      assert.equal(has(doc, /<div data-region="tooltip" role="tooltip" hidden><\/div>/), kind === "overview", `${kind} tooltip`);
+      assert.equal(has(doc, /<div data-region="tooltip" class="always-dark" role="tooltip" hidden><\/div>/), kind === "overview", `${kind} tooltip`);
       assert.ok(has(doc, /<details data-region="mobile-menu">\n<summary aria-label="Menu"><svg/), `${kind} mobile menu`);
       assert.ok(has(doc, /<dialog data-region="search" aria-label="Search"><\/dialog>/), `${kind} search dialog`);
       assert.ok(has(doc, /<main>/), `${kind} main`);
@@ -112,6 +113,27 @@ describe("renderPage", () => {
       // The old header, header links and Menu are gone (FR-008).
       assert.doesNotMatch(doc, /data-region="header"|data-region="menu"|overview-link/);
     }
+  });
+
+  test("sidebar, icon rail, Up next bar and map tooltip carry always-dark (FR-047)", () => {
+    /** The opening tag of the element with this data-region, or null. */
+    const tag = (doc, region) => doc.match(new RegExp(`<[a-z]+ data-region="${region}"[^>]*>`))?.[0] ?? null;
+    const dark = (t) => /\sclass="(?:[^"]*\s)?always-dark(?:\s[^"]*)?"/.test(t ?? "");
+    const overview = page({ main: renderOverview(project, { base: "/" }) });
+    assert.ok(dark(tag(overview, "sidebar")), "overview sidebar");
+    assert.ok(dark(tag(overview, "up-next")), "Up next bar");
+    assert.ok(dark(tag(overview, "tooltip")), "map tooltip");
+    assert.ok(dark(tag(page({ page: "feature", current: "002-beta" }), "sidebar")), "feature sidebar");
+    assert.ok(dark(tag(page({ page: "document" }), "rail")), "icon rail");
+    // Nothing else is forced dark: the content follows the theme.
+    assert.ok(!dark(tag(overview, "stats")), "stats card follows the theme");
+    assert.ok(!dark(tag(overview, "mobile-menu")), "mobile menu follows the theme");
+  });
+
+  test("Up next bar is always-dark also when every task is done", async () => {
+    const done = buildModel(await scan(createFakeReader({ "specs/001-alpha/tasks.md": tasks(2, 2) }), "p"));
+    const doc = page({ project: done, main: renderOverview(done, { base: "/" }) });
+    assert.match(doc, /<section data-region="up-next" class="always-dark"[^>]* data-empty="complete">/);
   });
 
   test("no element carries a style attribute (CSP)", () => {

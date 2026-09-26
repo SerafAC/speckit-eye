@@ -220,7 +220,7 @@ ${featuresNav({ ...nav, mobile: true })}
 ${side}
 <main>${raw(main)}</main>
 ${page === "document" ? html`${foot}\n` : ""}${serve ? html`<div data-region="live-status" hidden>Live updates paused — reconnecting…</div>\n` : ""}<dialog data-region="search" aria-label="Search"></dialog>
-${page === "overview" ? html`<div data-region="tooltip" role="tooltip" hidden></div>\n` : ""}</body>
+${page === "overview" ? html`<div data-region="tooltip" class="always-dark" role="tooltip" hidden></div>\n` : ""}</body>
 </html>
 `.value;
 }

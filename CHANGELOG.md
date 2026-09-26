@@ -84,3 +84,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added: every task has its own address on its feature page; opening it (for
   example from "View task" or a task ID in the tree) shows the task open,
   selected and in view.
+- Added: a Light / Dark / System theme switch in the sidebar and, on document
+  pages, in the icon rail. System is the default and follows the operating
+  system, also when it changes while a page is open. The choice applies to
+  every page from its first paint, survives reloads and live updates, and is
+  remembered in the browser; when the browser refuses storage the switch
+  still changes the current page. The sidebar, icon rail, Up next bar and map
+  tooltips stay dark and the next-task orange is the same in both themes;
+  document text follows the theme.

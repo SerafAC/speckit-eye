@@ -72,25 +72,45 @@ export const MODULES = {
 const wired = new WeakSet();
 
 /**
+ * The theme chosen on this page, by document. It wins over storage, which may
+ * have refused to keep it (US4 AC5), for as long as the page is open.
+ * @type {WeakMap<Document, string>}
+ */
+const chosen = new WeakMap();
+
+/**
+ * The choice the switch shows: the one made on this page, else the stored
+ * one, else System (FR-045). With System, `<html>` has no `data-theme` and
+ * CSS (`color-scheme: light dark`) follows the OS, including changes while
+ * the page is open, so nothing here listens to the OS.
+ * @param {Document} document
+ * @param {import("./prefs.js").Prefs} prefs
+ * @returns {string}
+ */
+export function currentTheme(document, prefs) {
+  return chosen.get(document) ?? document.documentElement.dataset.theme ?? prefs.get("theme") ?? "system";
+}
+
+/**
  * Un-hides and wires the theme switch (FR-045, US4 AC5): `aria-pressed`
- * reflects the stored choice; a click stores it and sets or removes
- * `data-theme` on `<html>` at once, so the switch works even when storage
- * fails. Idempotent.
+ * reflects the current choice (also after a live update's `reinit`); a click
+ * stores it and sets or removes `data-theme` on `<html>` at once, so the
+ * switch works even when storage fails. Only this function writes
+ * `data-theme` after first paint; `live.js` never touches `<html>`.
+ * Idempotent.
  * @param {Document | Element} root
  * @param {Pick<Deps, "document" | "prefs">} deps
  */
 export function initShell(root, { document, prefs }) {
-  const groups = [...root.querySelectorAll('[data-part="theme"]')];
   /** @param {string} choice */
   const show = (choice) => {
-    for (const button of root.querySelectorAll("[data-theme-choice]")) {
+    for (const button of document.querySelectorAll("[data-theme-choice]")) {
       button.setAttribute("aria-pressed", String(button.getAttribute("data-theme-choice") === choice));
     }
   };
-  // The choice made on this page wins over storage that could not keep it.
   const html = document.documentElement;
-  show(html.dataset.theme ?? prefs.get("theme") ?? "system");
-  for (const group of groups) {
+  show(currentTheme(document, prefs));
+  for (const group of root.querySelectorAll('[data-part="theme"]')) {
     group.removeAttribute("hidden");
     for (const button of group.querySelectorAll("[data-theme-choice]")) {
       if (wired.has(button)) continue;
@@ -98,6 +118,7 @@ export function initShell(root, { document, prefs }) {
       button.addEventListener("click", () => {
         const choice = button.getAttribute("data-theme-choice") ?? "system";
         if (!ALLOWED.theme.includes(choice)) return;
+        chosen.set(document, choice);
         prefs.set("theme", choice);
         if (choice === "system") delete html.dataset.theme;
         else html.dataset.theme = choice;

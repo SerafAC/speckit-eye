@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { Window } from "happy-dom";
 import { MODULES, start, save, reinit, initShell } from "../../src/client/app.js";
 import { createPrefs } from "../../src/client/prefs.js";
+import { createLiveClient } from "../../src/client/live.js";
 import { renderFeaturePage } from "../../src/render/feature.js";
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
@@ -260,6 +261,79 @@ describe("theme switch (initShell)", () => {
     initShell(w.document, { document: w.document, prefs: counting });
     w.document.querySelector('[data-theme-choice="light"]').click();
     assert.equal(sets, 1);
+  });
+
+  test("reinit keeps the pressed button (FR-046, live update)", () => {
+    for (const choice of ["light", "dark", "system"]) {
+      const w = page("overview");
+      start({ document: w.document, window: w, storage: memoryStorage(), modules: {} });
+      w.document.querySelector(`[data-theme-choice="${choice}"]`).click();
+      // A live swap may bring shell parts whose buttons are rendered unpressed.
+      for (const b of w.document.querySelectorAll("[data-theme-choice]")) b.setAttribute("aria-pressed", "false");
+      reinit(w.document, {});
+      assert.deepEqual(
+        pressed(w.document),
+        ["light", "dark", "system"].map((c) => `${c}:${c === choice}`),
+        choice,
+      );
+      assert.equal(w.document.documentElement.dataset.theme, choice === "system" ? undefined : choice);
+    }
+  });
+
+  test("System removes data-theme, so CSS follows the OS, and stays pressed after reinit (FR-045)", () => {
+    const w = page("feature");
+    const html = w.document.documentElement;
+    html.dataset.theme = "dark"; // as assets/theme.js sets it before first paint
+    // Storage that keeps its old value because writes fail.
+    const stuck = { getItem: (k) => (k === "sk-theme" ? "dark" : null), setItem: throwing.setItem };
+    start({ document: w.document, window: w, storage: stuck, modules: {} });
+    assert.deepEqual(pressed(w.document), ["light:false", "dark:true", "system:false"]);
+    w.document.querySelector('[data-theme-choice="system"]').click();
+    assert.equal(html.hasAttribute("data-theme"), false);
+    reinit(w.document, {});
+    assert.equal(html.hasAttribute("data-theme"), false);
+    assert.deepEqual(pressed(w.document), ["light:false", "dark:false", "system:true"]);
+  });
+
+  test("the next page shows the stored choice (across pages)", () => {
+    const storage = memoryStorage();
+    const a = page("overview");
+    start({ document: a.document, window: a, storage, modules: {} });
+    a.document.querySelector('[data-theme-choice="light"]').click();
+    const b = page("document", { rail: true });
+    b.document.documentElement.dataset.theme = "light"; // assets/theme.js
+    start({ document: b.document, window: b, storage, modules: {} });
+    assert.deepEqual(pressed(b.document), ["light:true", "dark:false", "system:false"]);
+  });
+
+  test("a live update never touches <html data-theme> and the switch stays pressed", async () => {
+    const w = page("overview");
+    const doc = w.document;
+    doc.body.insertAdjacentHTML("beforeend", '<footer data-live="footer" data-key="footer" data-sig="1">v1</footer>');
+    const app = { save, reinit };
+    start({ document: doc, window: w, storage: memoryStorage(), modules: {} });
+    doc.querySelector('[data-theme-choice="dark"]').click();
+    // The server renders pages without data-theme and with the switch unpressed.
+    const next = `<!doctype html><html lang="en" data-theme="light"><body data-page="overview"><aside data-region="sidebar">${THEME}</aside><main><p>new</p></main><footer data-live="footer" data-key="footer" data-sig="2">v2</footer></body></html>`;
+    const client = createLiveClient({
+      document: doc,
+      window: w,
+      EventSource: class {
+        addEventListener() {}
+        close() {}
+      },
+      fetch: async () => ({ status: 200, ok: true, text: async () => next }),
+      DOMParser: w.DOMParser,
+      setTimeout: (fn, ms) => w.setTimeout(fn, ms),
+      requestAnimationFrame: () => 0,
+      app,
+    });
+    client.start();
+    await client.update();
+    assert.equal(doc.querySelector("main").textContent, "new");
+    assert.equal(doc.querySelector("footer").textContent, "v2");
+    assert.equal(doc.documentElement.dataset.theme, "dark");
+    assert.deepEqual(pressed(doc), ["light:false", "dark:true", "system:false"]);
   });
 
   test("keeps a choice made on the page after a reinit even when storage could not keep it", () => {
