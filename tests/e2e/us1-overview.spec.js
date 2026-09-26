@@ -1,15 +1,14 @@
 // US1 — See where the project stands in the new overview (spec 002, User
 // Story 1; spec 001 US1 for the behavior kept from the first version).
 // Every test drives the real CLI against a temporary copy of a fixture
-// (tests/fixtures/projects/README.md has the expected numbers). The 001 task
-// grid tests at the end move to us2-taskmap.spec.js with the task map (T040).
+// (tests/fixtures/projects/README.md has the expected numbers). The task map
+// has its own suite, us2-taskmap.spec.js.
 
 import { test, expect } from "@playwright/test";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { copyFixture, startServe, runCli, hashTree, sidebar, sidebarFeature, featurePagePath } from "./helpers.js";
-import { generateLarge, FEATURES } from "../fixtures/generate-large.js";
 
 /** @type {import("./helpers.js").ServeHandle | null} */
 let server = null;
@@ -41,7 +40,7 @@ const stats = (page) => page.locator('[data-region="stats"]');
 const stat = (page, name) => stats(page).locator(`[data-stat="${name}"]`);
 const upNext = (page) => page.locator('[data-region="up-next"]');
 const tree = (page) => page.locator('[data-region="tree"]');
-const grid = (page) => page.locator('[data-region="grid"]');
+const grid = (page) => page.locator('[data-region="taskmap"] [data-part="grid"]');
 const orderButton = (page) => page.locator('button[data-part="order"]');
 const depthButton = (page, depth) => page.locator(`[data-part="depth"] button[data-depth="${depth}"]`);
 const filterButton = (page, filter) => page.locator(`[data-part="view-filter"] button[data-filter="${filter}"]`);
@@ -447,7 +446,7 @@ test("US1 SC-009 sidebar left of content, tree left of map", async ({ page }) =>
   const statsBox = await box('[data-region="stats"]');
   const next = await box('[data-region="up-next"]');
   const features = await box('[data-region="features"]');
-  const map = await box('[data-region="map-column"]');
+  const map = await box('[data-region="taskmap"]');
   expect(head.y).toBeLessThan(statsBox.y);
   expect(statsBox.y + statsBox.height).toBeLessThanOrEqual(next.y + 1);
   expect(next.y + next.height).toBeLessThanOrEqual(features.y + 1);
@@ -463,7 +462,7 @@ test("US1 FR-010 a narrow viewport stacks the tree above the map without horizon
   const { url } = await serve("mixed");
   await page.goto(url);
   const t = await page.locator('[data-region="features"]').boundingBox();
-  const g = await page.locator('[data-region="map-column"]').boundingBox();
+  const g = await page.locator('[data-region="taskmap"]').boundingBox();
   expect(t && g).toBeTruthy();
   expect(g.y).toBeGreaterThanOrEqual(t.y + t.height - 1);
   expect(Math.abs(g.x - t.x)).toBeLessThan(2);
@@ -649,87 +648,4 @@ test("US1 FR-006 serving never changes the project folder", async ({ page }) => 
   expect(await server.stop()).toBe(0);
   server = null;
   expect(await hashTree(dir)).toBe(before);
-});
-
-// ---------------------------------------------------------------------------
-// 001 task grid (moves to us2-taskmap.spec.js with the task map, T040)
-// ---------------------------------------------------------------------------
-
-test("US1 AC9 hovering a task square names the task and highlights its feature and phase", async ({ page }) => {
-  const { url } = await serve("mixed");
-  await page.goto(url);
-  const cell = grid(page).locator('a[data-key="002-beta/T011"]');
-  await expect(cell).toHaveAttribute("title", "T011 · List paging — Beta › Phase 3 · US1 – Beta listing (P1)");
-  await cell.hover();
-  await expect(feature(page, "002-beta")).toHaveAttribute("data-highlight", "");
-  await expect(tree(page).locator('details[data-key="002-beta/p3"]')).toHaveAttribute("data-highlight", "");
-  await expect(feature(page, "001-alpha")).not.toHaveAttribute("data-highlight");
-
-  // A square in a grouped phase also highlights its story group.
-  await grid(page).locator('a[data-key="002-beta/T017"]').hover();
-  await expect(tree(page).locator('details[data-key="002-beta/p4"]')).toHaveAttribute("data-highlight", "");
-  await expect(tree(page).locator('details[data-key="002-beta/p4/US3"]')).toHaveAttribute("data-highlight", "");
-  await expect(tree(page).locator('details[data-key="002-beta/p3"]')).not.toHaveAttribute("data-highlight");
-});
-
-test("US1 FR-015b click on a grid square opens the task's feature, phase and story and scrolls to it", async ({ page }) => {
-  const { url } = await serve("mixed");
-  await page.setViewportSize({ width: 1280, height: 480 });
-  await page.goto(url);
-  const phase = tree(page).locator('details[data-key="002-beta/p4"]');
-  const story = tree(page).locator('details[data-key="002-beta/p4/US3"]');
-  const task = taskRow(page, "002-beta/T017");
-  await expect(phase).not.toHaveAttribute("open");
-  await expect(story).not.toHaveAttribute("open");
-  await expect(task).toBeHidden();
-
-  await grid(page).locator('a[data-key="002-beta/T017"]').click();
-  await expect(feature(page, "002-beta")).toHaveAttribute("open", "");
-  await expect(phase).toHaveAttribute("open", "");
-  await expect(story).toHaveAttribute("open", "");
-  await expect(task).toBeInViewport();
-  await expect(task).toHaveAttribute("data-highlight", "");
-
-  // A collapsed feature opens too; the highlight moves to the new task.
-  await grid(page).locator('a[data-key="003-gamma/T008"]').click();
-  await expect(feature(page, "003-gamma")).toHaveAttribute("open", "");
-  await expect(tree(page).locator('details[data-key="003-gamma/p2"]')).toHaveAttribute("open", "");
-  await expect(taskRow(page, "003-gamma/T008")).toBeInViewport();
-  await expect(task).not.toHaveAttribute("data-highlight");
-});
-
-test("US1 FR-015b FR-037 click without scripts reaches the task through the fragment", async ({ browser }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 480 } });
-  const page = await context.newPage();
-  try {
-    const { url } = await serve("mixed");
-    await page.goto(url);
-    const task = taskRow(page, "002-beta/T017");
-    await expect(task).toBeHidden();
-    const cell = grid(page).locator('a[data-key="002-beta/T017"]');
-    const href = await cell.getAttribute("href");
-    expect(href).toMatch(/^#task-/);
-    await expect(task).toHaveAttribute("id", href.slice(1));
-    await cell.click();
-    await expect(page).toHaveURL(new RegExp(`${href}$`));
-    await expect(tree(page).locator('details[data-key="002-beta/p4"]')).toHaveAttribute("open", "");
-    await expect(tree(page).locator('details[data-key="002-beta/p4/US3"]')).toHaveAttribute("open", "");
-    await expect(task).toBeInViewport();
-  } finally {
-    await context.close();
-  }
-});
-
-test("US1 FR-015b large grid: 2,000 tasks show one row per feature", async ({ page }) => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "speckit-eye-large-"));
-  await generateLarge(dir);
-  server = await startServe(dir);
-  await page.goto(server.url);
-  await expect(grid(page)).toHaveAttribute("data-layout", "rows");
-  await expect(grid(page).locator(':scope > [data-part="row"]')).toHaveCount(FEATURES);
-  await expect(grid(page).locator('[data-part="row"]').first().locator('[data-part="label"]')).toHaveText("Feature 1");
-  await expect(grid(page).locator("a[data-key]")).toHaveCount(2000);
-  // Squares in rows keep the click behavior.
-  await grid(page).locator('a[data-key="050-feature-50/T001"]').click();
-  await expect(taskRow(page, "050-feature-50/T001")).toBeInViewport();
 });

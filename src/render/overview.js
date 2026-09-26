@@ -1,9 +1,8 @@
 /**
  * Overview page body (contracts/routes.md "Overview `<main>`", FR-010 to
  * FR-019): page head with the view filter, stats card with the per-feature
- * segmented bar, Up next bar, and the feature tree. The 001 task grid stays
- * in the right column until the task map (US2) replaces it. Pure: model in,
- * trusted HTML out.
+ * segmented bar, Up next bar, the feature tree, and the task map in the right
+ * column (src/render/taskmap.js). Pure: model in, trusted HTML out.
  *
  * No element carries an inline `style` attribute: the serve-mode CSP
  * (`style-src 'self'`) would block it. Data-driven widths use the
@@ -18,6 +17,7 @@ import { icon } from "./icons.js";
 import { formatRange } from "../model/warnings.js";
 import { DISPLAY_LABEL } from "../model/task-state.js";
 import { ORDER_LABELS } from "../client/tree.js";
+import { renderTaskMap } from "./taskmap.js";
 
 /** @typedef {import("../model/build-model.js").Project} Project */
 /** @typedef {import("../model/build-model.js").Feature} Feature */
@@ -48,26 +48,6 @@ export function featureStatus(feature) {
 }
 
 /**
- * Above this many tasks in total the grid shows one row per feature with
- * smaller squares (spec Assumptions "Open design items", T034).
- */
-export const GRID_ROWS_THRESHOLD = 1000;
-
-/** Above this many tasks in total the grid shows one progress bar per feature. */
-export const GRID_BARS_THRESHOLD = 5000;
-
-/**
- * Grid layout for a project with `total` tasks.
- * @param {number} total
- * @returns {"single" | "rows" | "bars"}
- */
-export function gridLayout(total) {
-  if (total > GRID_BARS_THRESHOLD) return "bars";
-  if (total > GRID_ROWS_THRESHOLD) return "rows";
-  return "single";
-}
-
-/**
  * Attribute-safe element ids for keys: `prefix` + the key with every
  * character outside `[A-Za-z0-9_-]` replaced by `-`, plus `-2`, `-3`, … when
  * two keys map to the same id.
@@ -91,19 +71,11 @@ export function elementIds(keys, prefix) {
 }
 
 /**
- * Display name of a task: its ID, or `L<line>` when it has none.
- * @param {Task} task
- */
-function taskName(task) {
-  return task.id ?? `L${task.line}`;
-}
-
-/**
  * The display state of a task (done, next, blocked, open).
  * @param {Task} task
  * @returns {"done" | "next" | "blocked" | "open"}
  */
-function displayOf(task) {
+export function displayOf(task) {
   if (task.display) return task.display;
   if (task.state) return DISPLAY_OF[task.state];
   return task.done ? "done" : "open";
@@ -114,22 +86,21 @@ function displayOf(task) {
  * @param {Task} task
  * @returns {string}
  */
-function anchorOf(task) {
+export function anchorOf(task) {
   return task.anchor ?? `task-${task.key.replace(/[/@]/g, "-")}`;
 }
 
 /**
- * The id of a feature's tree row (target of segment and bar links).
+ * The id of a feature's tree row (target of segment and map bar links).
  * @param {string} dir
  */
-function featureAnchor(dir) {
+export function featureAnchor(dir) {
   return `feature-${dir.replace(/[^A-Za-z0-9_-]/g, "-")}`;
 }
 
 /**
  * Heading of a phase: "Phase N · USn – Title (Pn)" for a merged phase,
  * otherwise "Phase N: Title" (001 FR-015a). The synthetic phase is "Unphased".
- * Used in the grid tooltips.
  * @param {Phase} phase
  * @returns {string}
  */
@@ -174,24 +145,6 @@ export function phaseItems(phase) {
     }
   }
   return /** @type {any} */ (items);
-}
-
-/**
- * Every task in folder and tree order with its parents.
- * @param {Project} project
- */
-function tasksInTreeOrder(project) {
-  /** @type {{task: Task, feature: Feature, phase: Phase, group: StoryGroup | null}[]} */
-  const out = [];
-  for (const feature of project.features) {
-    for (const phase of feature.phases) {
-      for (const item of phaseItems(phase)) {
-        if (item.task) out.push({ task: item.task, feature, phase, group: null });
-        else for (const task of item.group.tasks) out.push({ task, feature, phase, group: item.group });
-      }
-    }
-  }
-  return out;
 }
 
 /**
@@ -563,61 +516,17 @@ ${
 }
 
 /**
- * One grid square (001 grid, until the task map of US2). `href` points at
- * the task row in the tree, so a click jumps there without scripts too.
- * @param {ReturnType<typeof tasksInTreeOrder>[number]} entry
- * @returns {Raw}
- */
-function renderCell({ task, feature, phase, group }) {
-  const parents = [feature.dir, phase.key, group?.key].filter(Boolean).join(" ");
-  const title = `${taskName(task)} · ${task.description} — ${feature.title} › ${phaseHeading(phase)}`;
-  return html`<a href="#${anchorOf(task)}" data-key="${task.key}" data-sig="${task.sig ?? ""}" data-state="${displayOf(task)}" data-parents="${parents}" title="${title}"></a>`;
-}
-
-/**
- * The 001 task grid in folder order. Up to `GRID_ROWS_THRESHOLD` tasks: one
- * square per task. Above it: one row per feature with smaller squares.
- * Above `GRID_BARS_THRESHOLD`: one progress bar per feature, linking to the
- * feature in the tree.
- * @param {Project} project
- * @param {ReturnType<typeof tasksInTreeOrder>} entries
- * @returns {Raw}
- */
-function renderGrid(project, entries) {
-  const layout = gridLayout(project.totals.tasks.total);
-  if (layout === "single") return html`<div data-region="grid">${entries.map((e) => renderCell(e))}</div>`;
-
-  const withTasks = project.features.filter((f) => f.counts.total > 0);
-  if (layout === "bars") {
-    const bars = withTasks.map(
-      (f) =>
-        html`<a data-part="bar" href="#${featureAnchor(f.dir)}"><span data-part="label">${f.title} · ${f.counts.done} / ${f.counts.total}</span><progress data-key="${f.dir}" value="${f.counts.done}" max="${f.counts.total}">${f.counts.percent} %</progress></a>`,
-    );
-    return html`<div data-region="grid" data-layout="bars">${bars}</div>`;
-  }
-
-  const rows = withTasks.map((f) => {
-    const cells = entries.filter((e) => e.feature === f).map((e) => renderCell(e));
-    return html`<div data-part="row"><span data-part="label">${f.title}</span><div data-part="cells">${cells}</div></div>`;
-  });
-  return html`<div data-region="grid" data-layout="rows">${rows}</div>`;
-}
-
-/**
  * The inner HTML of `<main>` for the overview page.
  * @param {Project} project
  * @param {{base: string}} [options] normalized base path for links
  * @returns {Raw}
  */
 export function renderOverview(project, { base } = { base: "/" }) {
-  const entries = tasksInTreeOrder(project);
   return html`${renderPageHead(project)}
 ${renderStats(project)}
 ${renderUpNext(project, base)}
 <div data-region="columns">
 ${renderFeatures(project, base)}
-<section data-region="map-column" aria-label="Task map">
-${renderGrid(project, entries)}
-</section>
+${renderTaskMap(project, { base })}
 </div>`;
 }

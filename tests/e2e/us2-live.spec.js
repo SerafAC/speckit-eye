@@ -128,7 +128,7 @@ test("US2 AC3 changed items are highlighted and the bar moves to its new value",
   await expect(task).toHaveAttribute("data-state", "done");
   await expect(details(page, "002-beta/p3")).toHaveAttribute("data-changed", "");
   await expect(details(page, "002-beta")).toHaveAttribute("data-changed", "");
-  await expect(page.locator('[data-region="grid"] a[data-key="002-beta/T011"]')).toHaveAttribute("data-changed", "");
+  await expect(page.locator('[data-region="taskmap"] [data-part="grid"] a[data-key="002-beta/T011"]')).toHaveAttribute("data-changed", "");
   // Items that did not change are not highlighted.
   await expect(details(page, "001-alpha")).not.toHaveAttribute("data-changed");
 

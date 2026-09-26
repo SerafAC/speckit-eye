@@ -105,7 +105,7 @@ test("FR-024 FR-007 every page response has the CSP and nosniff headers", async 
     expect(res.headers["content-security-policy"], p).toBe(CSP);
     expect(res.headers["x-content-type-options"], p).toBe("nosniff");
   }
-  for (const p of ["/assets/styles.css", "/assets/theme.js", "/assets/app.js", "/assets/overview.js", "/assets/live.js", "/nope.html"]) {
+  for (const p of ["/assets/styles.css", "/assets/theme.js", "/assets/app.js", "/assets/taskmap.js", "/assets/live.js", "/nope.html"]) {
     const res = await rawGet(server.url, p);
     expect(res.headers["content-security-policy"], p).toBe(CSP);
     expect(res.headers["x-content-type-options"], p).toBe("nosniff");

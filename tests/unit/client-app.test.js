@@ -85,17 +85,23 @@ describe("start", () => {
     assert.deepEqual(log.map(([n]) => n), ["a"]);
   });
 
-  test("the default table runs tree.js and the 001 overview behavior on the overview only", () => {
-    assert.deepEqual(MODULES.overview.map((m) => m.name), ["tree", "overview"]);
+  test("the default table runs tree.js and taskmap.js on the overview only", () => {
+    assert.deepEqual(MODULES.overview.map((m) => m.name), ["tree", "taskmap"]);
     assert.deepEqual([...MODULES.all, ...MODULES.feature, ...MODULES.document], []);
     const w = page("overview");
-    w.document.querySelector("main").innerHTML = '<div data-region="tree"><details data-key="f"><summary>f</summary><li data-key="f/T1">t</li></details></div><a data-key="f/T1" data-parents="f" href="#x">x</a>';
-    start({ document: w.document, window: w, storage: memoryStorage() });
-    w.document.querySelector("a[data-parents]").click();
-    assert.equal(w.document.querySelector("details").open, true);
-    assert.ok(w.document.querySelector("li").hasAttribute("data-highlight"));
+    w.document.querySelector("main").innerHTML = `${TREE}<section data-region="taskmap" data-layout="stacked"><header><button type="button" data-part="map-mode" aria-pressed="false" hidden><span data-part="mode-label">By feature</span></button></header><div data-part="card"><div data-part="grid"><a data-key="002-b/T1" data-state="next" data-parents="002-b 002-b/p1" href="#b-t1" title="T1 · Next — t — B"></a></div></div></section>`;
+    const storage = memoryStorage({ "sk-map": "grouped" });
+    start({ document: w.document, window: w, storage });
+    const doc = w.document;
+    assert.equal(doc.querySelector('[data-region="taskmap"]').getAttribute("data-layout"), "grouped");
+    assert.equal(doc.querySelector('button[data-part="map-mode"]').hasAttribute("hidden"), false);
+    doc.querySelector("a[data-parents]").click();
+    assert.equal(doc.querySelector('details[data-key="002-b"]').open, true);
+    assert.equal(doc.querySelector('details[data-key="002-b/p1"]').open, true);
+    assert.ok(doc.getElementById("b-t1").hasAttribute("data-selected"));
+    assert.deepEqual(save(doc), { tree: { depth: null } });
     // A second start on the same document does not attach the listeners twice.
-    assert.doesNotThrow(() => start({ document: w.document, window: w, storage: memoryStorage() }));
+    assert.doesNotThrow(() => start({ document: doc, window: w, storage }));
   });
 
   test("the default table wires the tree: controls un-hidden, stored order applied, order click stored", () => {

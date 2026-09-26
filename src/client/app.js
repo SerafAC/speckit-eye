@@ -10,8 +10,8 @@
  */
 
 import { createPrefs, browserStorage, ALLOWED } from "./prefs.js";
-import { attachHover, attachClick } from "./overview.js";
 import * as tree from "./tree.js";
+import * as taskmap from "./taskmap.js";
 
 /**
  * @typedef {object} Deps
@@ -33,25 +33,6 @@ import * as tree from "./tree.js";
  * @property {(root: Document | Element) => unknown} [save]
  */
 
-/** Documents whose 001 overview listeners are attached (they live on the document). */
-const legacyAttached = new WeakSet();
-
-/**
- * The 001 grid ↔ tree behavior, until US1/US2 replace it with tree.js and
- * taskmap.js. Its listeners sit on the document, so they survive live swaps
- * and are attached once.
- * @type {PageModule}
- */
-const legacyOverview = {
-  name: "overview",
-  init(_root, { document, window }) {
-    if (legacyAttached.has(document)) return;
-    legacyAttached.add(document);
-    attachHover(document);
-    attachClick(document, window);
-  },
-};
-
 /**
  * The overview feature tree: order, depth, view filter and `reveal()`
  * (src/client/tree.js). Its depth is page-local state kept across live swaps.
@@ -60,12 +41,20 @@ const legacyOverview = {
 const treeModule = { name: "tree", init: tree.init, save: tree.save };
 
 /**
+ * The overview task map: mode toggle, tooltip, tree highlight and click →
+ * `tree.reveal` (src/client/taskmap.js). Its mode is a preference, so it
+ * has no page-local state to save.
+ * @type {PageModule}
+ */
+const taskmapModule = { name: "taskmap", init: taskmap.init };
+
+/**
  * The modules run on each page type; `all` runs on every page first.
  * @type {Record<"overview" | "feature" | "document" | "all", PageModule[]>}
  */
 export const MODULES = {
   all: [],
-  overview: [treeModule, legacyOverview],
+  overview: [treeModule, taskmapModule],
   feature: [],
   document: [],
 };
