@@ -20,6 +20,7 @@ The approved redesign lives in `mockups/001-first-redesign/`: `DESIGN_HANDOFF.md
 - Q: Must every page stay readable and navigable, with the tree, phases, task rows and collapsible document parts still opening and closing, when JavaScript is turned off? → A: Yes: keep today's promise. Without scripts, all content is readable, links and tabs work, and those parts open and close; everything else is an enhancement that needs scripts.
 - Q: Which browsers must the redesigned pages fully support? → A: The last two major versions of Chrome, Edge, Firefox and Safari, with end-to-end tests in all three browser engines (Chromium, Firefox, WebKit).
 - Q: Must the page addresses of the current version keep working after the redesign? → A: No: addresses may change freely and old links may break, because no version has been released yet.
+- Q: How should we check that the finished pages match the approved mockups? → A: No formal visual check and no reference screenshots (too heavy to maintain for a small tool); content is what matters, and the basic layout is checked by the end-to-end tests.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -289,7 +290,7 @@ From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates 
 - **SC-006**: With 2,000 tasks on the map, the hover growth is visible within 150 ms, the tooltip appears 500 ms (± 100 ms) after the pointer enters a square and disappears within 100 ms after it leaves, and no tooltip is ever cut off at the edges.
 - **SC-007**: For a project of 50 features and 2,000 tasks, the overview and each feature page load within 2 seconds in serve mode, and a static build completes within 30 seconds (unchanged targets from 001 SC-010).
 - **SC-008**: After a live update, 100 % of the view state listed in FR-051 is unchanged in the end-to-end tests, and 95 % of changes still appear within 2 seconds (001 SC-002).
-- **SC-009**: Every page is usable at 375 px width without horizontal page scrolling, and at 1440 px matches the approved mockups' layout.
+- **SC-009**: Every page is usable at 375 px width without horizontal page scrolling, and at 1440 px the end-to-end tests confirm the basic layout of the mockups: which regions exist, their order and their side-by-side placement (for example sidebar left of the content, tree left of the task map, detail panel right of the task list). There are no pixel or screenshot comparisons.
 - **SC-010**: Body text meets a contrast ratio of at least 4.5 : 1 against its background in both themes on every page type.
 - **SC-011**: With scripts disabled, every page type shows all its content and every link, tab and expandable item works (zero failures in the end-to-end tests).
 - **SC-012**: For every `spec.md` in the fixtures and in this repository, 100 % of the source's non-blank lines appear in the reader's formatted view.
