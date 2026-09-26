@@ -23,14 +23,14 @@ Replaces the "Page paths" and "Page structure" parts of [001 routes.md](../../00
 
 | Fragment | On | Target |
 |---|---|---|
-| `#task-<anchor>` | overview | the task row in the tree (map squares link here) |
-| `#task-<anchor>` | feature page | the task row; with JS it is opened, selected and shown in the detail panel (FR-036) |
+| `#<anchor>` | overview | the task row in the tree (map squares link here) |
+| `#<anchor>` | feature page | the task row; with JS it is opened, selected and shown in the detail panel (FR-036) |
 | `#phase-<n>` | feature page | the phase section (rail blocks link here) |
 | `#warnings` | feature page | the warning banner ("Details" links) |
 | `#L<line>` | `tasks.html` document | the source line, highlighted with `:target` ("View source line", FR-044) |
 | `#<heading-slug>` | any document | a heading (001 slugs) |
 
-`<anchor>` is defined in [data-model.md](../data-model.md) (Task `anchor`).
+`<anchor>` is the Task `anchor` of [data-model.md](../data-model.md); it already starts with `task-` (for example `#task-001-x-T012`).
 
 ## Page shell
 
@@ -79,12 +79,12 @@ No element carries a `style` attribute (CSP). Widths come from `w-pct-<0..100>` 
               <a data-part="open-feature" href="features/<dir>/index.html">
               [<a data-part="warning" data-code="W1" href="features/<dir>/index.html#warnings"> … L-chips …]
               phases: <details data-key="<phaseKey>" data-status … [data-complete]> (001 nesting, story level kept)
-                tasks: <li data-key="<taskKey>" id="task-<anchor>" data-state="done|next|blocked|open">
-                         mark · <a href="features/<dir>/index.html#task-<anchor>">T012</a> · text · [NEXT]
+                tasks: <li data-key="<taskKey>" id="<anchor>" data-state="done|next|blocked|open">
+                         mark · <a href="features/<dir>/index.html#<anchor>">T012</a> · text · [NEXT]
 <section data-region="taskmap" data-layout="stacked|grouped|bars">
    header: <button data-part="map-mode" aria-pressed>   (JS)
    <div data-part="grid"> <a data-key data-sig data-state data-parents="<dir> <phaseKey> [groupKey]"
-                             href="#task-<anchor>" title="T046 · Done — text — feature"> …
+                             href="#<anchor>" title="T046 · Done — text — feature"> …
    grouped: <div data-part="group"> name · done/total · squares
    <ul data-part="legend"> Done N · Open N · Blocked N · Next N · 1 dot = 1 task
 ```
@@ -107,7 +107,7 @@ No element carries a `style` attribute (CSP). Widths come from `w-pct-<0..100>` 
    <div data-part="list" data-keep-scroll="tasks">
       <details name="phases" data-key="<phaseKey>" id="phase-<n>" data-status [open]>
         <summary> Phase N · title · [Pn] · done/total </summary>
-        <details data-key="<taskKey>" id="task-<anchor>" data-state data-kind="<chip>" data-test? data-files="<names>">
+        <details data-key="<taskKey>" id="<anchor>" data-state data-kind="<chip>" data-test? data-files="<names>">
           <summary> mark · ID · text (inline formatting) · kind chip · file chip </summary>
           full text · marker tags (USn, Parallel, FR/SC refs, depends on)
    <aside data-region="detail" hidden> ID · status · text · phase · markers · files · [Waiting on …] · Copy ID · View source line   (JS)
@@ -138,7 +138,7 @@ Each module exports `init(root, deps)` (idempotent, called on load and after eve
 |---|---|---|
 | `app.js` | all | Imports the modules, runs `init` for the current `data-page`, exposes `reinit(state)` to `live.js` |
 | `prefs.js` | all | Safe `localStorage` access and defaults |
-| `theme.js` | all | Blocking head script: apply `sk-theme`; the switch buttons are wired by `app.js` |
+| `theme.js` | all | Blocking head script, generated from `applyStoredTheme` in `prefs.js` by `render/theme-script.js` (not a separate source file); the switch buttons are wired by `app.js` |
 | `tree.js` | overview | Order, depth, filter, and reveal-task (open ancestors, scroll the tree card, `data-selected`) |
 | `taskmap.js` | overview | Map mode toggle, hover → tree highlight, tooltip (delay, touch rule, placement), click → `tree.reveal` |
 | `feature.js` | feature | Rail ↔ list sync, choose-again-to-close, filters and text filter, expand/collapse all, selection and detail panel, copy, address fragment |
@@ -153,5 +153,5 @@ Each module exports `init(root, deps)` (idempotent, called on load and after eve
 | theme, order, filter, map mode | `localStorage` (prefs.js), re-applied by `init` |
 | viewer-toggled `<details>` | 001 `applyToggles` by `data-key` |
 | depth, feature filters and text, selected task, raw view, "show more", requirement area | `save()` → `init(root, {state})` |
-| selected task (also across reloads) | address fragment `#task-<anchor>` |
+| selected task (also across reloads) | address fragment `#<anchor>` |
 | scroll positions | `live.js`: `window` and every `[data-keep-scroll]` by name |
