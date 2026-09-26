@@ -386,7 +386,7 @@ describe("run: build mode (US4, T055)", () => {
     assert.equal(await result, 0);
     assert.equal(
       f.deps.stdout.text,
-      `speckit-eye ${pkgVersion} — building ${root} → site (base /repo/)\n` + "  wrote 4 pages\n" + EXPOSURE_NOTE,
+      `speckit-eye ${pkgVersion} — building ${root} → site (base /repo/)\n` + "  wrote 5 pages\n" + EXPOSURE_NOTE,
     );
     assert.match(EXPOSURE_NOTE, /^  Note: this site includes every spec, plan, research note, the constitution and assessments\.\n {8}Anyone who can reach it can read them unless your host restricts access\.\n$/);
     assert.equal(f.deps.stderr.text, "");
@@ -398,6 +398,7 @@ describe("run: build mode (US4, T055)", () => {
     assert.match(index, / · generated <time datetime="2026-09-25T10:00:00\.000Z">/);
     assert.doesNotMatch(index, /live\.js|__events/);
     assert.ok(fs.files.has(path.join(out, "features", "001-a", "spec.html")));
+    assert.ok(fs.files.has(path.join(out, "features", "001-a", "index.html")));
     assert.ok(fs.files.has(path.join(out, "constitution.html")));
     assert.equal(fs.files.get(path.join(out, "assets", "styles.css")), "/* styles.css */");
     assert.ok(!fs.files.has(path.join(out, "assets", "live.js")));
@@ -413,7 +414,7 @@ describe("run: build mode (US4, T055)", () => {
     const { f, result } = build(["--build", "odd", "--out", "site"], { files: NONSTANDARD });
     assert.equal(await result, 0);
     assert.equal(f.deps.stderr.text, "warning: specs/001-odd/tasks.md:2 checkbox without a task ID (counted)\n");
-    assert.match(f.deps.stdout.text, /\n  wrote 2 pages\n  1 warning \(see above\)\n  Note:/);
+    assert.match(f.deps.stdout.text, /\n  wrote 3 pages\n  1 warning \(see above\)\n  Note:/);
   });
 
   test("without an injected clock the current time is used", async () => {

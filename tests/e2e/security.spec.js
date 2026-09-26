@@ -1,12 +1,12 @@
-// Security checks (FR-006, FR-007, FR-024, SC-008). Every test drives the real
+// Security checks (FR-004, FR-006, FR-007, FR-024, SC-008). Every test drives the real
 // CLI against a temporary copy of the `mixed` fixture.
 
 import { test, expect } from "@playwright/test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { copyFixture, hashTree, runBuild, startServe } from "./helpers.js";
+import { REPO_ROOT, copyFixture, featurePagePath, hashTree, runBuild, startServe } from "./helpers.js";
 
 /** Every page the `mixed` fixture has (tests/fixtures/projects/README.md). */
 const PAGES = [
@@ -25,6 +25,7 @@ const PAGES = [
   "/features/003-gamma/plan.html",
   "/features/003-gamma/tasks.html",
   "/features/004-delta/spec.html",
+  ...["001-alpha", "002-beta", "003-gamma", "004-delta"].map((dir) => `/${featurePagePath(dir)}`),
 ];
 
 /** Paths that must never be served, sent verbatim (no client normalization). */
@@ -104,14 +105,52 @@ test("FR-024 FR-007 every page response has the CSP and nosniff headers", async 
     expect(res.headers["content-security-policy"], p).toBe(CSP);
     expect(res.headers["x-content-type-options"], p).toBe("nosniff");
   }
-  for (const p of ["/assets/styles.css", "/assets/overview.js", "/assets/live.js", "/nope.html"]) {
+  for (const p of ["/assets/styles.css", "/assets/theme.js", "/assets/app.js", "/assets/overview.js", "/assets/live.js", "/nope.html"]) {
     const res = await rawGet(server.url, p);
     expect(res.headers["content-security-policy"], p).toBe(CSP);
     expect(res.headers["x-content-type-options"], p).toBe("nosniff");
   }
 });
 
-test("FR-024 no CSP violation fires on the overview or any artifact page", async ({ page }) => {
+test("FR-004 serves fonts from its own origin with the unchanged CSP", async ({ page }) => {
+  const { server } = await serveMixed();
+  const origin = new URL(server.url).origin;
+  /** @type {string[]} */
+  const requests = [];
+  /** @type {import("@playwright/test").Response[]} */
+  const fontResponses = [];
+  page.on("request", (r) => requests.push(r.url()));
+  page.on("response", (r) => {
+    if (new URL(r.url()).pathname.endsWith(".woff2")) fontResponses.push(r);
+  });
+  for (const p of ["/", `/${featurePagePath("002-beta")}`, "/features/002-beta/plan.html"]) {
+    await page.goto(`${origin}${p}`);
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    await page.waitForLoadState("networkidle");
+  }
+  expect(fontResponses.length, "the pages load at least one bundled font").toBeGreaterThan(0);
+  for (const r of fontResponses) {
+    expect(new URL(r.url()).origin).toBe(origin);
+    expect(new URL(r.url()).pathname).toMatch(/^\/assets\/fonts\/[^/]+\.woff2$/);
+    expect(r.status(), r.url()).toBe(200);
+    expect(await r.headerValue("content-type"), r.url()).toBe("font/woff2");
+    expect(await r.headerValue("content-security-policy"), r.url()).toBe(CSP);
+  }
+  expect(requests.filter((u) => new URL(u).origin !== origin)).toEqual([]);
+
+  // Every bundled font file is served byte-typed with the same headers.
+  const files = (await readdir(path.join(REPO_ROOT, "dist", "fonts"))).filter((f) => f.endsWith(".woff2"));
+  expect(files.length).toBeGreaterThan(0);
+  for (const f of files) {
+    const res = await rawGet(server.url, `/assets/fonts/${f}`);
+    expect(res.status, f).toBe(200);
+    expect(res.headers["content-type"], f).toBe("font/woff2");
+    expect(res.headers["content-security-policy"], f).toBe(CSP);
+    expect(res.headers["x-content-type-options"], f).toBe("nosniff");
+  }
+});
+
+test("FR-024 no CSP violation fires on the overview, any feature page or any artifact page", async ({ page }) => {
   const { server } = await serveMixed();
   const origin = new URL(server.url).origin;
   await page.addInitScript(() => {

@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 import { mkdtemp, readdir, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { BIN, REPO_ROOT, copyFixture, hashTree, runBuild, serveStatic, startServe } from "./helpers.js";
+import { BIN, REPO_ROOT, copyFixture, featurePagePath, hashTree, navLink, runBuild, serveStatic, sidebar, startServe } from "./helpers.js";
 import { spawn } from "node:child_process";
 
 const BASE = "/my-repo/";
@@ -28,6 +28,7 @@ const PAGES = [
   "features/003-gamma/plan.html",
   "features/003-gamma/tasks.html",
   "features/004-delta/spec.html",
+  ...["001-alpha", "002-beta", "003-gamma", "004-delta"].map(featurePagePath),
 ];
 
 /** @type {(() => Promise<unknown>)[]} */
@@ -78,6 +79,8 @@ test("US4 AC1 FR-003 build writes the overview and one page per artifact and exi
   expect(files.filter((f) => f.endsWith(".html")).sort()).toEqual([...PAGES].sort());
   expect(files).toContain("assets/styles.css");
   expect(files).toContain("assets/overview.js");
+  expect(files).toContain("assets/app.js");
+  expect(files).toContain("assets/theme.js");
   expect(files).toContain(".speckit-eye-build");
   expect(files).not.toContain("assets/live.js");
   expect(result.stdout).toMatch(/^speckit-eye \S+ — building .+ → .+ \(base \/my-repo\/\)\n/);
@@ -118,9 +121,12 @@ test("US4 AC2 FR-004 FR-032 a deep link under the base loads with styles and wor
     expect(r?.status(), p).toBe(200);
   }
   await page.goto(host.url);
-  await page.locator('header [data-region="menu"] summary').click();
-  await page.locator('header [data-region="menu"]').getByRole("link", { name: "Constitution" }).click();
+  await navLink(page, "Constitution").click();
   await expect(page).toHaveURL(`${host.url}constitution.html`);
+  await page.goto(host.url);
+  await sidebar(page).locator('a[data-key="side:002-beta"]').click();
+  await expect(page).toHaveURL(`${host.url}${featurePagePath("002-beta")}`);
+  await expect(page.locator('[data-region="feature-head"] h1')).toBeVisible();
   expect(failed).toEqual([]);
 });
 
@@ -142,7 +148,7 @@ test("US4 AC3 FR-031 the overview matches serve mode, shows the generated time a
   });
   const built = await snapshot();
   await expect(page.locator("body")).toHaveAttribute("data-mode", "static");
-  await expect(page.locator("footer")).toContainText(/generated at \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/);
+  await expect(page.locator("footer")).toContainText(/generated \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/);
   await expect(page.locator('[data-region="live-status"]')).toHaveCount(0);
 
   const server = await startServe(dir, { anyPort: true });

@@ -52,10 +52,10 @@ describe("renderSite", () => {
     assert.equal(allArtifacts(m).filter(({ feature }) => feature?.dir === "002-b").length, 0);
   });
 
-  test("returns exactly the overview, its assets and the artifact pages; live.js only in serve mode (US1, US2, US3)", async () => {
+  test("returns exactly the overview, its assets, the feature pages and the artifact pages; live.js only in serve mode (US1, US2, US3)", async () => {
     const s = await site();
     assert.ok(s instanceof Map);
-    const pages = ["constitution.html", "features/001-a/spec.html", "features/001-a/tasks.html"];
+    const pages = ["constitution.html", "features/001-a/index.html", "features/001-a/spec.html", "features/001-a/tasks.html"];
     assert.deepEqual([...s.keys()].sort(), ["assets/live.js", ...ASSET_KEYS, ...pages, "index.html"].sort());
     const st = await site({ mode: "static" });
     assert.deepEqual([...st.keys()].sort(), [...ASSET_KEYS, ...pages, "index.html"].sort());
@@ -250,10 +250,12 @@ describe("renderSite: artifact pages (T050, US3)", () => {
   const artifactSite = async (opts = {}) =>
     renderSite(await model(ARTIFACT_FILES), { base: "/", mode: "serve", version: "1", assets: ASSETS, ...opts });
 
-  test("the page set equals the artifact set (FR-021)", async () => {
+  test("the page set equals the artifact set plus one page per feature (FR-021, FR-029)", async () => {
     const m = await model(ARTIFACT_FILES);
     const s = await artifactSite();
-    const htmlPages = [...s.keys()].filter((k) => k.endsWith(".html") && k !== "index.html");
+    const htmlPages = [...s.keys()].filter((k) => k.endsWith(".html") && k !== "index.html" && !k.endsWith("/index.html"));
+    const featurePages = [...s.keys()].filter((k) => k.endsWith("/index.html"));
+    assert.deepEqual(featurePages.sort(), ["features/001-full/index.html", "features/002-partial/index.html"]);
     assert.deepEqual(htmlPages.sort(), [...ARTIFACT_PAGES].sort());
     const fromModel = allArtifacts(m).map(({ artifact }) => artifact.url);
     assert.deepEqual(fromModel.sort(), [...ARTIFACT_PAGES].sort());
@@ -273,6 +275,9 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     assert.match(body, /^<!doctype html>/);
     assert.match(body, /<title>Plan · proj · speckit-eye<\/title>/);
     assert.match(body, /<details data-region="mobile-menu">/);
+    assert.match(body, /<body [^>]*data-page="document"/);
+    assert.match(body, /<nav data-region="rail"/);
+    assert.doesNotMatch(body, /data-region="sidebar"/);
     assert.match(body, /<main><nav data-region="breadcrumb"[^>]*><a href="\/index.html">Overview<\/a>[\s\S]*Full[\s\S]*Plan<\/span><\/nav>/);
     assert.match(body, /<article class="prose" data-region="artifact" data-key="specs\/001-full\/plan.md">/);
     assert.match(body, /<h1 id="plan">Plan<\/h1>/);
@@ -299,6 +304,35 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     const s = await artifactSite();
     assert.match(s.get("assessments/idea-x/intake.html").body, /<span data-part="parent">Assessment: idea-x<\/span>/);
     assert.doesNotMatch(s.get("constitution.html").body, /data-part="parent"/);
+  });
+
+  test("one feature page per feature, rendered with the sidebar marking it current (FR-029, T022)", async () => {
+    const s = await artifactSite({ base: "/repo/", mode: "static" });
+    const { type, body } = s.get("features/001-full/index.html");
+    assert.equal(type, HTML_TYPE);
+    assert.match(body, /^<!doctype html>/);
+    assert.match(body, /<title>Full · proj · speckit-eye<\/title>/);
+    assert.match(body, /<body [^>]*data-page="feature"/);
+    assert.match(body, /<aside data-region="sidebar"/);
+    assert.doesNotMatch(body, /data-region="rail"/);
+    const sidebar = body.slice(body.indexOf("<aside"), body.indexOf("</aside>"));
+    assert.match(sidebar, /<a data-key="side:001-full"[^>]*href="\/repo\/features\/001-full\/index\.html" aria-current="page">/);
+    assert.doesNotMatch(sidebar, /<a data-key="side:002-partial"[^>]*aria-current/);
+    assert.match(body, /<main><header data-region="feature-head">/);
+    assert.match(body, /<h1>Full<\/h1>/);
+    assert.match(body, /<a href="\/repo\/features\/001-full\/plan\.html">Plan<\/a>/);
+    assert.match(s.get("features/002-partial/index.html").body, /<h1>Partial<\/h1>/);
+  });
+
+  test("document pages use the rail and mark their main destination current", async () => {
+    const s = await artifactSite();
+    const rail = (key) => {
+      const body = s.get(key).body;
+      return body.slice(body.indexOf('<nav data-region="rail"'), body.indexOf("</nav>", body.indexOf('<nav data-region="rail"')));
+    };
+    assert.match(rail("constitution.html"), /href="\/constitution\.html" aria-label="Constitution" title="Constitution" aria-current="page"/);
+    assert.match(rail("assessments/idea-x/notes.html"), /aria-label="Assessment: idea-x" title="Assessment: idea-x" aria-current="page"/);
+    assert.doesNotMatch(rail("features/001-full/plan.html"), /aria-current/);
   });
 
   test("the same pages exist in serve and static mode", async () => {

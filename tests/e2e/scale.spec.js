@@ -2,11 +2,11 @@
 // tests/fixtures/generate-large.js (1,000 / 2,000 tasks done).
 
 import { test, expect } from "@playwright/test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { generateLarge, featureDir } from "../fixtures/generate-large.js";
-import { runBuild, startServe } from "./helpers.js";
+import { featurePagePath, runBuild, startServe } from "./helpers.js";
 
 const LOAD_MS = 2_000;
 const LIVE_MS = 2_000;
@@ -78,4 +78,14 @@ test("SC-010 --build of 50 features / 2,000 tasks finishes within 30 s", async (
   expect(elapsed).toBeLessThanOrEqual(BUILD_MS);
   const index = await readFile(path.join(out, "index.html"), "utf8");
   expect(index).toContain('data-key="project"');
+  for (let i = 0; i < 50; i++) await access(path.join(out, ...featurePagePath(featureDir(i)).split("/")));
+});
+
+test("SC-010 a feature page of a large project fires load within 2 s", async ({ page }) => {
+  const { url } = await serveLarge();
+  const started = Date.now();
+  await page.goto(`${url}${featurePagePath(featureDir(10))}`, { waitUntil: "load" });
+  expect(Date.now() - started).toBeLessThanOrEqual(LOAD_MS);
+  await expect(page.locator(`[data-region="sidebar"] a[data-key="side:${featureDir(10)}"]`)).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('[data-region="sidebar"] nav[aria-label="Features"] li')).toHaveCount(50);
 });

@@ -8,6 +8,7 @@
 import { renderPage } from "./layout.js";
 import { renderOverview } from "./overview.js";
 import { renderArtifact } from "./artifact.js";
+import { renderFeaturePage } from "./feature.js";
 import { createMarkdown } from "./markdown.js";
 import { themeScript } from "./theme-script.js";
 
@@ -30,6 +31,18 @@ export function allArtifacts(project) {
     for (const artifact of assessment.artifacts) out.push({ artifact, feature: null, assessment });
   }
   return out;
+}
+
+/**
+ * The rail destination a document page belongs to, for `aria-current`.
+ * @param {Artifact} artifact
+ * @param {{slug: string} | null} assessment
+ * @returns {string | null}
+ */
+function documentDestination(artifact, assessment) {
+  if (assessment) return `assessment:${assessment.slug}`;
+  if (artifact.kind === "constitution") return "constitution";
+  return null;
 }
 
 /**
@@ -98,7 +111,26 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
     }),
   });
 
-  // One page per artifact (US3, FR-021), keyed by its url.
+  // One feature page per feature (FR-029, contracts/routes.md "Page paths").
+  for (const feature of project.features) {
+    site.set(`features/${feature.dir}/index.html`, {
+      type: HTML_TYPE,
+      body: renderPage({
+        title: `${feature.title} · ${project.name} · speckit-eye`,
+        base,
+        mode,
+        project,
+        page: "feature",
+        current: feature.dir,
+        main: renderFeaturePage(feature, project, { base }),
+        version,
+        generatedAt,
+      }),
+    });
+  }
+
+  // One document page per artifact (US3, FR-021), keyed by its url; the icon
+  // rail layout until US5 replaces these pages.
   const entries = allArtifacts(project).filter(({ artifact }) => artifact.url);
   const renderMarkdown = createMarkdown({
     artifactsBySource: new Map(entries.map(({ artifact }) => [artifact.source, artifact])),
@@ -113,6 +145,8 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
         base,
         mode,
         project,
+        page: "document",
+        current: documentDestination(artifact, assessment),
         main: renderArtifact(artifact, body, { base, feature, assessment }),
         version,
         generatedAt,

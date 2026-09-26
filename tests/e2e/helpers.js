@@ -1,6 +1,7 @@
 /**
  * Shared helpers for the Playwright suites: fixture copies, spawning the real
- * CLI, and hashing a folder to prove it was not modified (FR-006).
+ * CLI, hashing a folder to prove it was not modified (FR-006), and the page
+ * shell selectors of spec 002 (contracts/routes.md "Page shell").
  */
 
 import { spawn } from "node:child_process";
@@ -16,6 +17,38 @@ export const BIN = path.join(REPO_ROOT, "bin", "speckit-eye.js");
 export const FIXTURES = path.join(REPO_ROOT, "tests", "fixtures", "projects");
 export const E2E_PORT = 4747;
 const START_TIMEOUT_MS = 15_000;
+
+/** @typedef {import("@playwright/test").Page} Page */
+
+/** The dark sidebar of overview and feature pages. @param {Page} page */
+export const sidebar = (page) => page.locator('[data-region="sidebar"]');
+
+/** The icon rail of document pages. @param {Page} page */
+export const rail = (page) => page.locator('[data-region="rail"]');
+
+/**
+ * The site navigation of any page: the sidebar or, on document pages, the rail
+ * (not the mobile menu copy, which is hidden on desktop).
+ * @param {Page} page
+ */
+export const siteNav = (page) => page.locator('[data-region="sidebar"], [data-region="rail"]');
+
+/**
+ * The link to a main destination ("Overview", "Constitution",
+ * "Assessment: <slug>") in the sidebar or rail.
+ * @param {Page} page
+ * @param {string} name
+ */
+export const navLink = (page, name) => siteNav(page).getByRole("link", { name, exact: true });
+
+/** The sidebar entry of a feature. @param {Page} page @param {string} dir */
+export const sidebarFeature = (page, dir) => sidebar(page).locator(`a[data-key="side:${dir}"]`);
+
+/**
+ * The page path of a feature page, without the base.
+ * @param {string} dir
+ */
+export const featurePagePath = (dir) => `features/${dir}/index.html`;
 
 /**
  * Copies `tests/fixtures/projects/<name>` into a fresh temporary folder.
@@ -172,6 +205,9 @@ const STATIC_TYPES = /** @type {Record<string, string>} */ ({
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".woff2": "font/woff2",
 });
 
 /**
