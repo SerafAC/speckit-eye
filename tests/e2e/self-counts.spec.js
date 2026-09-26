@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { REPO_ROOT, runBuild, serveStatic } from "./helpers.js";
+import { REPO_ROOT, featurePagePath, runBuild, serveStatic, sidebarFeature } from "./helpers.js";
 
 const TASK_LINE = /^\s*[-*]\s+\[( |x|X)\]\s+(.*)$/;
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
@@ -79,8 +79,20 @@ test("SC-005 this repository's own features show open / total equal to their che
     const count = page.locator(`[data-region="tree"] details[data-key="${dir}"] > summary [data-part="count"]`);
     await expect(count, dir).toHaveText(`${total - done} open / ${total}`);
   }
+  // The sidebar shows each feature's open count (or a check mark when done).
+  for (const { dir, done, total } of expected) {
+    const count = sidebarFeature(page, dir).locator('[data-part="count"]');
+    if (total > 0 && done === total) await expect(count.locator("svg"), dir).toHaveCount(1);
+    else await expect(count, dir).toHaveText(total - done > 0 ? String(total - done) : "");
+  }
   const sum = expected.reduce((acc, e) => ({ done: acc.done + e.done, total: acc.total + e.total }), { done: 0, total: 0 });
   const bar = page.locator('progress[data-key="project"]');
   await expect(bar).toHaveAttribute("value", String(sum.done));
   await expect(bar).toHaveAttribute("max", String(sum.total));
+
+  // Each feature page states the same done / total.
+  for (const { dir, done, total } of expected) {
+    await page.goto(`${host.url}${featurePagePath(dir)}`);
+    await expect(page.locator('[data-region="feature-head"]'), dir).toContainText(`${done} / ${total} tasks`);
+  }
 });

@@ -45,4 +45,21 @@ describe("renderArtifact", () => {
   test("no inline style attributes (serve-mode CSP)", () => {
     assert.doesNotMatch(render(PLAN, "<p>x</p>", { feature: { title: "F" } }), /\sstyle=/);
   });
+
+  test("assessment pages list every sibling document with the current one marked", () => {
+    const intake = { kind: "assessment", title: "Intake", source: ".specify/assessments/idea-x/intake.md", url: "assessments/idea-x/intake.html" };
+    const notes = { kind: "assessment", title: "Notes & <x>", source: ".specify/assessments/idea-x/notes.md", url: "assessments/idea-x/notes.html" };
+    const out = render(notes, "<p>x</p>", { base: "/repo/", assessment: { slug: "idea-x", artifacts: [intake, notes] } });
+    const list = out.slice(out.indexOf('<nav data-region="siblings"'), out.indexOf("<article"));
+    assert.match(list, /aria-label="Documents"/);
+    assert.match(list, /<a href="\/repo\/assessments\/idea-x\/intake.html">Intake<\/a>/);
+    assert.match(list, /<a href="\/repo\/assessments\/idea-x\/notes.html" aria-current="page">Notes &amp; &lt;x&gt;<\/a>/);
+    assert.ok(list.indexOf("Intake") < list.indexOf("Notes"));
+  });
+
+  test("constitution pages list the project documents; feature pages get no sibling list", () => {
+    const c = { kind: "constitution", title: "Constitution", source: ".specify/memory/constitution.md", url: "constitution.html" };
+    assert.match(render(c, ""), /<nav data-region="siblings"[^>]*><ul><li><a href="\/constitution.html" aria-current="page">Constitution<\/a><\/li><\/ul><\/nav>/);
+    assert.doesNotMatch(render(PLAN, "", { feature: { title: "F" } }), /data-region="siblings"/);
+  });
 });

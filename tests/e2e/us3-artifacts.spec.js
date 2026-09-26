@@ -5,7 +5,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { copyFixture, startServe } from "./helpers.js";
+import { copyFixture, featurePagePath, navLink, rail, sidebar, startServe } from "./helpers.js";
 
 /** @type {import("./helpers.js").ServeHandle | null} */
 let server = null;
@@ -50,7 +50,6 @@ const tree = (page) => page.locator('[data-region="tree"]');
 const feature = (page, key) => tree(page).locator(`details[data-key="${key}"]`);
 const artifactLinks = (page, key) => feature(page, key).locator(':scope > ul[data-part="artifacts"] a');
 const article = (page) => page.locator('article[data-region="artifact"]');
-const menu = (page) => page.locator('header [data-region="menu"]');
 
 test("US3 AC1 an expanded feature links every artifact and each opens in one step", async ({ page }) => {
   const { url } = await serveArtifacts();
@@ -80,12 +79,11 @@ test("US3 AC1 an expanded feature links every artifact and each opens in one ste
   }
 });
 
-test("US3 AC2 the menu lists the constitution and opens it in one step", async ({ page }) => {
+test("US3 AC2 the sidebar or rail lists the constitution and opens it in one step", async ({ page }) => {
   const { url } = await serveArtifacts();
-  for (const start of ["", "features/002-partial/plan.html", "assessments/idea-x/notes.html"]) {
+  for (const start of ["", featurePagePath("001-full"), "features/002-partial/plan.html", "assessments/idea-x/notes.html"]) {
     await page.goto(`${url}${start}`);
-    await menu(page).locator("summary").click();
-    const link = menu(page).getByRole("link", { name: "Constitution", exact: true });
+    const link = navLink(page, "Constitution");
     await expect(link).toBeVisible();
     await link.click();
     await expect(page).toHaveURL(`${url}constitution.html`);
@@ -151,17 +149,35 @@ test("US3 AC5 no link for a missing artifact", async ({ page }) => {
   await expect(feature(page, "002-partial").locator('a[href*="research"], a[href*="tasks"]')).toHaveCount(0);
 });
 
-test("US3 AC6 every artifact page links back to the overview and has the menu", async ({ page }) => {
+test("US3 AC6 every artifact page links back to the overview and has the rail", async ({ page }) => {
   const { url } = await serveArtifacts();
   for (const p of PAGES) {
     await page.goto(`${url}${p}`);
-    await expect(page.locator('header [data-part="overview-link"]')).toBeVisible();
-    await expect(menu(page)).toBeVisible();
+    await expect(rail(page)).toBeVisible();
+    await expect(sidebar(page)).toHaveCount(0);
+    await expect(navLink(page, "Overview")).toBeVisible();
+    await expect(navLink(page, "Overview")).toHaveAttribute("href", "/index.html");
     await expect(page.locator('[data-region="breadcrumb"] a')).toHaveAttribute("href", "/index.html");
   }
-  await page.locator('header [data-part="overview-link"]').click();
+  await navLink(page, "Overview").click();
   await expect(page).toHaveURL(`${url}index.html`);
   await expect(page.locator('[data-region="progress"]')).toBeVisible();
+});
+
+test("US3 FR-029 every feature has a feature page reachable from the sidebar, listing its documents", async ({ page }) => {
+  const { url } = await serveArtifacts();
+  for (const [dir, title, docs] of [
+    ["001-full", "Full", 10],
+    ["002-partial", "Partial", 2],
+  ]) {
+    await page.goto(url);
+    await sidebar(page).locator(`a[data-key="side:${dir}"]`).click();
+    await expect(page).toHaveURL(`${url}${featurePagePath(dir)}`);
+    await expect(sidebar(page).locator(`a[data-key="side:${dir}"]`)).toHaveAttribute("aria-current", "page");
+    await expect(page.locator('[data-region="feature-head"] code')).toHaveText(dir);
+    await expect(page.locator('[data-region="feature-head"] h1')).toContainText(title);
+    await expect(page.locator('[data-region="documents"] a')).toHaveCount(docs);
+  }
 });
 
 test("US3 SC-004 FR-022 every artifact page is reachable from the overview in at most 2 link clicks", async ({ page }) => {
