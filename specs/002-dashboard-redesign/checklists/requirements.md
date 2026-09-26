@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,10 +31,11 @@
 
 ## Notes
 
-- Iteration 1 (2026-09-26): three open questions remain, each marked once in the spec. They wait on the owner:
-  1. **Search** (User Story 6, FR-049): in scope or not, and how far it reaches.
-  2. **Task map click** (FR-026): the handoff and the "all states" board disagree.
-  3. **Blocked tasks** (FR-022): the redesign drops the red "blocked" state of spec 001.
-- User Story 6 and FR-049 are placeholders until question 1 is answered. If search is dropped, both are removed.
+- Iteration 1 (2026-09-26): three open questions, each marked once in the spec (search scope, task map click, blocked tasks). Every other item passed.
+- Iteration 2 (2026-09-26): the owner answered all three; the answers are recorded under "Clarifications → Session 2026-09-26" and worked into the spec:
+  1. **Search**: in scope, over tasks (ID and text), features, and document titles and headings; not the body text (User Story 6, FR-049 to FR-049c, SC-014).
+  2. **Task map click**: reveals the task in the overview tree, as in the handoff; the tree row's task ID leads on to the feature page (User Story 2 scenario 7, FR-017, FR-026).
+  3. **Blocked tasks**: a fourth, distinct color in the map, tree and legend, and "Waiting on T012" in the detail panel (FR-022, FR-023, FR-036, User Story 2 scenario 9, User Story 3 scenario 11). The color value itself is left to planning (Assumptions).
+  All items now pass.
 - Implementation details: the only technical names in the spec are the font names in Assumptions (a design decision taken from the handoff) and the "Deferred to planning" note. That note records, without deciding it, the user's request to consider an existing framework, the same way spec 001 deferred its styling stack.
 - Visual values (colors, sizes, timings) are specified by reference to `mockups/001-first-redesign/DESIGN_HANDOFF.md` (FR-003) rather than copied, per constitution §III.
