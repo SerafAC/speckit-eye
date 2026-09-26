@@ -32,3 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   old header and Menu.
 - Added: light, dark and system theme; the choice is remembered in the browser
   and applied before the page is drawn.
+- Added: the sidebar Features list is sorted "In progress first" (features
+  with open tasks, then features without tasks, then complete ones) and marks
+  the feature whose page is open.
+- Added: redesigned overview. A stats card shows the overall percentage
+  ("done of total tasks"), features, phases and open tasks, and a bar with
+  one segment per feature sized by its share of all tasks and split into
+  done, open and next.
+- Added: an always-dark Up next bar on the overview names the next task, its
+  feature and phase, and opens it on its feature page ("View task"); when
+  there is none it says why.
+- Added: redesigned feature tree with number chips, status pills, mini
+  progress bars, priority badges and a "NEXT" badge on the next task; an
+  Order control (In progress first, Number, Least complete, Name A–Z), a
+  depth control (Features | Phases | Tasks), an "Open tasks only" filter, and
+  amber warning rows with line chips and a "Details" link. The order and the
+  filter are remembered in the browser; the tree scrolls inside its card when
+  it is tall.

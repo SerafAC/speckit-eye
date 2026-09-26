@@ -46,6 +46,18 @@ function recorder(name, log, saved = undefined) {
   };
 }
 
+/** A minimal overview tree (two features, one phase with one task). */
+const TREE = `<div role="group" data-part="view-filter" hidden><button type="button" data-filter="all"></button><button type="button" data-filter="open"></button></div>
+<section data-region="features"><button type="button" data-part="order" data-order="progress" hidden><span data-part="order-label">In progress first</span></button>
+<div role="group" data-part="depth" hidden><button type="button" data-depth="features"></button><button type="button" data-depth="phases"></button><button type="button" data-depth="tasks"></button></div>
+<div data-region="tree" data-filter="all"><ul data-part="features">
+<li data-feature="002-b" data-rank-progress="0" data-rank-number="1" data-rank-least="0" data-rank-name="1"><details data-key="002-b"><summary>B</summary>
+<ul><li data-part="phase"><details data-key="002-b/p1"><summary>Phase 1</summary><ul><li data-key="002-b/T1" id="b-t1" data-state="next">T1</li></ul></details></li></ul></details></li>
+<li data-feature="001-a" data-rank-progress="1" data-rank-number="0" data-rank-least="1" data-rank-name="0"><details data-key="001-a"><summary>A</summary></details></li>
+</ul></div></section>`;
+
+const featureOrder = (document) => [...document.querySelectorAll("li[data-feature]")].map((li) => li.getAttribute("data-feature"));
+
 const pressed = (document) =>
   [...document.querySelectorAll("[data-theme-choice]")].map((b) => `${b.dataset.themeChoice}:${b.getAttribute("aria-pressed")}`);
 
@@ -73,8 +85,8 @@ describe("start", () => {
     assert.deepEqual(log.map(([n]) => n), ["a"]);
   });
 
-  test("the default table runs the 001 overview behavior on the overview only", () => {
-    assert.deepEqual(MODULES.overview.map((m) => m.name), ["overview"]);
+  test("the default table runs tree.js and the 001 overview behavior on the overview only", () => {
+    assert.deepEqual(MODULES.overview.map((m) => m.name), ["tree", "overview"]);
     assert.deepEqual([...MODULES.all, ...MODULES.feature, ...MODULES.document], []);
     const w = page("overview");
     w.document.querySelector("main").innerHTML = '<div data-region="tree"><details data-key="f"><summary>f</summary><li data-key="f/T1">t</li></details></div><a data-key="f/T1" data-parents="f" href="#x">x</a>';
@@ -84,6 +96,36 @@ describe("start", () => {
     assert.ok(w.document.querySelector("li").hasAttribute("data-highlight"));
     // A second start on the same document does not attach the listeners twice.
     assert.doesNotThrow(() => start({ document: w.document, window: w, storage: memoryStorage() }));
+  });
+
+  test("the default table wires the tree: controls un-hidden, stored order applied, order click stored", () => {
+    const w = page("overview");
+    w.document.querySelector("main").innerHTML = TREE;
+    const storage = memoryStorage({ "sk-order": "name", "sk-filter": "open" });
+    start({ document: w.document, window: w, storage });
+    const doc = w.document;
+    for (const sel of ['button[data-part="order"]', '[data-part="depth"]', '[data-part="view-filter"]']) {
+      assert.equal(doc.querySelector(sel).hasAttribute("hidden"), false, sel);
+    }
+    assert.deepEqual(featureOrder(doc), ["001-a", "002-b"]);
+    assert.equal(doc.querySelector('[data-region="tree"]').getAttribute("data-filter"), "open");
+    doc.querySelector('button[data-part="order"]').click();
+    assert.equal(storage.data.get("sk-order"), "progress");
+    assert.deepEqual(featureOrder(doc), ["002-b", "001-a"]);
+  });
+
+  test("the tree's depth survives a live swap through save and reinit", () => {
+    const w = page("overview");
+    const doc = w.document;
+    doc.querySelector("main").innerHTML = TREE;
+    start({ document: doc, window: w, storage: memoryStorage() });
+    doc.querySelector('[data-depth="tasks"]').click();
+    const state = save(doc);
+    assert.deepEqual(state, { tree: { depth: "tasks" } });
+    doc.querySelector("main").innerHTML = TREE;
+    reinit(doc, state);
+    assert.equal(doc.querySelector('[data-depth="tasks"]').getAttribute("aria-pressed"), "true");
+    assert.equal(doc.querySelector('li[data-part="phase"] > details').open, true);
   });
 
   test("injects document, window, storage, prefs, timers, fetch and navigator", () => {
