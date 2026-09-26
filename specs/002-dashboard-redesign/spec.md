@@ -10,6 +10,14 @@
 
 The approved redesign lives in `mockups/001-first-redesign/`: `DESIGN_HANDOFF.md` (the written handoff) and `mockups/*.dc.html` (the source mockups, read as reference only). Five screenshots accompany the request: the task map in all its states, the overview in light and dark, the feature page (Tasks tab), and the document reader showing a `spec.md`. The data in the mockups (the `byte-flow-studio` project) is sample data; the real pages derive everything from the project's `specs/` and `.specify/` folders, as the dashboard does today (spec `001-speckit-eye-dashboard`).
 
+## Clarifications
+
+### Session 2026-09-26
+
+- Q: Should search be part of this redesign, and how far should it reach? → A: Yes: a ⌘K search over tasks (ID and text), features, and document titles and section headings. The full text of documents is not searched.
+- Q: What should clicking a task map square do — reveal the task in the overview tree (handoff) or open it on its feature page ("Task map — all states" board)? → A: Reveal it in the tree, as in the handoff: expand its feature and phase, scroll the tree to it and keep it outlined as selected.
+- Q: How should blocked tasks look, now that the redesign has no blocked color? → A: Keep a fourth, distinct color for blocked tasks in the map, the tree and the legend, and have the task detail panel say which open tasks the task is waiting on (for example "Waiting on T012").
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - See where the project stands in the new overview (Priority: P1)
@@ -36,7 +44,7 @@ A Spec Kit user opens the dashboard and lands on the redesigned overview. A dark
 
 ### User Story 2 - Explore every task on the task map (Priority: P2)
 
-Next to the tree, the task map shows one square per task in the project: green when done, a blue outline when open, orange for the next task. By default all squares form one stacked grid; "By feature" regroups them into one labelled block per feature with its done/total count, and "Stack all" returns to one grid. Hovering a square makes it grow and, after half a second, shows a dark tooltip with the task ID, a status pill, the first two lines of the task text and the feature name, while the task's feature, phase and row light up in the tree. Clicking a square takes the user to that task.
+Next to the tree, the task map shows one square per task in the project: green when done, a blue outline when open, a distinct blocked color when it still waits on another open task, and orange for the next task. By default all squares form one stacked grid; "By feature" regroups them into one labelled block per feature with its done/total count, and "Stack all" returns to one grid. Hovering a square makes it grow and, after half a second, shows a dark tooltip with the task ID, a status pill, the first two lines of the task text and the feature name, while the task's feature, phase and row light up in the tree. Clicking a square reveals the task in the tree: its feature and phase open, the tree scrolls to it, and its row stays outlined; from there the row leads on to the task's feature page.
 
 **Why this priority**: The map is the fastest way to see how much is left and where, and to jump to any task. It builds on the overview (US1) but is a separate, testable component.
 
@@ -44,14 +52,15 @@ Next to the tree, the task map shows one square per task in the project: green w
 
 **Acceptance Scenarios**:
 
-1. **Given** the overview, **When** it opens, **Then** the map shows one square per task (checkboxes without a task ID included), grouped as one stacked grid, with a legend "Done N · Open N · Next N · 1 dot = 1 task" whose numbers add up to the project's task total.
+1. **Given** the overview, **When** it opens, **Then** the map shows one square per task (checkboxes without a task ID included), grouped as one stacked grid, with a legend "Done N · Open N · Blocked N · Next N · 1 dot = 1 task" whose numbers add up to the project's task total.
 2. **Given** the stacked map, **When** the user activates "By feature", **Then** the squares regroup into one block per feature with the feature name and its done/total count, the squares become smaller, and the button now reads "Stack all"; activating it again restores the stacked grid.
 3. **Given** the pointer enters a square, **When** less than half a second has passed, **Then** the square has grown with a visible ring and no tooltip is shown, and all other squares look unchanged; **When** half a second has passed, **Then** the tooltip appears above the square with the task ID, status pill, at most two lines of task text and the feature name.
 4. **Given** a square in the first or last columns of the map, **When** its tooltip appears, **Then** the tooltip is aligned to that side so that it is fully visible and not cut off by the card or the window.
 5. **Given** a visible tooltip, **When** the pointer leaves the square, **Then** the tooltip disappears at once.
 6. **Given** a square whose task sits in a collapsed phase, **When** the user hovers it, **Then** the task's feature (and phase, if visible) rows are tinted in the tree, the deepest visible one more strongly and outlined, and the tint disappears when the pointer leaves.
-7. **Given** a square, **When** the user clicks it or presses Enter on it, **Then** the user is taken to that task as settled in FR-026.
+7. **Given** a square whose task sits in a collapsed feature, **When** the user clicks it or presses Enter on it, **Then** the task's feature and phase (and story, where the phase has a story level) expand in the tree, the tree scrolls inside its card to the task row, and the row stays outlined as selected until the user chooses another square or row or clicks elsewhere; **When** the user then activates the task ID in that row, **Then** the task opens on its feature page.
 8. **Given** a checkbox without a task ID, **When** its square is hovered, **Then** the tooltip says "Checkbox without a task ID" instead of an ID.
+9. **Given** open task T020 says "depends on T012" and T012 is still open, **When** the map is shown, **Then** T020's square and its tree row use the blocked color and its tooltip's status pill reads "Blocked"; **When** T012 is checked in `tasks.md`, **Then** after the live update T020 is shown as an ordinary open task.
 
 ---
 
@@ -75,6 +84,7 @@ Each feature gets its own page. Its header shows the status, the feature folder 
 8. **Given** a task text containing `` `internal/input/simulator_test.go` ``, **When** the row is shown, **Then** the kind chip reads "Go test" and the file chip reads "simulator_test.go"; a task naming two files shows "2 files".
 9. **Given** the feature has checkboxes without task IDs, **When** the page opens, **Then** an amber banner states how many and on which lines, and "Show lines" reveals those source lines.
 10. **Given** an address that names a task of this feature (as used by "View task"), **When** it is opened, **Then** that task's phase is open, the task is expanded, selected in the detail panel and scrolled into view.
+11. **Given** open task T020 depends on T012 and T013, of which only T012 is still open, **When** T020 is selected, **Then** its mark and status show it as blocked, and the detail panel says "Waiting on T012" (T013, being done, is not named).
 
 ---
 
@@ -119,15 +129,22 @@ Opening any document (for example from a feature page tab) shows it in a reading
 
 ### User Story 6 - Find a task, feature or document with search (Priority: P3)
 
-[NEEDS CLARIFICATION: every mockup shows a "Search tasks, specs… ⌘K" entry in the sidebar and the icon rail, but neither the mockups nor the handoff describe how search behaves, and spec 001 listed search as out of scope. Should search be part of this redesign, and how far should it reach — tasks, features and document titles/headings only; the full text of every document too; or should the search entry be left out for now?]
+From any page, the user presses ⌘K (Ctrl+K on Windows and Linux) or activates the "Search tasks, specs…" entry in the sidebar or icon rail. A search box opens over the page. As they type, results appear in three groups: Tasks (state mark, ID, text and feature), Features (number, name and status) and Documents (document title or section heading, with the feature it belongs to). Arrow keys move through the results, Enter opens the chosen one, and Escape closes the box. A task opens selected on its feature page, a feature opens its feature page, and a document or heading opens the reader at that place.
 
 **Why this priority**: Useful on large projects, but every item is already reachable by navigation.
 
-**Independent Test**: Depends on the answer above.
+**Independent Test**: In serve mode and in a static build of a fixture served under a sub-path, open search with the keyboard shortcut and with the sidebar entry, search for a task ID, a word from a task text, a feature name and a section heading, and open one result of each kind.
 
 **Acceptance Scenarios**:
 
-1. Depends on the answer above.
+1. **Given** any page, **When** the user presses ⌘K (or Ctrl+K) or activates the search entry, **Then** a search box opens with the cursor in it; **When** they press Escape, **Then** it closes and focus returns to where it was.
+2. **Given** the search box, **When** the user types "T047", **Then** task T047 is the first result, shown with its state mark, text and feature.
+3. **Given** the search box, **When** the user types "moving average", **Then** every task whose ID or text contains both words is listed under Tasks, and features and documents whose name, title or section headings contain both words are listed in their own groups.
+4. **Given** results, **When** the user moves with the arrow keys and presses Enter on a task, **Then** the task's feature page opens with the task selected, expanded and in view (FR-036); **When** they choose a section heading, **Then** the reader opens scrolled to that heading.
+5. **Given** a search with no matches, **When** it runs, **Then** the box says that nothing was found.
+6. **Given** a word that appears only in the body text of a document, **When** the user searches for it, **Then** that document is not listed (only titles and headings are searched).
+7. **Given** a static build served under a sub-path, **When** the user searches, **Then** search behaves as in serve mode, without contacting any server other than the site's own.
+8. **Given** serve mode, **When** a task is added to a `tasks.md` and the page updates live, **Then** the new task can be found without reloading the page.
 
 ---
 
@@ -139,6 +156,8 @@ Opening any document (for example from a feature page tab) shows it in a reading
 - **Many features** (up to 50): segments too narrow for their number show no label but stay visible; the sidebar list scrolls on its own; the Features list header still reads "N / M done".
 - **Large projects**: up to 1,000 tasks the map opens stacked, from 1,001 to 5,000 it opens "By feature", and above 5,000 it shows one progress bar per feature, as in spec 001; the tree and feature pages are unchanged.
 - **Long names and texts**: feature names, task texts, phase titles and file names that do not fit are cut off with an ellipsis and shown in full on hover, on expansion, or in the detail panel. Task text is never reworded or shortened in the data, only visually truncated.
+- **Blocked tasks**: a task is blocked under the rule of spec 001 (001 FR-015c): it is open and its "depends on" wording names at least one task that is still open. It counts as open in every count and in the segmented bar; the next task is never shown as blocked (as in spec 001); a dependency on a task ID that does not exist is ignored for the blocked state and raises a warning.
+- **Search with many matches**: each group lists its best matches first (a task ID typed in full first, then matches at the start of a name, title or heading, then the rest, each in page order) and shows only its first matches with a count of the others; typing more narrows the list.
 - **Checkbox without a task ID**: counted and shown as a square and a row labelled "No ID"; it is part of a warning; it has no address of its own on the feature page.
 - **Duplicate task IDs**: each occurrence is its own square and row and can be selected on its own; the warning from spec 001 still applies.
 - **Phase without tasks**: its row shows "—" and no chevron; in the phase rail it is a narrow block that cannot be opened; it counts toward no phase total (as in spec 001).
@@ -149,7 +168,7 @@ Opening any document (for example from a feature page tab) shows it in a reading
 - **`spec.md` not following the template**, a clarification not written as "Q: … → A: …", or a scenario that does not split into Given / When / Then: shown as ordinary formatted text (a scenario as one full-width table row); nothing is dropped.
 - **Documents with raw HTML or scripts**: shown as text, as in spec 001 (001 FR-024), also in the structured `spec.md` view, the tooltips and the detail panel.
 - **Live update removes the selected task or the open document**: the selection is cleared; a deleted document shows the notice from spec 001 with a link back to the overview.
-- **Scripts disabled** (for example a hosted snapshot): all content is readable, the tree, phases and task rows still open and close, tabs and document links work, and the page follows the operating system's theme; the theme switch, tooltips with delay, ordering, depth control, filters, detail panel, copy, contents highlighting and live updates need scripts.
+- **Scripts disabled** (for example a hosted snapshot): all content is readable, the tree, phases and task rows still open and close, tabs and document links work, and the page follows the operating system's theme; the theme switch, tooltips with delay, ordering, depth control, filters, detail panel, copy, contents highlighting, search and live updates need scripts, and the search entry is not shown.
 - **Narrow screens** (phones): the sidebar collapses behind a menu control at the top, columns stack (tree before map; list before detail panel), tabs and the phase rail scroll sideways inside their own area, and the reader hides the contents panel and puts the document list behind a control.
 - **Reduced-motion preference**: square growth, tooltip fade, expand/collapse and progress animations are turned off; the information is still shown.
 - **Browser storage unavailable**: theme, order, filter and map mode fall back to their defaults on every load; the controls still work on the current page.
@@ -161,7 +180,7 @@ Opening any document (for example from a feature page tab) shows it in a reading
 **Scope and what stays the same**
 
 - **FR-001**: Every behavior of spec 001 that this spec does not change MUST keep working as specified there, in particular: the tool only reads the project (001 FR-006); serve mode is local-only and serves only artifacts and its own assets (001 FR-007); counting, stage and active-item rules (001 FR-010 to FR-014, FR-018); live updates (001 FR-026 to FR-030); static builds under a sub-path with the same pages as serve mode (001 FR-031 to FR-034); rendered documents cannot run scripts (001 FR-024); nothing is fetched from third-party servers at view time (001 FR-038); reduced motion is honored (001 FR-036).
-- **FR-002**: This spec replaces the overview layout, tree, grid and colors of spec 001 (001 FR-015, FR-015a, FR-015b, FR-017, FR-019a), the header menu (001 FR-022, FR-025) and the visual style (001 FR-035), and brings theme switching into scope (listed as out of scope in spec 001).
+- **FR-002**: This spec replaces the overview layout, tree, grid and colors of spec 001 (001 FR-015, FR-015a, FR-015b, FR-017, FR-019a), the header menu (001 FR-022, FR-025) and the visual style (001 FR-035), and brings theme switching and search into scope (both listed as out of scope in spec 001).
 - **FR-003**: Visual values — colors for both themes, type families and sizes, spacing, component sizes and timings — MUST follow the approved design handoff (`mockups/001-first-redesign/DESIGN_HANDOFF.md`) and mockups; where this spec and the handoff differ, this spec wins.
 - **FR-004**: The redesign MUST NOT weaken the page security rules serve mode enforces today (what a page may load and run), and every font, icon and other asset it uses MUST ship with the tool.
 
@@ -176,13 +195,13 @@ Opening any document (for example from a feature page tab) shows it in a reading
 **Overview**
 
 - **FR-010**: The overview MUST show, top to bottom: the project name and the title "Project overview" with a view filter "All features" / "Open tasks only"; the stats card (FR-011); the Up next bar (FR-013); then the Features tree (left) and the task map (right, a narrow column whose card top-aligns with the tree card). On narrow screens the tree comes before the map.
-- **FR-011**: The stats card MUST show: the overall completion as a whole percentage with "done of total tasks"; Features completed / total with the number in progress (features with both done and open tasks); Phases completed / total with the number remaining (phases with tasks that are not complete); Open tasks with the number of features that have open tasks. Below them, a bar with one segment per feature that has tasks, in folder order, each as wide as its share of all tasks and split into its done, open and next parts; each segment is labelled with the feature number where the label fits and names the feature and its counts on hover; a legend explains Done, Open and Next up.
+- **FR-011**: The stats card MUST show: the overall completion as a whole percentage with "done of total tasks"; Features completed / total with the number in progress (features with both done and open tasks); Phases completed / total with the number remaining (phases with tasks that are not complete); Open tasks with the number of features that have open tasks. Below them, a bar with one segment per feature that has tasks, in folder order, each as wide as its share of all tasks and split into its done, open and next parts (blocked tasks count as open here); each segment is labelled with the feature number where the label fits and names the feature and its counts on hover; a legend explains Done, Open and Next up.
 - **FR-012**: The tree header MUST offer an Order control that cycles "In progress first" (default: features with open tasks, then features without tasks, then complete features; highest number first within each group), "Number" (folder order), "Least complete" (lowest completion first; features without tasks last) and "Name A–Z", and a depth control "Features | Phases | Tasks" that expands the whole tree to that level; after the user expands or collapses a row by hand, no depth is shown as selected. The task map is not affected by the order.
 - **FR-013**: The Up next bar MUST stay dark in both themes and show the next task's ID, its text exactly as written in `tasks.md` on one line (truncated, full on hover), its feature and phase, "Open quickstart" (only when the active feature has a quickstart document) and "View task", which opens the task on its feature page (FR-036). When there is no next task, the bar MUST say why (all tasks complete, or no tasks yet).
 - **FR-014**: A feature row MUST show an expand control, status dot, feature number chip, feature title (truncated), a warnings badge when it has warnings, a status pill ("N open", "Complete", or its stage when it has no tasks or none done), a mini progress bar, "done/total", and a link to its feature page.
 - **FR-015**: An expanded feature with warnings MUST start with one amber row per kind of warning, giving the count and meaning (for example "6 checkboxes without a task ID in tasks.md — counted, not linkable"), the affected lines as chips with consecutive lines merged into ranges ("L254–258"), and a "Details" link to the warning on the feature page.
 - **FR-016**: A phase row MUST show an expand control only when the phase has tasks, "Phase N", its title, a priority badge when the phase belongs to one user story (P1 filled dark, P2 grey, P3 outlined), and "done/total" with a done mark when complete or "—" when it has no tasks. The story sub-level for phases that mix stories stays as in spec 001.
-- **FR-017**: A task row MUST show a done, open or next mark, the task ID, the raw task text on one line (truncated, full on hover) and, on the next task, a "NEXT" badge with the row tinted.
+- **FR-017**: A task row MUST show a done, open, blocked or next mark, the task ID (a link to the task on its feature page, FR-036), the raw task text on one line (truncated, full on hover) and, on the next task, a "NEXT" badge with the row tinted.
 - **FR-018**: The tree MUST scroll inside its own card when it is taller than about one screen. On load, only the active chain is expanded (001 FR-016).
 - **FR-019**: "Open tasks only" MUST hide complete features, complete phases and done tasks from the tree; "All features" (default) shows everything. The stats card and the task map are not filtered.
 - **FR-020**: The order, depth, filter, expanded rows and scroll position MUST survive live updates; the order and filter MUST also be remembered when the user returns to the overview in the same browser.
@@ -190,11 +209,11 @@ Opening any document (for example from a feature page tab) shows it in a reading
 **Task map**
 
 - **FR-021**: The task map's title and its mode toggle MUST sit above its card, like the Features header. The default mode shows every task — including checkboxes without a task ID — as one square in a single stacked grid, in folder order and task order; "By feature" regroups the squares into one block per feature with its name and done/total count and smaller squares; the toggle then reads "Stack all" and returns to the stacked grid.
-- **FR-022**: Squares MUST be colored by task state: done filled green, open blue outline, next filled orange. [NEEDS CLARIFICATION: the redesign has no "blocked" color, while spec 001 shows open tasks whose "depends on" tasks are still open in red. Should blocked tasks look like other open tasks, look like open tasks but say "waiting on T012" in the tooltip and detail panel, or keep a fourth, distinct color?]
-- **FR-023**: A legend under the map MUST give the number of done, open and next squares and state "1 dot = 1 task" (or what one mark stands for in the large-project modes).
+- **FR-022**: Squares MUST be colored by task state: done filled green, open blue outline, blocked a fourth color that is clearly distinct from the other three (the next-task orange included) in both themes, and next filled orange. A task is blocked under the rule of spec 001 (see Edge Cases). The overview tree and the feature page MUST use the same blocked mark.
+- **FR-023**: A legend under the map MUST give the number of done, open, blocked and next squares and state "1 dot = 1 task" (or what one mark stands for in the large-project modes).
 - **FR-024**: When the pointer enters a square, the square MUST grow to about 1.6 times its size with a two-ring outline within about 120 ms, and no other square may change. A dark tooltip MUST appear 500 ms after the pointer entered (at once on keyboard focus) and disappear at once when it leaves. It MUST show the task ID (or "Checkbox without a task ID"), a status pill, the task text limited to two lines with an ellipsis, and the feature name. It MUST sit above the square and be aligned left or right near the edges so it is never cut off.
 - **FR-025**: While a square is hovered or focused, the rows of its feature, phase and task in the tree MUST be tinted: the ancestors lightly, the deepest visible row more strongly and outlined.
-- **FR-026**: Clicking a square or pressing Enter on it MUST [NEEDS CLARIFICATION: the handoff says a click expands the tree to the task (feature, then phase), scrolls the tree to it and keeps it outlined as selected; the "Task map — all states" board says a click opens the task on its feature page. Which behavior is wanted?]
+- **FR-026**: Clicking a square or pressing Enter on it MUST reveal its task in the overview tree: expand its feature, its phase and, where present, its story level; scroll the tree card to the task row; and keep that row outlined as selected until the user chooses another square or row or clicks elsewhere. Without scripts, the click still jumps to the task row (as in spec 001). The task ID in the row leads on to the feature page (FR-017).
 - **FR-027**: For large projects the map MUST open "By feature" from 1,001 tasks and show one progress bar per feature above 5,000 tasks (the thresholds of spec 001).
 - **FR-028**: The chosen mode MUST survive live updates and be remembered in the same browser; the map MUST stay usable without scripts (every square keeps its color and identifies and links to its task).
 
@@ -205,9 +224,9 @@ Opening any document (for example from a feature page tab) shows it in a reading
 - **FR-031**: The feature page MUST have one tab per existing document kind, in this order: Tasks (with task count; always present), Specification, Plan, Research, Data model, Quickstart, Contracts (with count), the checklist(s) ("Quality checklist" for a single requirements checklist, otherwise "Checklists" with count) and "More" (with count) for every other Markdown file of the feature. Tabs other than Tasks open the document in the reader (US5); tabs with several documents list them first (FR-008).
 - **FR-032**: The Tasks tab MUST show a phase rail with one block per phase, as wide as its share of the feature's tasks (with a minimum width so the label fits), showing the phase's short name and task count and colored by the phase's status; a caption states that width means task count and names the selected phase. Choosing a block or a phase row MUST open that phase and close the others; choosing the open phase closes it. On load, the active phase is open (or none, when the feature has no open tasks), unless the address names a task (FR-036).
 - **FR-033**: Warnings of the feature MUST be shown as an amber banner with their line numbers and a "Show lines" control that reveals the source lines concerned.
-- **FR-034**: The Tasks tab MUST offer filter chips — All (count), Open (count), Tests, and one chip per kind of file found in the feature's tasks — a text filter matching the task ID, the task text and file names, and "Expand all" / "Collapse all". Chips and text combine; while any filter is active, every phase with matches is open and phases without matches are hidden; when nothing matches, a message says so with a way to clear the filters.
-- **FR-035**: A task row MUST show an expand control, the done/open/next mark, the ID, the task text on one line with an ellipsis and its inline formatting rendered (code, bold, emphasis, links, and FR-/SC- references as chips), a kind chip and a file chip; kind and file chips have fixed sizes so they line up in columns. The kind comes from the first file named in the task: a test file (its name or folder marks it as a test) gives "<kind> test", otherwise the kind of the file (for example Go, Vue, JavaScript, Markdown). The file chip shows the file name, or "N files" when the task names several.
-- **FR-036**: Clicking a task row MUST expand it in place (full text wrapped, markers below: user story, "Parallel", FR/SC references, dependencies) and select it; a second click collapses it. The detail panel MUST show the selected task's ID, status, full text, phase, markers and every file path found in the text, with "Copy ID" and "View source line" (opens the `tasks.md` document at that task's line, highlighted), and can be closed. The page address MUST identify the selected task, so opening that address shows the task open, selected and in view.
+- **FR-034**: The Tasks tab MUST offer filter chips — All (count), Open (count, blocked tasks included), Tests, and one chip per kind of file found in the feature's tasks — a text filter matching the task ID, the task text and file names, and "Expand all" / "Collapse all". Chips and text combine; while any filter is active, every phase with matches is open and phases without matches are hidden; when nothing matches, a message says so with a way to clear the filters.
+- **FR-035**: A task row MUST show an expand control, the done/open/blocked/next mark, the ID, the task text on one line with an ellipsis and its inline formatting rendered (code, bold, emphasis, links, and FR-/SC- references as chips), a kind chip and a file chip; kind and file chips have fixed sizes so they line up in columns. The kind comes from the first file named in the task: a test file (its name or folder marks it as a test) gives "<kind> test", otherwise the kind of the file (for example Go, Vue, JavaScript, Markdown). The file chip shows the file name, or "N files" when the task names several.
+- **FR-036**: Clicking a task row MUST expand it in place (full text wrapped, markers below: user story, "Parallel", FR/SC references, dependencies) and select it; a second click collapses it. The detail panel MUST show the selected task's ID, status, full text, phase, markers and every file path found in the text; for a blocked task it MUST also say which of its dependencies are still open (for example "Waiting on T012" or "Waiting on T012, T013"); with "Copy ID" and "View source line" (opens the `tasks.md` document at that task's line, highlighted), and can be closed. The page address MUST identify the selected task, so opening that address shows the task open, selected and in view.
 - **FR-037**: Task text MUST be shown exactly as written in `tasks.md` (only visually truncated); file paths are the backticked spans that look like paths (contain a `/` and end in a file name).
 
 **Document reader**
@@ -224,29 +243,33 @@ Opening any document (for example from a feature page tab) shows it in a reading
 
 - **FR-045**: Every page MUST offer a theme switch with Light, Dark and System; System is the default and follows the operating system, including changes while the page is open.
 - **FR-046**: The choice MUST apply to every page of the dashboard, be remembered in that browser across pages, visits and live updates, and be in effect from a page's first paint.
-- **FR-047**: In both themes, the sidebar, the icon rail, the Up next bar and the map tooltips MUST stay dark, the next-task orange MUST be identical, and done, open, next and warning MUST keep their meaning and color family.
+- **FR-047**: In both themes, the sidebar, the icon rail, the Up next bar and the map tooltips MUST stay dark, the next-task orange MUST be identical, and done, open, blocked, next and warning MUST keep their meaning and color family.
 - **FR-048**: Without scripts, pages MUST follow the operating system's theme.
 
 **Search**
 
-- **FR-049**: Search MUST behave as settled by the clarification in User Story 6.
+- **FR-049**: Every page MUST offer search, opened with ⌘K (Ctrl+K on Windows and Linux) or with the search entry in the sidebar or icon rail, in a box over the current page that closes with Escape and returns focus to where it was.
+- **FR-049a**: Search MUST find tasks by ID and text, features by number and name, and documents by title and section headings; it MUST NOT search the body text of documents. Matching ignores case, every typed word must match, and a task ID typed in full comes first. Results MUST be grouped as Tasks, Features and Documents, each group showing its best matches first and how many more there are, with a message when nothing matches.
+- **FR-049b**: Results MUST be usable by keyboard (arrow keys, Enter) and pointer. A task opens selected on its feature page (FR-036), a feature opens its feature page, and a document or heading opens the reader at that document or heading.
+- **FR-049c**: Search MUST work the same in serve mode and in static builds (under a sub-path too), MUST find what the page shows after a live update without a reload, and MUST NOT contact any server other than the site's own.
 
 **Cross-cutting**
 
 - **FR-050**: Every clickable element MUST be a real link or button, reachable and usable by keyboard with a visible focus ring, with a hit target of at least 36 px (task map squares excepted, which stay reachable by keyboard).
 - **FR-051**: Live updates MUST keep all view state of every page: theme, order, depth, filters, text filter, map mode, expanded rows, open phase, selected task, reader expansions and raw view, and scroll positions (page, tree card and task list); items whose status or counts changed are still briefly highlighted (001 FR-028).
-- **FR-052**: Static builds MUST contain the same pages and behavior as serve mode (except live updates and with the generation time shown), work under a sub-path, and support every redesign behavior that runs in the browser (theme, map, filters, reader).
+- **FR-052**: Static builds MUST contain the same pages and behavior as serve mode (except live updates and with the generation time shown), work under a sub-path, and support every redesign behavior that runs in the browser (theme, map, filters, reader, search).
 - **FR-053**: Without scripts, every page's content MUST stay readable and navigable; the tree, phases, task rows and collapsible document parts MUST still open and close (001 FR-037).
-- **FR-054**: The user documentation (`README.md` screenshot and feature list, `docs/usage.md`) and `CHANGELOG.md` MUST describe the new layout, the task map, feature pages, the document reader and the theme switch.
+- **FR-054**: The user documentation (`README.md` screenshot and feature list, `docs/usage.md`) and `CHANGELOG.md` MUST describe the new layout, the task map, feature pages, the document reader, the theme switch and search.
 
 ### Key Entities
 
 - **Feature status (display)**: done, in progress or not started, plus the stage from spec 001 when a feature has no tasks; drives the dot, pill, bar and ordering.
-- **Task display state**: done, open or next (see FR-022 for blocked); a task may lack an ID ("No ID").
+- **Task display state**: done, open, blocked or next (FR-022); a blocked task knows which of its dependencies are still open; a task may lack an ID ("No ID").
 - **Task kind and files**: the file paths named in a task's text, and the kind derived from the first of them (language or document type, with or without "test"); used for chips and filters.
 - **Warning group**: all warnings of one kind in one file, with their count, meaning and line numbers merged into ranges.
 - **Document group**: Define, Design, Contracts, Build or Other; decides where a document appears in tabs and in the document list.
 - **Specification structure**: the parts of a `spec.md` the reader recognizes — metadata, original request, clarification sessions (question, answer, badge), user stories (ID, priority, title, description, why, independent test, scenarios as Given / When / Then, linked phases), requirement areas with their requirements, and key entities.
+- **Search entry**: something search can find — a task, a feature, a document or a section heading — with the label it is shown with, the words it is found by, and the place it opens.
 - **Viewer preferences**: remembered per browser — theme, overview order and filter, task map mode.
 - **View state**: per page, kept across live updates — expanded rows, depth, open phase, selected task, filters, reader expansions, raw view and scroll positions.
 
@@ -267,7 +290,8 @@ Opening any document (for example from a feature page tab) shows it in a reading
 - **SC-011**: With scripts disabled, every page type shows all its content and every link, tab and expandable item works (zero failures in the end-to-end tests).
 - **SC-012**: For every `spec.md` in the fixtures and in this repository, 100 % of the source's non-blank lines appear in the reader's formatted view.
 - **SC-013**: No page makes a request to any server other than the one it was loaded from (zero third-party requests in the end-to-end tests).
-- **SC-014**: Every user story in this spec has at least one passing end-to-end test that exercises it as a user would (constitution §V).
+- **SC-014**: For a project of 50 features and 2,000 tasks, search results update within 200 ms of each keystroke in serve mode and in a static build, and a task ID typed in full is always the first result.
+- **SC-015**: Every user story in this spec has at least one passing end-to-end test that exercises it as a user would (constitution §V).
 
 ## Assumptions
 
@@ -278,10 +302,11 @@ Opening any document (for example from a feature page tab) shows it in a reading
 - **File-kind filters**: the mockup's "Backend" and "Frontend" chips depend on that sample project's folder layout; this spec generalizes them to one chip per kind of file found in the feature's tasks (FR-034), since no rule tells backend from frontend in every project.
 - **Clarification badges**: the mockup's "Config" badge is illustrative; badges are derived only from the answer's first word (FR-042), so the answer text is never rewritten.
 - **Requirement area chips**: an "All" choice is added as the default so every requirement is visible at once; picking an area narrows the list as in the mockup.
+- **Blocked color**: the handoff has no blocked color; a value for each theme, distinct from the next-task orange and from the amber warnings, is chosen at planning and defined next to the handoff's other tokens.
 - **Order of the task map**: the map always follows folder order and task order, independent of the tree's Order control, so a square's position does not jump when the tree is re-ordered.
 - **Where tasks.md is read**: the feature page's Tasks tab is the structured view; the `tasks.md` document is still available in the reader (Build group) for "View source line".
 - **Accessibility**: as in spec 001, there is no formal conformance target; the handoff's hit targets, keyboard use and the body text contrast in SC-010 are the bar for this redesign.
 - **Scripts**: the redesign keeps the no-scripts baseline of spec 001 for content and navigation; the new interactive behaviors are enhancements that need scripts (see Edge Cases).
 - **Version**: this is a user-visible change recorded in `CHANGELOG.md`; the version number of the release is decided at planning.
-- **Out of scope**: editing tasks or documents from the dashboard; switching between projects; a settings page; rendering diagrams; structured rendering for documents other than `spec.md` (they get the reader layout with ordinary formatting).
+- **Out of scope**: editing tasks or documents from the dashboard; switching between projects; a settings page; rendering diagrams; searching the body text of documents; structured rendering for documents other than `spec.md` (they get the reader layout with ordinary formatting).
 - **Deferred to planning (technical decisions, not scope)**: whether an existing UI framework or library would simplify the richer page behavior (theme switching, task map, filters, accordion, contents panel, keeping view state across live updates) — to be evaluated in the plan's research and justified in Complexity Tracking (constitution §I) against the constraints above: pages work without scripts, static builds equal serve mode under a sub-path, no third-party requests, serve mode's security rules unchanged, one-command start with few runtime dependencies, and unit tests without a browser (constitution §IV). Also deferred: page addresses for feature pages and selected tasks, how bundled fonts and icons are packaged, and how the structured `spec.md` view is recognized.
