@@ -48,8 +48,17 @@ const PAGES = [
 
 const tree = (page) => page.locator('[data-region="tree"]');
 const feature = (page, key) => tree(page).locator(`details[data-key="${key}"]`);
-// The feature page lists every document of its feature (the overview tree links to the feature page).
-const artifactLinks = (page) => page.locator('[data-region="documents"] a');
+// The feature page links every document of its feature: its document tabs
+// (several documents of one kind in a tab menu, FR-008) and the tasks.md link
+// of the Tasks tab (the overview tree links to the feature page).
+const artifactLinks = (page) =>
+  page.locator('[data-region="tabs"] a:not([aria-current]), [data-region="tasks"] a[data-part="source"]');
+/** Clicks a document link, opening its tab menu first when it sits in one. */
+async function clickArtifactLink(link) {
+  const menu = link.locator("xpath=ancestor::details[1]");
+  if ((await menu.count()) > 0 && !(await menu.evaluate((d) => d.open))) await menu.locator("summary").click();
+  await link.click();
+}
 const article = (page) => page.locator('article[data-region="artifact"]');
 
 test("US3 AC1 a feature page links every artifact and each opens in one step", async ({ page }) => {
@@ -64,11 +73,11 @@ test("US3 AC1 a feature page links every artifact and each opens in one step", a
     ["features/001-full/research.html", "specs/001-full/research.md"],
     ["features/001-full/data-model.html", "specs/001-full/data-model.md"],
     ["features/001-full/quickstart.html", "specs/001-full/quickstart.md"],
-    ["features/001-full/tasks.html", "specs/001-full/tasks.md"],
     ["features/001-full/contracts/cli.html", "specs/001-full/contracts/cli.md"],
     ["features/001-full/checklists/requirements.html", "specs/001-full/checklists/requirements.md"],
     ["features/001-full/decisions.html", "specs/001-full/decisions.md"],
     ["features/001-full/run-log.html", "specs/001-full/run-log.md"],
+    ["features/001-full/tasks.html", "specs/001-full/tasks.md"],
   ];
   const links = artifactLinks(page);
   await expect(links).toHaveCount(expected.length);
@@ -76,7 +85,7 @@ test("US3 AC1 a feature page links every artifact and each opens in one step", a
 
   for (const [i, [, source]] of expected.entries()) {
     await page.goto(`${url}${featurePagePath("001-full")}`);
-    await artifactLinks(page).nth(i).click();
+    await clickArtifactLink(artifactLinks(page).nth(i));
     await expect(article(page)).toHaveAttribute("data-key", source);
     await expect(article(page).locator("h1").first()).toBeVisible();
   }
@@ -148,7 +157,7 @@ test("US3 AC5 no link for a missing artifact", async ({ page }) => {
   await expect(links).toHaveCount(2);
   await expect(links.nth(0)).toHaveAttribute("href", "/features/002-partial/spec.html");
   await expect(links.nth(1)).toHaveAttribute("href", "/features/002-partial/plan.html");
-  await expect(page.locator('[data-region="documents"] a[href*="research"], [data-region="documents"] a[href*="tasks"]')).toHaveCount(0);
+  await expect(page.locator('[data-region="tabs"] a[href*="research"], main a[href*="tasks.html"]')).toHaveCount(0);
 });
 
 test("US3 AC6 every artifact page links back to the overview and has the rail", async ({ page }) => {
@@ -178,7 +187,7 @@ test("US3 FR-029 every feature has a feature page reachable from the sidebar, li
     await expect(sidebar(page).locator(`a[data-key="side:${dir}"]`)).toHaveAttribute("aria-current", "page");
     await expect(page.locator('[data-region="feature-head"] code')).toHaveText(dir);
     await expect(page.locator('[data-region="feature-head"] h1')).toContainText(title);
-    await expect(page.locator('[data-region="documents"] a')).toHaveCount(docs);
+    await expect(artifactLinks(page)).toHaveCount(docs);
   }
 });
 

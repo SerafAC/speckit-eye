@@ -18,6 +18,7 @@ import { applyTaskStates } from "./task-state.js";
 import { computeRanks } from "./ranks.js";
 import { groupWarnings } from "./warnings.js";
 import { shares, sharesNoZero } from "./shares.js";
+import { taskFiles, taskKind, taskRefs, kindChips } from "./task-files.js";
 
 /** @typedef {import("../project/scan.js").Warning} Warning */
 /** @typedef {import("../project/scan.js").ScanResult} ScanResult */
@@ -50,6 +51,9 @@ import { shares, sharesNoZero } from "./shares.js";
  * @property {string[]} [waitingOn] open dependencies of a blocked task, set by
  *   applyTaskStates
  * @property {string} [sig] change signature, set by applyTaskStates
+ * @property {string[]} files file paths named in the description (FR-037)
+ * @property {import("./task-files.js").TaskKind | null} kind from `files[0]` (FR-035)
+ * @property {string[]} refs FR-/SC- references in the description
  */
 
 /**
@@ -117,6 +121,10 @@ import { shares, sharesNoZero } from "./shares.js";
  * @property {import("./warnings.js").WarningGroup[]} warningGroups warnings
  *   grouped by code and file (FR-015)
  * @property {Warning[]} warnings
+ * @property {string[]} kindChips distinct kind labels of the tasks, in order
+ *   of first appearance (feature-page kind filters, FR-034)
+ * @property {number[]} phaseShares percent share of each phase in the
+ *   feature's tasks, largest remainder; 0 for phases without tasks (FR-032)
  * @property {string} [sig]
  */
 
@@ -366,7 +374,17 @@ function buildFeature(dir, files, scanWarnings) {
   for (const t of parsed.tasks) {
     let key = `${dir}/${t.id ?? `L${t.line}`}`;
     if (t.id !== null && idRepeated(t.id)) key += `@L${t.line}`;
-    taskOf.set(t, { ...t, dependsOn: [...t.dependsOn], key, anchor: taskAnchor(key), state: null });
+    const files = taskFiles(t.description);
+    taskOf.set(t, {
+      ...t,
+      dependsOn: [...t.dependsOn],
+      key,
+      anchor: taskAnchor(key),
+      state: null,
+      files,
+      kind: taskKind(files[0]),
+      refs: taskRefs(t.description),
+    });
   }
 
   const phases = parsed.phases.map((p) => {
@@ -442,6 +460,8 @@ function buildFeature(dir, files, scanWarnings) {
     ranks: { progress: 0, number: 0, least: 0, name: 0 },
     warningGroups: [],
     warnings,
+    kindChips: kindChips(parsed.tasks.map((t) => /** @type {Task} */ (taskOf.get(t)))),
+    phaseShares: shares(phases.map((p) => p.counts.total)),
   };
 }
 

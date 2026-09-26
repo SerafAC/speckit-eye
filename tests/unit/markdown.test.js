@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { createMarkdown, slugify, resolveHref } from "../../src/render/markdown.js";
+import { createMarkdown, renderInline, slugify, resolveHref } from "../../src/render/markdown.js";
 
 const ARTIFACTS = new Map([
   ["specs/001-full/spec.md", { url: "features/001-full/spec.html" }],
@@ -180,5 +180,68 @@ describe("slugs", () => {
     const r = createMarkdown({ artifactsBySource: ARTIFACTS, base: "/" });
     r(PLAN, "# X");
     assert.match(r(PLAN, "# X"), /<h1 id="x">/);
+  });
+});
+
+describe("renderInline (T045)", () => {
+  const md = () => createMarkdown({ artifactsBySource: ARTIFACTS, base: "/repo/" });
+
+  test("inline formatting without a paragraph", () => {
+    assert.equal(renderInline(md(), "Add `a/b.go` and **bold** _em_"), "Add <code>a/b.go</code> and <strong>bold</strong> <em>em</em>");
+  });
+
+  test("inline HTML stays text", () => {
+    const out = renderInline(md(), 'Fix <script>alert(1)</script> and <b onclick="x">b</b>');
+    assert.doesNotMatch(out, /<script|<b /);
+    assert.match(out, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  });
+
+  test("links follow the document rules, resolved from the given source", () => {
+    const render = md();
+    assert.equal(renderInline(render, "[plan](plan.md)", "specs/001-full/tasks.md"), '<a href="/repo/features/001-full/plan.html">plan</a>');
+    assert.doesNotMatch(renderInline(render, "[x](javascript:alert(1))", "specs/001-full/tasks.md"), /<a /);
+    assert.equal(renderInline(render, "[y](../../secret.txt)", "specs/001-full/tasks.md"), "y");
+    assert.equal(renderInline(render.md, "[w](https://example.com)"), '<a href="https://example.com">w</a>');
+  });
+
+  test("the text is not changed", () => {
+    assert.equal(renderInline(md(), "T001 [P] [US1] depends on T002"), "T001 [P] [US1] depends on T002");
+  });
+});
+
+describe("tasks.md task lines are addressable (T045, FR-044)", () => {
+  const TASKS = [
+    "# Tasks", // 1
+    "", // 2
+    "## Phase 1: Setup", // 3
+    "", // 4
+    "- [ ] T001 first `src/a.js`", // 5
+    "- [x] T002 second", // 6
+    "", // 7
+    "```", // 8
+    "- [ ] T999 inside a fence", // 9
+    "```", // 10
+    "<!-- - [ ] T998 in a comment -->", // 11
+    "  * [X] T003 nested", // 12
+    "- plain item", // 13
+  ].join("\n");
+
+  test("every task line is wrapped in <span id=L<line>>", () => {
+    const out = render(TASKS, { source: "specs/001-full/tasks.md" });
+    assert.match(out, /<span id="L5" data-source-line><input type="checkbox" disabled> T001 first <code>src\/a\.js<\/code><\/span>/);
+    assert.match(out, /<span id="L6" data-source-line><input type="checkbox" disabled checked> T002 second<\/span>/);
+    assert.match(out, /<span id="L12" data-source-line>/);
+    assert.doesNotMatch(out, /id="L9"|id="L11"|id="L13"|id="L1"/);
+    assert.equal(out.match(/data-source-line/g).length, 3);
+  });
+
+  test("other documents get no line anchors", () => {
+    const out = render(TASKS, { source: PLAN });
+    assert.doesNotMatch(out, /data-source-line/);
+  });
+
+  test("line numbers count CRLF lines like parseTasks", () => {
+    const out = render("## Phase 1: A\r\n\r\n- [ ] T001 a\r\n", { source: "specs/001-full/tasks.md" });
+    assert.match(out, /<span id="L3" data-source-line>/);
   });
 });

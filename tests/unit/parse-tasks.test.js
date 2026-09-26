@@ -273,3 +273,12 @@ describe("general rules", () => {
     assert.deepEqual(brief(warnings), ["W3@1", "W6@1", "W1@3", "W12@4"]);
   });
 });
+
+describe("taskLineNumbers (FR-044)", async () => {
+  const { taskLineNumbers } = await import("../../src/parse/tasks.js");
+  test("the lines parseTasks reads as tasks, fences and comments excluded", () => {
+    const text = "## Phase 1: A\n- [ ] T001 a\n```\n- [ ] T002 b\n```\n<!-- - [x] T003 -->\n* [X] T004 d\n- item";
+    assert.deepEqual([...taskLineNumbers(text)], [2, 7]);
+    assert.deepEqual([...taskLineNumbers(undefined)], []);
+  });
+});
