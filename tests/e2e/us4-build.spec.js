@@ -139,7 +139,7 @@ test("US4 AC3 FR-031 the overview matches serve mode, shows the generated time a
   await page.goto(host.url);
   await page.waitForLoadState("networkidle");
   const snapshot = async () => ({
-    progress: await page.locator('[data-region="progress"]').innerText(),
+    progress: await page.locator('[data-region="stats"]').innerText(),
     tree: await tree(page).evaluate((el) => el.textContent),
     grid: await page.locator('[data-region="grid"]').evaluate((el) => ({
       text: el.textContent,
@@ -295,7 +295,7 @@ test("US4 AC4 FR-039 the build command of the documented GitHub Pages workflow w
   const res = await page.goto(host.url);
   expect(res?.status()).toBe(200);
   await expect(page.locator("body")).toHaveAttribute("data-mode", "static");
-  await expect(page.locator('[data-region="progress"]')).toContainText("40 / 65 tasks");
+  await expect(page.locator('[data-region="stats"]')).toContainText("40 of 65 tasks");
   const css = await page.request.get(`${host.origin}${base}assets/styles.css`);
   expect(css.status()).toBe(200);
 });

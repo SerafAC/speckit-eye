@@ -48,8 +48,9 @@ async function tickOnDisk(dir, feature, ids) {
   await writeFile(file, tick(await readFile(file, "utf8"), ids));
 }
 
-const summary = (page) => page.locator('[data-region="progress"] [data-part="summary"]');
-const bar = (page) => page.locator('progress[data-key="project"]');
+// The stats card's "done of total tasks" line and its percentage.
+const summary = (page) => page.locator('[data-stat="percent"] [data-part="detail"]');
+const percent = (page) => page.locator('[data-stat="percent"] [data-part="value"]');
 const tree = (page) => page.locator('[data-region="tree"]');
 const details = (page, key) => tree(page).locator(`details[data-key="${key}"]`);
 const banner = (page) => page.locator('[data-region="live-status"]');
@@ -59,15 +60,15 @@ async function openLive(page, url) {
   const connected = page.waitForResponse((r) => r.url().endsWith("/__events"));
   await page.goto(url);
   await connected;
-  await expect(summary(page)).toHaveText("40 / 65 tasks (62 %)");
+  await expect(summary(page)).toHaveText("40 of 65 tasks");
 }
 
 test("US2 AC1 a ticked task shows new counts within 2 s", async ({ page }) => {
   const { dir, url } = await serveMixed();
   await openLive(page, url);
   await tickOnDisk(dir, "002-beta", ["T011"]);
-  await expect(summary(page)).toHaveText("41 / 65 tasks (63 %)", { timeout: LIVE_MS });
-  await expect(details(page, "002-beta").locator(":scope > summary")).toContainText("9 open / 20");
+  await expect(summary(page)).toHaveText("41 of 65 tasks", { timeout: LIVE_MS });
+  await expect(details(page, "002-beta").locator(":scope > summary")).toContainText("11/20");
 });
 
 test("US2 SC-002 at least 19 of 20 single ticks appear within 2 s", async ({ page }) => {
@@ -84,7 +85,7 @@ test("US2 SC-002 at least 19 of 20 single ticks appear within 2 s", async ({ pag
     done += 1;
     const started = Date.now();
     await tickOnDisk(dir, feature, [id]);
-    await expect(summary(page)).toContainText(`${done} / 65 tasks`, { timeout: 10_000 });
+    await expect(summary(page)).toContainText(`${done} of 65 tasks`, { timeout: 10_000 });
     latencies.push(Date.now() - started);
   }
   const fast = latencies.filter((ms) => ms <= LIVE_MS).length;
@@ -108,7 +109,7 @@ test("US2 AC2 scroll position and the viewer's expanded and collapsed items are 
   expect(scrollY).toBeGreaterThan(100);
 
   await tickOnDisk(dir, "002-beta", ["T011"]);
-  await expect(summary(page)).toHaveText("41 / 65 tasks (63 %)", { timeout: LIVE_MS });
+  await expect(summary(page)).toHaveText("41 of 65 tasks", { timeout: LIVE_MS });
 
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
   await expect(details(page, "003-gamma")).toHaveAttribute("open", "");
@@ -124,15 +125,15 @@ test("US2 AC3 changed items are highlighted and the bar moves to its new value",
 
   const task = tree(page).locator('li[data-key="002-beta/T011"]');
   await expect(task).toHaveAttribute("data-changed", "", { timeout: LIVE_MS });
-  await expect(task).toHaveAttribute("data-state", "completed");
+  await expect(task).toHaveAttribute("data-state", "done");
   await expect(details(page, "002-beta/p3")).toHaveAttribute("data-changed", "");
   await expect(details(page, "002-beta")).toHaveAttribute("data-changed", "");
   await expect(page.locator('[data-region="grid"] a[data-key="002-beta/T011"]')).toHaveAttribute("data-changed", "");
   // Items that did not change are not highlighted.
   await expect(details(page, "001-alpha")).not.toHaveAttribute("data-changed");
 
-  await expect(bar(page)).toHaveAttribute("value", "41");
-  await expect(bar(page)).toHaveAttribute("max", "65");
+  await expect(summary(page)).toHaveText("41 of 65 tasks");
+  await expect(percent(page)).toHaveText("63 %");
   // The highlight is brief (~1.5 s).
   await expect(task).not.toHaveAttribute("data-changed", { timeout: 3_000 });
 });
@@ -177,7 +178,7 @@ test("US2 FR-026 a deleted artifact's open page shows a notice linking to the ov
   const link = notice.getByRole("link", { name: "Back to the overview" });
   await expect(link).toBeVisible();
   await link.click();
-  await expect(page.locator('[data-region="progress"]')).toBeVisible();
+  await expect(page.locator('[data-region="stats"]')).toBeVisible();
 });
 
 test("US2 AC5 a new feature folder appears without a restart", async ({ page }) => {
@@ -209,7 +210,7 @@ test("US2 AC6 save-by-rename and a burst of writes end on the final content", as
   const temp = path.join(dir, "specs", "002-beta", ".tasks.md.tmp");
   await writeFile(temp, tick(original, ["T011"]));
   await rename(temp, file);
-  await expect(summary(page)).toHaveText("41 / 65 tasks (63 %)", { timeout: LIVE_MS });
+  await expect(summary(page)).toHaveText("41 of 65 tasks", { timeout: LIVE_MS });
 
   // 10 writes in 200 ms, alternating in-place writes and renames; each one
   // checks one more task, so the last write has all of 002-beta done.
@@ -225,11 +226,11 @@ test("US2 AC6 save-by-rename and a burst of writes end on the final content", as
     }
     await new Promise((r) => setTimeout(r, 20));
   }
-  await expect(summary(page)).toHaveText("50 / 65 tasks (77 %)", { timeout: LIVE_MS });
-  await expect(details(page, "002-beta").locator(":scope > summary")).toContainText("0 open / 20");
+  await expect(summary(page)).toHaveText("50 of 65 tasks", { timeout: LIVE_MS });
+  await expect(details(page, "002-beta").locator(":scope > summary")).toContainText("20/20");
   // It stays on the final content (no late partial state).
   await page.waitForTimeout(1_000);
-  await expect(summary(page)).toHaveText("50 / 65 tasks (77 %)");
+  await expect(summary(page)).toHaveText("50 of 65 tasks");
 });
 
 test("US2 AC7 a lost connection shows the banner; a restart hides it and catches up", async ({ page }) => {
@@ -243,12 +244,12 @@ test("US2 AC7 a lost connection shows the banner; a restart hides it and catches
   await expect(banner(page)).toBeVisible({ timeout: 5_000 });
   await expect(banner(page)).toHaveText("Live updates paused — reconnecting…");
   // The last content stays on the page.
-  await expect(summary(page)).toHaveText("40 / 65 tasks (62 %)");
+  await expect(summary(page)).toHaveText("40 of 65 tasks");
 
   // A change made while the tool is down is picked up after the restart.
   await tickOnDisk(dir, "002-beta", ["T011"]);
   server = await startServe(dir);
   expect(server.url).toBe(url);
   await expect(banner(page)).toBeHidden({ timeout: 15_000 });
-  await expect(summary(page)).toHaveText("41 / 65 tasks (63 %)", { timeout: LIVE_MS });
+  await expect(summary(page)).toHaveText("41 of 65 tasks", { timeout: LIVE_MS });
 });

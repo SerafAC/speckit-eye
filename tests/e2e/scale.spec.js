@@ -34,7 +34,8 @@ async function serveLarge() {
   return { dir, url: server.url };
 }
 
-const bar = (page) => page.locator('progress[data-key="project"]');
+// The stats card's "done of total tasks" line.
+const bar = (page) => page.locator('[data-stat="percent"] [data-part="detail"]');
 
 test("SC-010 the overview of 50 features / 2,000 tasks fires load within 2 s", async ({ page }) => {
   const { url } = await serveLarge();
@@ -47,8 +48,7 @@ test("SC-010 the overview of 50 features / 2,000 tasks fires load within 2 s", a
   });
   expect(navigation).toBeLessThanOrEqual(LOAD_MS);
   expect(elapsed).toBeLessThanOrEqual(LOAD_MS);
-  await expect(bar(page)).toHaveAttribute("value", "1000");
-  await expect(bar(page)).toHaveAttribute("max", "2000");
+  await expect(bar(page)).toHaveText("1000 of 2000 tasks");
   await expect(page.locator('[data-region="grid"] a[data-key]')).toHaveCount(2000);
 });
 
@@ -57,13 +57,13 @@ test("SC-010 SC-002 a checkbox change in a large project shows within 2 s", asyn
   const connected = page.waitForResponse((r) => r.url().endsWith("/__events"));
   await page.goto(url);
   await connected;
-  await expect(bar(page)).toHaveAttribute("value", "1000");
+  await expect(bar(page)).toHaveText("1000 of 2000 tasks");
   const file = path.join(dir, "specs", featureDir(10), "tasks.md");
   const text = await readFile(file, "utf8");
   const ticked = text.replace(/^- \[ \] (T\d+)/m, "- [x] $1");
   expect(ticked).not.toBe(text);
   await writeFile(file, ticked);
-  await expect(bar(page)).toHaveAttribute("value", "1001", { timeout: LIVE_MS });
+  await expect(bar(page)).toHaveText("1001 of 2000 tasks", { timeout: LIVE_MS });
 });
 
 test("SC-010 --build of 50 features / 2,000 tasks finishes within 30 s", async () => {
@@ -77,7 +77,7 @@ test("SC-010 --build of 50 features / 2,000 tasks finishes within 30 s", async (
   expect(result.code, result.stderr).toBe(0);
   expect(elapsed).toBeLessThanOrEqual(BUILD_MS);
   const index = await readFile(path.join(out, "index.html"), "utf8");
-  expect(index).toContain('data-key="project"');
+  expect(index).toContain('data-key="stat:percent"');
   for (let i = 0; i < 50; i++) await access(path.join(out, ...featurePagePath(featureDir(i)).split("/")));
 });
 

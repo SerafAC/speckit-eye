@@ -84,10 +84,10 @@ describe("renderSite", () => {
     assert.match(body, /^<!doctype html>/);
     assert.match(body, /<title>proj · speckit-eye<\/title>/);
     assert.match(body, /<body data-mode="serve" data-version="9\.9\.9" data-page="overview" data-base="\/">/);
-    assert.match(body, /<main><section data-region="progress">/);
-    assert.match(body, /<div data-region="tree">/);
+    assert.match(body, /<main><header data-region="page-head">/);
+    assert.match(body, /<div data-region="tree" data-keep-scroll="tree" data-filter="all">/);
     assert.match(body, /<div data-region="grid">/);
-    assert.match(body, /1 \/ 2 tasks \(50 %\)/);
+    assert.match(body, /50 %<\/span><span data-part="detail">1 of 2 tasks</);
     assert.match(body, /two &lt;b&gt;/);
     assert.doesNotMatch(body, /two <b>/);
   });
@@ -266,7 +266,7 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     for (const key of s.keys()) assert.doesNotMatch(key, /bad|\s/);
     for (const { body } of s.values()) if (typeof body === "string") assert.doesNotMatch(body, /href="[^"]*bad/);
     // The skipped file is reported as a warning on its feature instead.
-    assert.match(s.get("index.html").body, /specs\/001-full\/bad name\.md name not supported for a page \(skipped\)/);
+    assert.match(s.get("index.html").body, /<a data-part="warning" data-code="W11" href="\/features\/001-full\/index.html#warnings">[\s\S]*?1 name not supported for a page<\/span> <span data-part="note">— skipped</);
   });
 
   test("an artifact page is a full page with the breadcrumb and the rendered article", async () => {

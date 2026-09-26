@@ -15,6 +15,9 @@ import {
 import { compareWarnings } from "../project/scan.js";
 import { selectActive } from "./active.js";
 import { applyTaskStates } from "./task-state.js";
+import { computeRanks } from "./ranks.js";
+import { groupWarnings } from "./warnings.js";
+import { shares, sharesNoZero } from "./shares.js";
 
 /** @typedef {import("../project/scan.js").Warning} Warning */
 /** @typedef {import("../project/scan.js").ScanResult} ScanResult */
@@ -109,6 +112,10 @@ import { applyTaskStates } from "./task-state.js";
  * @property {FeatureStatus} status
  * @property {string} statusLabel pill text (data-model FeatureStatus)
  * @property {DocumentGroups} documents reader groups and feature-page tabs
+ * @property {import("./ranks.js").FeatureRanks} ranks positions under the four
+ *   tree orders (FR-012)
+ * @property {import("./warnings.js").WarningGroup[]} warningGroups warnings
+ *   grouped by code and file (FR-015)
  * @property {Warning[]} warnings
  * @property {string} [sig]
  */
@@ -131,8 +138,34 @@ import { applyTaskStates } from "./task-state.js";
  *   "Project" (constitution) and one group per assessment
  * @property {import("./active.js").ActiveSelection} active
  * @property {Totals} totals
+ * @property {OverviewStats} overview stats card numbers (FR-011)
  * @property {Warning[]} warnings
  * @property {string} [sig]
+ */
+
+/**
+ * @typedef {object} FeatureSegment
+ * @property {string} dir
+ * @property {string | null} number
+ * @property {string} title
+ * @property {number} share percent of all project tasks (largest remainder)
+ * @property {{done: number, open: number, next: number}} parts percents of
+ *   the feature's own tasks; blocked tasks count as open
+ * @property {Counts} counts
+ * @property {boolean} showLabel `share >= 4`
+ */
+
+/**
+ * @typedef {object} OverviewStats
+ * @property {number} percent
+ * @property {number} done
+ * @property {number} total
+ * @property {{completed: number, total: number, inProgress: number}} features
+ * @property {{completed: number, total: number, remaining: number}} phases
+ * @property {{count: number, features: number}} openTasks
+ * @property {FeatureSegment[]} segments features with tasks, in folder order
+ * @property {{done: number, open: number, blocked: number, next: number}} legend
+ *   counts over all tasks (`open` leaves out blocked and next)
  */
 
 /**
@@ -405,6 +438,9 @@ function buildFeature(dir, files, scanWarnings) {
     // Recomputed for the active feature once the selection is known (buildModel).
     statusLabel: featureStatusLabel({ stage, counts }, false),
     documents: featureDocuments(artifacts, dir),
+    // Set by buildModel once every feature and task state is known.
+    ranks: { progress: 0, number: 0, least: 0, name: 0 },
+    warningGroups: [],
     warnings,
   };
 }
@@ -433,6 +469,60 @@ function computeTotals(features) {
     tasks: makeCounts(done, total),
     specs: { completed: specsCompleted, total: features.length },
     phases: { completed: phasesCompleted, total: phasesTotal },
+  };
+}
+
+/**
+ * The stats card numbers (data-model OverviewStats, FeatureSegment).
+ * Requires task display states (applyTaskStates) and feature statuses.
+ * @param {Feature[]} features
+ * @param {Totals} totals
+ * @returns {OverviewStats}
+ */
+export function overviewStats(features, totals) {
+  const legend = { done: 0, open: 0, blocked: 0, next: 0 };
+  const withTasks = features.filter((f) => f.counts.total > 0);
+  const segmentShares = shares(withTasks.map((f) => f.counts.total));
+  const segments = withTasks.map((f, i) => {
+    const tasks = f.phases.flatMap((p) => p.tasks);
+    const next = tasks.filter((t) => !t.done && t.display === "next").length;
+    const done = f.counts.done;
+    const [pd, po, pn] = sharesNoZero([done, f.counts.total - done - next, next]);
+    return {
+      dir: f.dir,
+      number: f.number,
+      title: f.title,
+      share: segmentShares[i],
+      parts: { done: pd, open: po, next: pn },
+      counts: f.counts,
+      showLabel: segmentShares[i] >= 4,
+    };
+  });
+  for (const f of features) {
+    for (const p of f.phases) {
+      for (const t of p.tasks) {
+        const d = t.done ? "done" : (t.display ?? "open");
+        legend[d === "done" || d === "next" || d === "blocked" ? d : "open"]++;
+      }
+    }
+  }
+  return {
+    percent: totals.tasks.percent,
+    done: totals.tasks.done,
+    total: totals.tasks.total,
+    features: {
+      completed: totals.specs.completed,
+      total: totals.specs.total,
+      inProgress: features.filter((f) => f.status === "in-progress").length,
+    },
+    phases: {
+      completed: totals.phases.completed,
+      total: totals.phases.total,
+      remaining: totals.phases.total - totals.phases.completed,
+    },
+    openTasks: { count: totals.tasks.open, features: features.filter((f) => f.counts.open > 0).length },
+    segments,
+    legend,
   };
 }
 
@@ -476,6 +566,7 @@ export function buildModel(scanResult) {
     },
     active: /** @type {any} */ (null),
     totals: computeTotals(features),
+    overview: /** @type {any} */ (null), // set once task states are known
     warnings: scanWarnings.filter((w) => !claimed.has(w)),
   };
   project.active = selectActive(project, {
@@ -483,5 +574,13 @@ export function buildModel(scanResult) {
     gitBranch: scanResult.gitBranch ?? null,
   });
   for (const f of features) f.statusLabel = featureStatusLabel(f, f.dir === project.active.featureDir);
-  return applyTaskStates(project);
+  applyTaskStates(project);
+  const ranks = computeRanks(features);
+  for (const f of features) {
+    f.ranks = /** @type {import("./ranks.js").FeatureRanks} */ (ranks.get(f.dir));
+    // After applyTaskStates, so W7 is grouped too.
+    f.warningGroups = groupWarnings(f.warnings, new Map(f.artifacts.map((a) => [a.source, a.content])));
+  }
+  project.overview = overviewStats(features, project.totals);
+  return project;
 }
