@@ -156,8 +156,8 @@ test("US1 FR-013 Up next bar names the next task with full text on hover and Vie
   await page.goto(url);
   const bar = upNext(page);
   await expect(bar.locator('[data-part="id"]')).toHaveText("T011");
-  await expect(bar.locator('[data-part="text"]')).toHaveText("List paging");
-  await expect(bar.locator('[data-part="text"]')).toHaveAttribute("title", "List paging");
+  await expect(bar.locator('[data-part="text"]')).toHaveText("List paging in `src/list.go`");
+  await expect(bar.locator('[data-part="text"]')).toHaveAttribute("title", "List paging in `src/list.go`");
   await expect(bar.locator('[data-part="where"]')).toContainText("Beta › Phase 3");
   // One line, truncated with an ellipsis when too long.
   const style = await bar.locator('[data-part="text"]').evaluate((el) => {
@@ -265,7 +265,7 @@ test("US1 FR-014 FR-016 FR-017 FR-018 rows show their parts and only the active 
   await expect(next).toHaveAttribute("data-state", "next");
   await expect(next.locator('[data-part="next"]')).toHaveText("NEXT");
   await expect(next.locator('a[data-part="id"]')).toHaveAttribute("href", `/${featurePagePath("002-beta")}#task-002-beta-T011`);
-  await expect(next.locator('[data-part="text"]')).toHaveAttribute("title", "List paging");
+  await expect(next.locator('[data-part="text"]')).toHaveAttribute("title", "List paging in `src/list.go`");
 });
 
 test("US1 FR-015 warning row shows count, line chips and Details link", async ({ page }) => {
@@ -378,10 +378,7 @@ test("US1 SC-001 percentage, in-progress feature and next task visible without s
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-// The feature page lists tasks with their text and files only from T048 (task
-// list) and T052 (fixture file paths) of US3 on; until then this check is
-// pending rather than weakened.
-test.fixme("US1 SC-002 View task shows the next task's full text and files in one click", async ({ page }) => {
+test("US1 SC-002 View task shows the next task's full text and files in one click", async ({ page }) => {
   const { url } = await serve("mixed");
   await page.goto(url);
   await upNext(page).getByRole("link", { name: "View task" }).click();

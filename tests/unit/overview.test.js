@@ -12,6 +12,7 @@ import {
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
+import { renderFeaturePage } from "../../src/render/feature.js";
 
 async function model(files, options) {
   return buildModel(await scan(createFakeReader(files, options), "proj"));
@@ -503,6 +504,41 @@ describe("renderOverview: map click targets (T071)", () => {
         ["ok_1", "task-ok_1"],
       ],
     );
+  });
+});
+
+describe("renderOverview: links into feature pages (T051)", () => {
+  /** Every `features/<dir>/index.html#<anchor>` link of a region. */
+  const links = (doc, region) =>
+    [...regionHtml(doc, region).matchAll(/href="\/features\/([^/"]+)\/index\.html#(task-[^"]+)"/g)].map((m) => [m[1], m[2]]);
+
+  async function check(files, { region, min }) {
+    const m = await model(files);
+    const doc = render(m);
+    const found = links(doc, region);
+    assert.ok(found.length >= min, `${region}: ${found.length} links`);
+    const pages = new Map(m.features.map((f) => [f.dir, renderFeaturePage(f, m, { base: "/" }).value]));
+    for (const [dir, anchor] of found) {
+      const page = pages.get(dir);
+      assert.ok(page, dir);
+      const rows = [...page.matchAll(new RegExp(`<details[^>]* data-part="task"[^>]* id="${anchor}"`, "g"))];
+      assert.equal(rows.length, 1, `${dir}#${anchor} is one task row of the feature page`);
+    }
+    return found;
+  }
+
+  test("Up next View task opens the next task's row on its feature page", async () => {
+    const found = await check(MIXED, { region: "up-next", min: 1 });
+    assert.deepEqual(found, [["002-beta", "task-002-beta-T011"]]);
+  });
+
+  test("every tree task ID links to its own row on its feature page", async () => {
+    await check(MIXED, { region: "tree", min: 65 });
+  });
+
+  test("repeated task IDs link to distinct rows", async () => {
+    const found = await check({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a\n- [ ] T001 again\n- [ ] T001 third" }, { region: "tree", min: 3 });
+    assert.equal(new Set(found.map(([, a]) => a)).size, 3);
   });
 });
 
