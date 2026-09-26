@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Specification — Serial Data Processing Studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+a{color:inherit;text-decoration:none}a:hover{color:var(--blue)}
+button{font-family:inherit}
+.sk{--bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#FAF9F6;--subtle:#EEECE6;--subtle-2:#F1EFEA;--track:#EAE8E2;--border:#E4E1D9;--border-strong:#DEDBD3;--dashed:#C9C5BB;--text:#15171C;--text-2:#2E3238;--text-2b:#25282E;--text-3:#3E434C;--text-4:#4A4F59;--muted:#5B606A;--muted-2:#6B7079;--chip-n:#D8DBE1;--outline-n:#B9BDC5;--inv-bg:#15171C;--inv-fg:#FFFFFF;--chrome:#15171C;--chrome-2:#15171C;--chrome-edge:transparent;--tip-edge:transparent;--green:#1F7A5A;--green-text:#16603F;--green-bg:#E3F1EA;--green-bg-2:#DCEBE3;--blue:#2F5BD3;--blue-text:#1E3F9E;--blue-bg:#E6ECFB;--blue-bg-2:#EEF2FD;--blue-bg-3:#F1F4FD;--blue-soft:#C9D5F5;--blue-ring:#7C9CF0;--orange-bg:#FFF4ED;--amber-bg:#FEF3C7;--amber-bg-2:#FFFBEB;--amber-text:#713F12;--amber-text-2:#854D0E;--amber-border:#E8C872;--purple-bg:#EFE9FB;--purple-text:#4C2D91;--red-bg:#FDE7DC;--red-text:#9A3412;color-scheme:light}.sk[data-theme="dark"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}@media (prefers-color-scheme: dark){.sk[data-theme="system"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}}
+</style>
+</helmet>
+<div class="sk" data-theme="{{theme}}" style="width: 1440px; height: 2800px; display: flex; background: var(--surface); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: var(--text)">
+
+<!-- Collapsed app rail -->
+<nav aria-label="App" style="width: 72px; flex-shrink: 0; background: var(--chrome); border-right: 1px solid var(--chrome-edge); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 0; box-sizing: border-box">
+<div style="width: 34px; height: 34px; border-radius: 10px; background: #f4f3ef; display: flex; align-items: center; justify-content: center; margin-bottom: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15171c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
+<a href="#" aria-label="Search" style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a9adb6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></a>
+<a href="Main.dc.html" aria-label="Overview" style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a9adb6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg></a>
+<a href="Feature.dc.html" aria-label="Features" style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #2a2e36; color: #ffffff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"></path><path d="m3 12 9 5 9-5"></path><path d="m3 17 9 5 9-5"></path></svg></a>
+<a href="#" aria-label="Constitution" style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a9adb6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V7l-8-4z"></path></svg></a>
+<div role="group" aria-label="Theme" style="margin-top: 20px; display: flex; flex-direction: column; gap: 2px; padding: 3px; background: #1b1e24; border: 1px solid #2e323a; border-radius: 12px">
+<sc-for list="{{themeOpts}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.set}}" aria-pressed="{{o.pressed}}" aria-label="{{o.label}} theme" title="{{o.label}}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 9px; cursor: pointer; {{o.style}}">
+<sc-if value="{{o.isLight}}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></sc-if>
+<sc-if value="{{o.isDark}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></sc-if>
+<sc-if value="{{o.isSystem}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></sc-if>
+</button>
+</sc-for>
+</div>
+</nav>
+
+<!-- Document navigator -->
+<nav aria-label="Feature documents" style="width: 264px; flex-shrink: 0; background: var(--bg); border-right: 1px solid var(--border); padding: 26px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<a href="Feature.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 13px; color: var(--text-4)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Back to tasks</a>
+<div style="padding: 0 10px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 16px; font-weight: 600; line-height: 1.3">Serial Data Processing Studio</div>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--green-text)"><span style="width: 7px; height: 7px; border-radius: 50%; background: var(--green)"></span>Complete · 123 tasks</div>
+</div>
+<sc-for list="{{docGroups}}" as="g" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="padding: 0 10px 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">{{g.label}}</div>
+<sc-for list="{{g.items}}" as="d" hint-placeholder-count="3">
+<a href="Doc.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 9px; font-size: 14px; {{d.style}}">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg>
+<span style="flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.name}}</span>
+</a>
+</sc-for>
+</div>
+</sc-for>
+</nav>
+
+<!-- Reading column -->
+<article style="flex-grow: 1; min-width: 0; padding: 30px 56px 80px; box-sizing: border-box; display: flex; flex-direction: column; gap: 40px">
+
+<header style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted)">Specification</span>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">spec.md</span>
+</div>
+<div style="display: flex; gap: 6px">
+<button style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text); cursor: pointer">Expand all</button>
+<button style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text); cursor: pointer">Raw markdown</button>
+</div>
+</div>
+<h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 54px; line-height: 1">Serial Data Processing Studio</h1>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 14px; overflow: hidden">
+<div style="background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: var(--muted)">Feature branch</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px">001-serial-data-studio</span></div>
+<div style="background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: var(--muted)">Created</span><span style="font-size: 14px">19 Mar 2026</span></div>
+<div style="background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: var(--muted)">Status</span><span style="align-self: flex-start; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--subtle); color: var(--text-3)">Draft</span></div>
+</div>
+<figure style="margin: 0; padding: 20px 24px; background: var(--bg); border-radius: 14px; display: flex; flex-direction: column; gap: 8px">
+<figcaption style="font-size: 12px; color: var(--muted)">Original request</figcaption>
+<blockquote style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 22px; line-height: 1.35; color: var(--text-2b)">“Multiplatform desktop application for working with serial data sources (byte streams), processing them, visualising and analysing — an N8N-style visual workflow builder for electronics and live data processing.”</blockquote>
+</figure>
+</header>
+
+<!-- 01 Overview -->
+<section id="overview" style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; display: flex; align-items: baseline; gap: 14px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--muted-2)">01</span>Overview</h2>
+<p style="margin: 0; font-size: 16px; line-height: 1.65; color: var(--text-2)">ByteFlow Studio is a multiplatform desktop application that enables engineers, makers, and researchers to connect to live byte-stream data sources, build visual processing pipelines, and observe or analyse the results in real time. Users compose workflows by dragging and connecting blocks from three categories — <strong>Inputs</strong>, <strong>Processing</strong>, and <strong>Analysis</strong> — onto a shared canvas. Workflows can run, be paused, or signal error states.</p>
+</section>
+
+<!-- 02 Clarifications -->
+<section id="clarifications" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; display: flex; align-items: baseline; gap: 14px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--muted-2)">02</span>Clarifications</h2>
+<span style="font-size: 13px; color: var(--muted)">13 answered · 3 sessions</span>
+</div>
+<div style="border: 1px solid var(--border); border-radius: 14px; overflow: hidden">
+<button style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; border: 0; background: var(--surface-2); border-bottom: 1px solid var(--subtle); text-align: left; font-size: 14px; color: var(--text); cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+<span style="font-weight: 600; flex-grow: 1">Session · 19 Mar 2026</span><span style="font-size: 12px; color: var(--muted)">9 questions</span>
+</button>
+<sc-for list="{{qa}}" as="q" hint-placeholder-count="3">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 16px 18px 16px 44px; border-bottom: 1px solid var(--subtle-2)">
+<div style="font-size: 14px; line-height: 1.5; color: var(--text-2)">{{q.q}}</div>
+<div style="display: flex; gap: 10px; align-items: flex-start">
+<span style="flex-shrink: 0; width: 56px; height: 21px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; border-radius: 5px; {{q.badgeStyle}}">{{q.badge}}</span>
+<span style="font-size: 14px; line-height: 1.5; color: var(--text)">{{q.a}}</span>
+</div>
+</div>
+</sc-for>
+<button style="width: 100%; min-height: 44px; border: 0; border-bottom: 1px solid var(--subtle); background: var(--surface); font-size: 13px; color: var(--blue); cursor: pointer">Show 6 more answers</button>
+<button style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; border: 0; border-bottom: 1px solid var(--subtle); background: var(--surface); text-align: left; font-size: 14px; color: var(--text); cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+<span style="font-weight: 500; flex-grow: 1">Session · 20 Mar 2026</span><span style="font-size: 12px; color: var(--muted)">3 questions</span>
+</button>
+<button style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; border: 0; background: var(--surface); text-align: left; font-size: 14px; color: var(--text); cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+<span style="font-weight: 500; flex-grow: 1">Session · 21 Mar 2026</span><span style="font-size: 12px; color: var(--muted)">1 question</span>
+</button>
+</div>
+</section>
+
+<!-- 03 User stories -->
+<section id="stories" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; display: flex; align-items: baseline; gap: 14px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--muted-2)">03</span>User scenarios &amp; testing</h2>
+<span style="font-size: 13px; color: var(--muted)">6 stories · P1 → P3</span>
+</div>
+
+<div style="border: 1.5px solid var(--text); border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">US1</span>
+<span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: var(--inv-bg); color: var(--inv-fg)">P1</span>
+<span style="font-size: 12px; color: var(--green-text); margin-left: auto">Phase 3 · 20 / 20 tasks ✓</span>
+</div>
+<h3 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">Connect a Data Source and View Live Data</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-2)">An engineer connects a microcontroller over UART, drags a UART Input block onto the canvas, configures the COM port and baud rate, then connects a Raw Value Display Analysis block. They start the flow and immediately see live bytes.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="background: var(--bg); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Why this priority</span><span style="font-size: 14px; line-height: 1.5">Source → display is the minimal viable product; all other features build on this path.</span></div>
+<div style="background: var(--bg); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Independent test</span><span style="font-size: 14px; line-height: 1.5">UART device or loopback, one Input + one Analysis block, run, confirm live data appears.</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Acceptance scenarios</span>
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<div style="display: grid; grid-template-columns: 32px repeat(3, minmax(0, 1fr)); gap: 16px; padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--subtle); font-size: 12px; font-weight: 600; color: var(--text-4)"><span>#</span><span>Given</span><span>When</span><span>Then</span></div>
+<sc-for list="{{scenarios}}" as="s" hint-placeholder-count="4">
+<div style="display: grid; grid-template-columns: 32px repeat(3, minmax(0, 1fr)); gap: 16px; padding: 12px 14px; border-bottom: 1px solid var(--subtle-2); font-size: 13.5px; line-height: 1.45"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">{{s.n}}</span><span>{{s.g}}</span><span>{{s.w}}</span><span style="color: var(--green-text)">{{s.t}}</span></div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="border: 1px solid var(--border); border-radius: 16px; overflow: hidden">
+<sc-for list="{{stories}}" as="s" hint-placeholder-count="5">
+<button style="width: 100%; display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 0 22px; border: 0; border-bottom: 1px solid var(--subtle); background: var(--surface); text-align: left; font-size: 15px; color: var(--text); cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted); width: 30px">{{s.id}}</span>
+<span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; {{s.ps}}">{{s.p}}</span>
+<span style="flex-grow: 1; font-weight: 500">{{s.title}}</span>
+<span style="font-size: 12px; color: var(--muted)">{{s.meta}}</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<!-- 04 Requirements -->
+<section id="requirements" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; display: flex; align-items: baseline; gap: 14px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--muted-2)">04</span>Functional requirements</h2>
+<span style="font-size: 13px; color: var(--muted)">Grouped by area</span>
+</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<button style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text-3); cursor: pointer">Block Library — Analysis</button>
+<button style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--inv-bg); background: var(--inv-bg); font-size: 13px; color: var(--inv-fg); cursor: pointer">Flow Lifecycle · 4</button>
+<button style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text-3); cursor: pointer">Session Management</button>
+<button style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text-3); cursor: pointer">Persistence</button>
+<button style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text-3); cursor: pointer">Multiplatform</button>
+</div>
+<div style="border: 1px solid var(--border); border-radius: 14px; overflow: hidden">
+<sc-for list="{{frs}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--subtle-2)">
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 3px 8px; height: fit-content; border-radius: 6px; background: var(--bg); color: var(--text)">{{r.id}}</span>
+<span style="font-size: 14.5px; line-height: 1.55; color: var(--text-2)">{{r.pre}}<strong style="font-size: 11.5px; letter-spacing: 0.06em; padding: 1px 5px; border-radius: 4px; background: var(--blue-bg); color: var(--blue-text)">MUST</strong>{{r.post}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<!-- 05 Key entities -->
+<section id="entities" style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; display: flex; align-items: baseline; gap: 14px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--muted-2)">05</span>Key entities</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<sc-for list="{{entities}}" as="e" hint-placeholder-count="8">
+<div style="border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; font-weight: 500">{{e.n}}</span>
+<span style="font-size: 13.5px; line-height: 1.5; color: var(--text-4)">{{e.d}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+</article>
+
+<!-- On this page -->
+<aside aria-label="On this page" style="width: 240px; flex-shrink: 0; padding: 30px 24px 30px 0; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 14px; padding-left: 20px; border-left: 1px solid var(--border)">
+<div style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">On this page</div>
+<div style="height: 4px; background: var(--subtle); border-radius: 2px; overflow: hidden"><div style="width: 42%; height: 100%; background: var(--inv-bg)"></div></div>
+<sc-for list="{{toc}}" as="t" hint-placeholder-count="10">
+<a href="#{{t.anchor}}" style="font-size: 13px; line-height: 1.35; {{t.style}}">{{t.label}}</a>
+</sc-for>
+</div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":null},"$preview":{"width":1440,"height":2800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    var s = this;
+    this._th = function () { s.forceUpdate(); };
+    window.addEventListener('storage', this._th);
+    window.addEventListener('sk-theme', this._th);
+  }
+  componentWillUnmount() {
+    clearTimeout(this._t);
+    window.removeEventListener('storage', this._th);
+    window.removeEventListener('sk-theme', this._th);
+  }
+  themeVals() {
+    // Shared light / dark / system choice, remembered per viewer and synced across boards
+    var stored = 'system';
+    try { stored = localStorage.getItem('sk-theme') || 'system'; } catch (e) {}
+    var theme = this.props.theme || stored;
+    var self = this;
+    var opts = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(function (o) {
+      var on = theme === o[0];
+      return { id: o[0], label: o[1], pressed: on ? 'true' : 'false',
+        isLight: o[0] === 'light', isDark: o[0] === 'dark', isSystem: o[0] === 'system',
+        style: on ? 'background:#2A2E36;color:#FFFFFF' : 'background:transparent;color:#A9ADB6',
+        set: function () {
+          try { localStorage.setItem('sk-theme', o[0]); } catch (e) {}
+          window.dispatchEvent(new Event('sk-theme'));
+          self.forceUpdate();
+        } };
+    });
+    return { theme: theme, themeOpts: opts };
+  }
+  renderVals() {
+    var tv = this.themeVals();
+    var act = 'background:var(--surface);color:var(--text);font-weight:500;box-shadow:0 0 0 1px var(--border)';
+    var idle = 'color:var(--text-3)';
+    function items(list, active) { return list.map(function (n) { return { name: n, style: n === active ? act : idle }; }); }
+    var docGroups = [
+      { label: 'Define', items: items(['Specification', 'Quality checklist'], 'Specification') },
+      { label: 'Design', items: items(['Implementation plan', 'Research', 'Data model', 'Quickstart'], '') },
+      { label: 'Contracts', items: items(['Block Interface (Go)', 'PipelineService', 'SessionService', 'WorkflowService'], '') },
+      { label: 'Build', items: items(['Tasks'], '') }
+    ];
+    var yes = 'background:var(--green-bg);color:var(--green-text)', no = 'background:var(--red-bg);color:var(--red-text)', val = 'background:var(--subtle);color:var(--text-3)';
+    var qa = [
+      { q: 'Should input stream data chunks be timestamped?', badge: 'Yes', badgeStyle: yes, a: 'Every chunk from an Input block carries a millisecond timestamp assigned on receipt.' },
+      { q: 'Is USB input required for the first version?', badge: 'No', badgeStyle: no, a: 'Deferred. v1 ships UART/Serial, WebSocket and Signal Simulator.' },
+      { q: 'Is N (session retention count) fixed or user-configurable?', badge: 'Config', badgeStyle: val, a: 'User-configurable in app settings, default 10 sessions.' }
+    ];
+    var scenarios = [
+      { n: '1', g: 'A blank canvas', w: 'User adds a UART Input and a Raw Display block and connects them', t: 'A valid two-block flow forms; Start becomes active' },
+      { n: '2', g: 'A running UART → Raw Display flow', w: 'The device transmits bytes', t: 'Bytes appear in the display within 200 ms' },
+      { n: '3', g: 'A running flow', w: 'User clicks Pause', t: 'Ingestion halts, display freezes, state is “Paused”' },
+      { n: '4', g: 'A paused flow', w: 'User clicks Resume', t: 'Ingestion restarts and the display updates' }
+    ];
+    var P = { P1: 'background:var(--inv-bg);color:var(--inv-fg)', P2: 'background:var(--chip-n);color:var(--text)', P3: 'background:var(--surface);color:var(--text);border:1px solid var(--outline-n)' };
+    var stories = [
+      ['US2', 'P2', 'Build a Multi-Step Processing Pipeline', '3 scenarios'],
+      ['US5', 'P2', 'Multiple Inputs and Analysis Blocks', '2 scenarios'],
+      ['US3', 'P3', 'Manage and Persist Workflows', '3 scenarios'],
+      ['US4', 'P3', 'Full-Screen Analysis View', '3 scenarios'],
+      ['US6', 'P3', 'Review a Past Data Session', '—']
+    ].map(function (s) { return { id: s[0], p: s[1], ps: P[s[1]], title: s[2], meta: s[3] }; });
+    var frs = [
+      { id: 'FR-018', pre: 'A flow ', post: ' be in exactly one state: Running, Paused, or Error.' },
+      { id: 'FR-019', pre: 'Users ', post: ' be able to Start, Pause and Stop a flow with clearly labelled, always-visible controls.' },
+      { id: 'FR-020', pre: 'On entering Error, the system ', post: ' highlight the offending block(s) with a human-readable description.' },
+      { id: 'FR-021', pre: 'Pausing ', post: ' suspend ingestion and processing while keeping the current display; resume needs no reconfiguration.' }
+    ];
+    var entities = [
+      { n: 'Workflow', d: 'Top-level container: blocks, connections, canvas layout and persisted Sessions.' },
+      { n: 'Block', d: 'Typed unit (Input · Processing · Analysis) with ID, parameters and ports.' },
+      { n: 'Connection', d: 'Directed link from an output port to an input port; carries a typed stream.' },
+      { n: 'Port', d: 'Typed connection point; types prevent incompatible connections.' },
+      { n: 'Stream', d: 'Sequence of timestamped values flowing along a connection.' },
+      { n: 'Data Chunk', d: 'Atomic unit produced by an Input block, with its own timestamp.' },
+      { n: 'Session', d: 'Record of one Run: raw and/or processed layers; last N retained.' },
+      { n: 'Flow State', d: 'Runtime lifecycle state: Running, Paused, or Error.' }
+    ];
+    var on = 'color:var(--text);font-weight:600', off = 'color:var(--muted)', sub = 'color:var(--muted);padding-left:12px';
+    var toc = [
+      { anchor: 'overview', label: 'Overview', style: off },
+      { anchor: 'clarifications', label: 'Clarifications', style: off },
+      { anchor: 'stories', label: 'User scenarios & testing', style: on },
+      { anchor: 'stories', label: 'US1 · Connect & view live data', style: 'color:var(--text);padding-left:12px' },
+      { anchor: 'stories', label: 'US2 · Multi-step pipeline', style: sub },
+      { anchor: 'stories', label: 'US5 · Multiple inputs', style: sub },
+      { anchor: 'stories', label: 'US3 · Persist workflows', style: sub },
+      { anchor: 'stories', label: 'US4 · Full-screen view', style: sub },
+      { anchor: 'requirements', label: 'Functional requirements', style: off },
+      { anchor: 'entities', label: 'Key entities', style: off }
+    ];
+    return { theme: tv.theme, themeOpts: tv.themeOpts, docGroups: docGroups, qa: qa, scenarios: scenarios, stories: stories, frs: frs, entities: entities, toc: toc };
+  }
+}
+</script>
+</body>
+</html>

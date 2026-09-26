@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Task map component</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sk{--bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#FAF9F6;--subtle:#EEECE6;--subtle-2:#F1EFEA;--track:#EAE8E2;--border:#E4E1D9;--border-strong:#DEDBD3;--dashed:#C9C5BB;--text:#15171C;--text-2:#2E3238;--text-2b:#25282E;--text-3:#3E434C;--text-4:#4A4F59;--muted:#5B606A;--muted-2:#6B7079;--chip-n:#D8DBE1;--outline-n:#B9BDC5;--inv-bg:#15171C;--inv-fg:#FFFFFF;--chrome:#15171C;--chrome-2:#15171C;--chrome-edge:transparent;--tip-edge:transparent;--green:#1F7A5A;--green-text:#16603F;--green-bg:#E3F1EA;--green-bg-2:#DCEBE3;--blue:#2F5BD3;--blue-text:#1E3F9E;--blue-bg:#E6ECFB;--blue-bg-2:#EEF2FD;--blue-bg-3:#F1F4FD;--blue-soft:#C9D5F5;--blue-ring:#7C9CF0;--orange-bg:#FFF4ED;--amber-bg:#FEF3C7;--amber-bg-2:#FFFBEB;--amber-text:#713F12;--amber-text-2:#854D0E;--amber-border:#E8C872;--purple-bg:#EFE9FB;--purple-text:#4C2D91;--red-bg:#FDE7DC;--red-text:#9A3412;color-scheme:light}.sk[data-theme="dark"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}@media (prefers-color-scheme: dark){.sk[data-theme="system"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}}
+</style>
+</helmet>
+<section class="sk" data-theme="{{theme}}" aria-label="Task map" style="width: 372px; height: 390px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: var(--text)">
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 600">Task map</h2>
+<button onClick="{{toggle}}" aria-pressed="{{pressed}}" style="display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-strong); background: {{btnBg}}; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer">
+<sc-if value="{{stacked}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h10"></path><path d="M4 18h13"></path></svg></sc-if>
+<sc-if value="{{grouped}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg></sc-if>
+{{btnLabel}}</button>
+</div>
+
+<div style="flex-grow: 1; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+
+<!-- Stacked: every task in one field -->
+<sc-if value="{{stacked}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 3px">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="242">
+<span onMouseEnter="{{d.enter}}" onMouseLeave="{{d.leave}}" onClick="{{d.pick}}" style="position: relative; flex-shrink: 0; width: 13px; height: 13px; cursor: pointer; {{d.z}}">
+<span style="display: block; width: 100%; height: 100%; box-sizing: border-box; border-radius: 3px; transition: transform 120ms ease-out, box-shadow 120ms ease-out, opacity 120ms ease-out; {{d.s}}"></span>
+<sc-if value="{{d.tip}}" hint-placeholder-val="{{ false }}">
+<span role="tooltip" style="position: absolute; bottom: calc(100% + 12px); width: 244px; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; background: #15171c; border: 1px solid var(--tip-edge); color: #ffffff; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 8px 24px rgba(21, 23, 28, 0.22); pointer-events: none; {{d.align}}">
+<span style="display: flex; align-items: center; gap: 8px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #d9dce1">{{d.id}}</span><span style="font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 5px; {{d.statusStyle}}">{{d.status}}</span></span>
+<span style="font-size: 13.5px; font-weight: 500; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; word-break: break-word">{{d.title}}</span>
+<span style="font-size: 12px; color: #bfc3ca; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.feature}}</span>
+<span style="position: absolute; top: 100%; margin-top: -5px; width: 10px; height: 10px; background: #15171c; transform: rotate(45deg); {{d.arrow}}"></span>
+</span>
+</sc-if>
+</span>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- Expanded: grouped by feature -->
+<sc-if value="{{grouped}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 7px">
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--text-3)"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.label}}</span><span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; color: var(--muted)">{{g.meta}}</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 3px">
+<sc-for list="{{g.dots}}" as="d" hint-placeholder-count="20">
+<span onMouseEnter="{{d.enter}}" onMouseLeave="{{d.leave}}" onClick="{{d.pick}}" style="position: relative; flex-shrink: 0; width: 9px; height: 9px; cursor: pointer; {{d.z}}">
+<span style="display: block; width: 100%; height: 100%; box-sizing: border-box; border-radius: 2.5px; transition: transform 120ms ease-out, box-shadow 120ms ease-out, opacity 120ms ease-out; {{d.s}}"></span>
+<sc-if value="{{d.tip}}" hint-placeholder-val="{{ false }}">
+<span role="tooltip" style="position: absolute; bottom: calc(100% + 12px); width: 244px; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; background: #15171c; border: 1px solid var(--tip-edge); color: #ffffff; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 8px 24px rgba(21, 23, 28, 0.22); pointer-events: none; {{d.align}}">
+<span style="display: flex; align-items: center; gap: 8px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #d9dce1">{{d.id}}</span><span style="font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 5px; {{d.statusStyle}}">{{d.status}}</span></span>
+<span style="font-size: 13.5px; font-weight: 500; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; word-break: break-word">{{d.title}}</span>
+<span style="font-size: 12px; color: #bfc3ca; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.feature}}</span>
+<span style="position: absolute; top: 100%; margin-top: -5px; width: 10px; height: 10px; background: #15171c; transform: rotate(45deg); {{d.arrow}}"></span>
+</span>
+</sc-if>
+</span>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<div style="margin-top: auto; display: flex; gap: 16px; font-size: 12px; color: var(--muted)">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 2.5px; background: var(--green)"></span>Done 233</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 2.5px; box-sizing: border-box; border: 1.5px solid var(--blue)"></span>Open 8</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 2.5px; background: #c2410c"></span>Next 1</span>
+<span style="margin-left: auto">1 dot = 1 task</span>
+</div>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":null},"mode":{"editor":"enum","options":["stacked","grouped"],"default":"stacked"},"hoverIdx":{"editor":"int","default":-1,"min":-1,"max":241},"tipIdx":{"editor":"int","default":-1,"min":-1,"max":241},"onHoverTask":{"editor":null},"onPickTask":{"editor":null},"$preview":{"width":372,"height":390}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    var s = this;
+    this._th = function () { s.forceUpdate(); };
+    window.addEventListener('storage', this._th);
+    window.addEventListener('sk-theme', this._th);
+  }
+  componentWillUnmount() {
+    clearTimeout(this._t);
+    window.removeEventListener('storage', this._th);
+    window.removeEventListener('sk-theme', this._th);
+  }
+  themeVals() {
+    // Shared light / dark / system choice, remembered per viewer and synced across boards
+    var stored = 'system';
+    try { stored = localStorage.getItem('sk-theme') || 'system'; } catch (e) {}
+    var theme = this.props.theme || stored;
+    var self = this;
+    var opts = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(function (o) {
+      var on = theme === o[0];
+      return { id: o[0], label: o[1], pressed: on ? 'true' : 'false',
+        isLight: o[0] === 'light', isDark: o[0] === 'dark', isSystem: o[0] === 'system',
+        style: on ? 'background:#2A2E36;color:#FFFFFF' : 'background:transparent;color:#A9ADB6',
+        set: function () {
+          try { localStorage.setItem('sk-theme', o[0]); } catch (e) {}
+          window.dispatchEvent(new Event('sk-theme'));
+          self.forceUpdate();
+        } };
+    });
+    return { theme: theme, themeOpts: opts };
+  }
+  renderVals() {
+    var tv = this.themeVals();
+    var self = this;
+    var st = this.state || {};
+    var mode = st.mode || this.props.mode || 'stacked';
+    var grouped = mode === 'grouped';
+    var hover = (st.hover !== undefined && st.hover !== null) ? st.hover : parseInt(this.props.hoverIdx == null ? -1 : this.props.hoverIdx, 10);
+    var tip = (st.tip !== undefined && st.tip !== null) ? st.tip : parseInt(this.props.tipIdx == null ? -1 : this.props.tipIdx, 10);
+
+    var T001 = {
+      46: 'Write unit tests for Moving Average block in `internal/processing/movingaverage_test.go`: feed known values, assert rolling average is correct for window sizes 1, 5, 10',
+      47: 'Write unit tests for Signal Simulator in `internal/input/simulator_test.go`: assert sine waveform emits exactly `sampleRateHz` chunks per second (within 5% tolerance over 1 second)',
+      48: 'Write unit tests for Byte Parser in `internal/processing/byteparser_test.go`: test float32-le parsing (4-byte frames → float64 value), int16-be (2-byte), uint8 (1-byte)',
+      49: 'Write unit tests for FFT block in `internal/processing/fft_test.go`: feed a 512-sample pure sine wave at 10 Hz (sample rate 100 Hz)',
+      50: 'Write unit tests for Summation and Scaling in `internal/processing/summation_test.go` and `internal/processing/scaling_test.go`',
+      51: 'Implement Signal Simulator input block in `internal/input/simulator.go`: generate sine/square/sawtooth/noise waveforms at `sampleRateHz` using a ticker',
+      52: 'Implement Moving Average block in `internal/processing/movingaverage.go`: maintain circular buffer of `windowSize` float64 samples',
+      53: 'Implement Summation block in `internal/processing/summation.go`: maintain running sum; emit DataChunk with same Timestamp and running sum as `Values[0]`',
+      54: 'Implement Value Scaling/Offset block in `internal/processing/scaling.go`: `output = input*scale + offset`; preserve Timestamp',
+      55: 'Implement Byte Parser block in `internal/processing/byteparser.go`: buffer incoming `Raw` bytes; when buffer contains `frameSize` bytes, parse `channels` values per frame',
+      56: 'Implement FFT processing block in `internal/processing/fft.go`: accumulate `windowSize` float64 samples in buffer; when full, apply window function',
+      57: 'Implement Line Chart analysis block in `internal/analysis/linechart.go`: satisfies `AnalysisBlock`; ring buffer with `BufferConfig` (samples or duration)',
+      58: 'Implement Data Table analysis block in `internal/analysis/datatable.go`: satisfies `AnalysisBlock`; ring buffer; emits `pipeline:data` events',
+      59: 'Add fan-out test to `internal/pipeline/engine_test.go`: create 1 stub Input → 1 stub Processing → 2 stub Analysis blocks',
+      60: 'Implement pipeline start validation for unconnected blocks in `services/pipeline_service.go`: on `Start()`, check that every Processing block has at least one connected input port',
+      61: 'Create `frontend/src/components/blocks/inputs/SimulatorBlockConfig.vue`: waveform `<select>` (sine/square/sawtooth/noise), frequency Hz, amplitude, DC offset',
+      62: 'Create `frontend/src/components/blocks/processing/MovingAverageConfig.vue`: `windowSize` number input (min 1); calls `UpdateBlockParams` on change',
+      63: 'Create `frontend/src/components/blocks/processing/FFTConfig.vue`: `windowSize` select (128/256/512/1024/2048), `windowFunction` select (none/hann/hamming)',
+      64: 'Create `frontend/src/components/blocks/processing/ScalingConfig.vue`: `scale` and `offset` number inputs with default 1.0 and 0.0',
+      65: 'Create `frontend/src/components/blocks/processing/ByteParserConfig.vue`: `format` select (float32-le/float32-be/int16-le/int16-be/uint8), `channels` number (min 1)',
+      66: 'Create `frontend/src/components/blocks/analysis/LineChartBlock.vue`: uPlot streaming time-series chart; subscribes to `pipeline:data` Wails event filtered by `blockId`',
+      67: 'Create `frontend/src/components/blocks/analysis/DataTableBlock.vue`: PrimeVue `DataTable` with virtual scroll; shows `timestamp` (formatted) and one column per channel',
+      68: 'Expand `frontend/src/components/panels/BlockLibraryPanel.vue`: add all Processing block types (Moving Average, Summation, FFT, Scaling, Byte Parser, Passthrough)'
+    };
+    var feats = [
+      { num: '001', label: 'Serial Data Processing Studio', total: 123, open: [], next: -1, noId: [8, 115, 116, 117, 118, 119], titles: T001 },
+      { num: '002', label: 'Nocturnal Redesign & Canvas-Inline Analysis', total: 32, open: [8, 9, 10, 11, 12, 13, 14, 23], next: -1, noId: [], titles: {} },
+      { num: '003', label: 'New Signal Blocks', total: 72, open: [], next: -1, noId: [], titles: {} },
+      { num: '005', label: 'Rename Summation to Integral & Add Signal Sum Block', total: 15, open: [], next: 14, noId: [],
+        titles: { 13: 'Run all backend tests via `go test ./...` and verify no regressions', 14: 'Run frontend tests via `cd frontend && npm test` and verify no regressions', 15: 'Run quickstart.md end-to-end validation scenarios in `specs/005-integral-signal-sum/quickstart.md`' } }
+    ];
+    var perRow = grouped ? 27 : 20;
+    var size = grouped ? 9 : 13;
+    var somethingHovered = hover >= 0;
+    var ST = {
+      done: ['Done', 'background:var(--green)', 'background:#2f9e74;color:#ffffff'],
+      open: ['Open', 'background:var(--surface);border:1.5px solid var(--blue)', 'background:#3b63d9;color:#ffffff'],
+      next: ['Next', 'background:#c2410c', 'background:#ea580c;color:#15171c']
+    };
+    var onHover = this.props.onHoverTask, onPick = this.props.onPickTask;
+    function enter(i, info) {
+      return function () {
+        clearTimeout(self._t);
+        self.setState({ hover: i, tip: -1 });
+        self._t = setTimeout(function () { self.setState({ tip: i }); }, 500);
+        if (typeof onHover === 'function') onHover(info);
+      };
+    }
+    function leave() {
+      clearTimeout(self._t); self.setState({ hover: -1, tip: -1 });
+      if (typeof onHover === 'function') onHover(null);
+    }
+    function pick(info) { return function () { if (typeof onPick === 'function') onPick(info); }; }
+
+    var all = [], groups = [], g = 0;
+    feats.forEach(function (f) {
+      var list = [];
+      var done = 0, n = 0;
+      for (var k = 0; k < f.total; k++) {
+        var kind = k === f.next ? 'next' : (f.open.indexOf(k) >= 0 ? 'open' : 'done');
+        if (kind === 'done') done++;
+        var hasId = f.noId.indexOf(k) < 0;
+        var num = hasId ? ++n : 0;
+        var id = hasId ? 'T' + (num < 10 ? '00' : num < 100 ? '0' : '') + num : 'No ID';
+        var info = { feature: f.num, index: k, id: hasId ? id : null };
+        var col = (grouped ? k : g) % perRow;
+        var isHover = g === hover, isTip = g === tip;
+        var half = Math.round(size / 2) - 5;
+        var align, arrow;
+        if (col < 6) { align = 'left:0'; arrow = 'left:' + half + 'px'; }
+        else if (col > perRow - 7) { align = 'right:0'; arrow = 'right:' + half + 'px'; }
+        else { align = 'left:50%;transform:translateX(-50%)'; arrow = 'left:50%;margin-left:-5px'; }
+        var s = ST[kind][1];
+        if (isHover) s += ';transform:scale(1.6);box-shadow:0 0 0 1.5px var(--surface),0 0 0 3px var(--text)';
+        var d = {
+          s: s, z: isHover ? 'z-index:5' : '', tip: isTip,
+          id: id, title: hasId ? (f.titles[num] || '[Task title from tasks.md]') : 'Checkbox without a task ID', feature: f.label,
+          status: ST[kind][0], statusStyle: ST[kind][2], align: align, arrow: arrow,
+          enter: enter(g, info), leave: leave, pick: pick(info)
+        };
+        list.push(d); all.push(d); g++;
+      }
+      groups.push({ label: f.label, meta: done + '/' + f.total, dots: list });
+    });
+    return { theme: tv.theme, themeOpts: tv.themeOpts,
+      stacked: !grouped, grouped: grouped, dots: all, groups: groups,
+      btnLabel: grouped ? 'Stack all' : 'By feature', pressed: grouped ? 'true' : 'false',
+      btnBg: grouped ? 'var(--bg)' : 'var(--surface)',
+      toggle: function () { clearTimeout(self._t); self.setState({ mode: grouped ? 'stacked' : 'grouped', hover: -1, tip: -1 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

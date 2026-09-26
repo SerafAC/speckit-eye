@@ -1,0 +1,123 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Doc.dc.html": {
+      "h": 2800,
+      "is_interactive": true,
+      "title": "3 · Document reader — spec.md",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Feature.dc.html": {
+      "h": 2020,
+      "is_interactive": true,
+      "title": "2 · Feature page — tasks",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 1440,
+      "is_interactive": true,
+      "title": "1 · Project overview",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "StatsCombined.dc.html": {
+      "h": 222,
+      "title": "1c · Stats — combined (in use)",
+      "w": 1072,
+      "x": -1449,
+      "y": 131
+    },
+    "StatsOriginal.dc.html": {
+      "h": 200,
+      "title": "1d · Stats — original (backup)",
+      "w": 1072,
+      "x": -1449,
+      "y": 473
+    },
+    "TaskMap.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "1b · Task map — component",
+      "w": 372,
+      "x": 0,
+      "y": 2920
+    },
+    "TaskMapStates.dc.html": {
+      "h": 1240,
+      "is_interactive": true,
+      "title": "1a · Task map — component states",
+      "w": 1324,
+      "x": 0,
+      "y": 1560
+    },
+    "MainDark.dc.html": {
+      "x": 0,
+      "y": 3700,
+      "w": 1440,
+      "h": 1440,
+      "title": "1 · Project overview — dark",
+      "is_interactive": true
+    },
+    "FeatureDark.dc.html": {
+      "x": 1520,
+      "y": 3700,
+      "w": 1440,
+      "h": 2020,
+      "title": "2 · Feature page — dark",
+      "is_interactive": true
+    },
+    "DocDark.dc.html": {
+      "x": 3040,
+      "y": 3700,
+      "w": 1440,
+      "h": 2800,
+      "title": "3 · Document reader — dark",
+      "is_interactive": true
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-25T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "title": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "speckit-eye — redesign proposal",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "dark-title": {
+      "x": 0,
+      "y": 3400,
+      "text": "Dark mode",
+      "kind": "title1",
+      "maxW": 4480
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Feature.dc.html",
+    "Doc.dc.html",
+    "TaskMapStates.dc.html",
+    "TaskMap.dc.html",
+    "StatsCombined.dc.html",
+    "StatsOriginal.dc.html",
+    "MainDark.dc.html",
+    "FeatureDark.dc.html",
+    "DocDark.dc.html"
+  ],
+  "pages": [],
+  "title": "SpecKit Eye Redesign"
+}

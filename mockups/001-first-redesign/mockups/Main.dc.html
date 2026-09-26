@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overview — byte-flow-studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+a{color:inherit;text-decoration:none}a:hover{color:var(--blue)}
+button{font-family:inherit}
+.sk{--bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#FAF9F6;--subtle:#EEECE6;--subtle-2:#F1EFEA;--track:#EAE8E2;--border:#E4E1D9;--border-strong:#DEDBD3;--dashed:#C9C5BB;--text:#15171C;--text-2:#2E3238;--text-2b:#25282E;--text-3:#3E434C;--text-4:#4A4F59;--muted:#5B606A;--muted-2:#6B7079;--chip-n:#D8DBE1;--outline-n:#B9BDC5;--inv-bg:#15171C;--inv-fg:#FFFFFF;--chrome:#15171C;--chrome-2:#15171C;--chrome-edge:transparent;--tip-edge:transparent;--green:#1F7A5A;--green-text:#16603F;--green-bg:#E3F1EA;--green-bg-2:#DCEBE3;--blue:#2F5BD3;--blue-text:#1E3F9E;--blue-bg:#E6ECFB;--blue-bg-2:#EEF2FD;--blue-bg-3:#F1F4FD;--blue-soft:#C9D5F5;--blue-ring:#7C9CF0;--orange-bg:#FFF4ED;--amber-bg:#FEF3C7;--amber-bg-2:#FFFBEB;--amber-text:#713F12;--amber-text-2:#854D0E;--amber-border:#E8C872;--purple-bg:#EFE9FB;--purple-text:#4C2D91;--red-bg:#FDE7DC;--red-text:#9A3412;color-scheme:light}.sk[data-theme="dark"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}@media (prefers-color-scheme: dark){.sk[data-theme="system"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}}
+</style>
+</helmet>
+<div class="sk" data-theme="{{theme}}" style="width: 1440px; height: 1440px; display: flex; background: var(--bg); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: var(--text)">
+
+<!-- Sidebar replaces the old "Menu" button -->
+<aside style="width: 272px; flex-shrink: 0; background: var(--chrome); border-right: 1px solid var(--chrome-edge); color: #e7e8eb; display: flex; flex-direction: column; gap: 22px; padding: 24px 16px; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<div style="width: 30px; height: 30px; border-radius: 9px; background: #f4f3ef; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15171c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</div>
+<div style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">speckit-eye</div>
+</div>
+
+<button style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 12px; background: #22252c; border: 1px solid #2e323a; border-radius: 12px; color: #e7e8eb; text-align: left; cursor: pointer">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #a9adb6">Project</span>
+<span style="font-size: 14px; font-weight: 600">byte-flow-studio</span>
+</div>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a9adb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+</button>
+
+<button style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px; background: transparent; border: 1px solid #2e323a; border-radius: 10px; color: #a9adb6; font-size: 14px; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="flex-grow: 1; text-align: left">Search tasks, specs…</span>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 2px 6px; border: 1px solid #3a3f48; border-radius: 6px">⌘K</span>
+</button>
+
+<nav aria-label="Main" style="display: flex; flex-direction: column; gap: 2px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #2a2e36; color: #ffffff; font-size: 14px; font-weight: 500">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+Overview</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #c9ccd2; font-size: 14px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V7l-8-4z"></path></svg>
+Constitution</a>
+</nav>
+
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; padding: 0 12px 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #a9adb6"><span>Features</span><span>2 / 4 done</span></div>
+<sc-for list="{{features}}" as="f" hint-placeholder-count="4">
+<a href="{{f.href}}" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 12px; border-radius: 10px; color: #e7e8eb; font-size: 13.5px">
+<span style="width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; {{f.dotStyle}}"></span>
+<span style="flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.name}}</span>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: {{f.sideMetaColor}}">{{f.sideMeta}}</span>
+</a>
+</sc-for>
+</div>
+
+<div role="group" aria-label="Theme" style="margin-top: auto; display: flex; padding: 3px; gap: 2px; background: #1b1e24; border: 1px solid #2e323a; border-radius: 10px">
+<sc-for list="{{themeOpts}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.set}}" aria-pressed="{{o.pressed}}" style="flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; border: 0; border-radius: 8px; font-family: inherit; font-size: 12.5px; cursor: pointer; {{o.style}}">
+<sc-if value="{{o.isLight}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></sc-if>
+<sc-if value="{{o.isDark}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></sc-if>
+<sc-if value="{{o.isSystem}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></sc-if>
+{{o.label}}</button>
+</sc-for>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-top: 1px solid #2e323a; font-size: 12px; color: #a9adb6">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace">speckit-eye 1.0.0</span>
+<button aria-label="Settings" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #a9adb6; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+</div>
+</aside>
+
+<!-- Main -->
+<main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 28px; padding: 36px 48px 48px; box-sizing: border-box">
+
+<header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 13px; color: var(--muted)">byte-flow-studio</div>
+<h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 48px; line-height: 1; letter-spacing: -0.01em">Project overview</h1>
+</div>
+<div style="display: flex; gap: 8px">
+<button style="min-height: 44px; padding: 0 16px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; font-size: 14px; color: var(--text); cursor: pointer">All features</button>
+<button style="min-height: 44px; padding: 0 16px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; font-size: 14px; color: var(--text); cursor: pointer">Open tasks only</button>
+</div>
+</header>
+
+<!-- KPIs -->
+<dc-import name="StatsCombined" theme="{{theme}}" hint-size="100%,222px"></dc-import>
+
+<!-- Up next -->
+<section aria-label="Up next" style="background: var(--chrome-2); color: #ffffff; border-radius: 14px; padding: 10px 12px 10px 20px; display: flex; align-items: center; gap: 16px">
+<span style="flex-shrink: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #fdba74">Up next</span>
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #c2410c; color: #ffffff">T015</span>
+<span title="Run quickstart.md end-to-end validation scenarios in `specs/005-integral-signal-sum/quickstart.md`" style="flex-grow: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Run quickstart.md end-to-end validation scenarios in `specs/005-integral-signal-sum/quickstart.md`</span>
+<span style="flex-shrink: 1; min-width: 0; max-width: 260px; font-size: 13px; color: #bfc3ca; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rename Summation to Integral &amp; Add Signal Sum Block › Phase 6</span>
+<div style="display: flex; gap: 10px; flex-shrink: 0">
+<a href="Doc.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #3a3f48; color: #ffffff; font-size: 14px; font-weight: 500">Open quickstart</a>
+<a href="Feature.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 10px; background: #c2410c; color: #ffffff; font-size: 14px; font-weight: 500">View task
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></a>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 24px; flex-grow: 1">
+
+<!-- Feature cards -->
+<section aria-label="Features" style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 style="margin: 0; font-size: 18px; font-weight: 600">Features</h2>
+<div style="display: flex; align-items: center; gap: 8px">
+<button onClick="{{cycleSort}}" title="Change feature order" style="display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16"></path><path d="m3 16 4 4 4-4"></path><path d="M17 20V4"></path><path d="m13 8 4-4 4 4"></path></svg>
+<span style="color: var(--muted)">Order:</span>{{sortLabel}}</button>
+<div role="group" aria-label="Level of detail" style="display: flex; padding: 3px; background: var(--track); border-radius: 10px">
+<sc-for list="{{levels}}" as="l" hint-placeholder-count="3">
+<button onClick="{{l.set}}" aria-pressed="{{l.pressed}}" style="min-height: 32px; padding: 0 14px; border: 0; border-radius: 8px; font-family: inherit; font-size: 13px; cursor: pointer; {{l.style}}">{{l.label}}</button>
+</sc-for>
+</div>
+</div>
+</div>
+<div id="feature-tree" role="tree" aria-label="Features, phases and tasks" style="position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 8px; display: flex; flex-direction: column; max-height: 800px; overflow-y: auto">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+<div id="{{r.rid}}" role="treeitem" aria-expanded="{{r.expanded}}" style="display: flex; align-items: stretch; border-radius: 10px; transition: background 120ms ease-out, box-shadow 120ms ease-out; {{r.rowStyle}}">
+<sc-for list="{{r.guides}}" as="g" hint-placeholder-count="1">
+<span style="width: 22px; flex-shrink: 0; margin-left: 17px; border-left: 1px solid var(--border)"></span>
+</sc-for>
+
+<sc-if value="{{r.isFeature}}" hint-placeholder-val="{{ true }}">
+<div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 12px 0 4px">
+<button onClick="{{r.toggle}}" aria-label="Toggle feature" style="width: 32px; height: 32px; flex-shrink: 0; border: 0; border-radius: 8px; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{r.chev}}"><path d="m9 6 6 6-6 6"></path></svg></button>
+<span style="width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-sizing: border-box; {{r.dotStyle}}"></span>
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; font-weight: 500; padding: 2px 7px; border-radius: 6px; background: var(--subtle); color: var(--text-3)">{{r.num}}</span>
+<span style="flex-grow: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+<sc-if value="{{r.warn}}" hint-placeholder-val="{{ false }}"><span style="flex-shrink: 0; font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 999px; background: var(--amber-bg); color: var(--amber-text-2)">{{r.warnLabel}}</span></sc-if>
+<span style="flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; {{r.pillStyle}}">{{r.statusLabel}}</span>
+<span style="flex-shrink: 0; width: 110px; height: 6px; background: var(--subtle); border-radius: 3px; overflow: hidden; display: flex"><span style="width: {{r.pct}}; background: {{r.barColor}}"></span></span>
+<span style="flex-shrink: 0; width: 64px; text-align: right; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--text-4)">{{r.counts}}</span>
+<a href="{{r.href}}" aria-label="Open feature page" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-4)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></a>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isWarn}}" hint-placeholder-val="{{ false }}">
+<div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 4px 8px 4px 4px; padding: 0 12px; border-radius: 10px; background: var(--amber-bg); color: var(--amber-text)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+<span style="flex-grow: 1; min-width: 0; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><strong style="font-weight: 600">{{r.warnTitle}}</strong> in tasks.md — counted, not linkable</span>
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 2px 7px; border-radius: 6px; background: var(--amber-bg-2); color: var(--amber-text)">L23</span>
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 2px 7px; border-radius: 6px; background: var(--amber-bg-2); color: var(--amber-text)">L254–258</span>
+<a href="{{r.href}}" style="flex-shrink: 0; font-size: 13px; font-weight: 500; color: var(--amber-text); text-decoration: underline">Details</a>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isPhase}}" hint-placeholder-val="{{ false }}">
+<div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px 0 4px">
+<sc-if value="{{r.hasKids}}" hint-placeholder-val="{{ true }}"><button onClick="{{r.toggle}}" aria-label="Toggle phase" style="width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: 7px; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="{{r.chev}}"><path d="m9 6 6 6-6 6"></path></svg></button></sc-if>
+<sc-if value="{{r.noKids}}" hint-placeholder-val="{{ false }}"><span style="width: 28px; flex-shrink: 0"></span></sc-if>
+<span style="flex-shrink: 0; width: 62px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">{{r.num}}</span>
+<span style="flex-grow: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: {{r.titleColor}}">{{r.title}}</span>
+<sc-if value="{{r.prio}}" hint-placeholder-val="{{ false }}"><span style="flex-shrink: 0; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; {{r.prioStyle}}">{{r.prio}}</span></sc-if>
+<span style="flex-shrink: 0; width: 64px; text-align: right; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: {{r.countColor}}">{{r.counts}}</span>
+<span style="width: 32px; flex-shrink: 0"></span>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isTask}}" hint-placeholder-val="{{ false }}">
+<div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px 0 8px">
+<span style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 50%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; {{r.markStyle}}"><sc-if value="{{r.done}}" hint-placeholder-val="{{ true }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"></path></svg></sc-if></span>
+<span style="flex-shrink: 0; width: 42px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">{{r.id}}</span>
+<span title="{{r.title}}" style="flex-grow: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; {{r.titleStyle}}">{{r.title}}</span>
+<sc-if value="{{r.next}}" hint-placeholder-val="{{ false }}"><span style="flex-shrink: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 5px; background: #c2410c; color: #ffffff">NEXT</span></sc-if>
+<span style="width: 32px; flex-shrink: 0"></span>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+
+<!-- Right rail -->
+<aside style="display: flex; flex-direction: column; gap: 16px">
+<dc-import name="TaskMap" theme="{{theme}}" mode="stacked" on-hover-task="{{onMapHover}}" on-pick-task="{{onMapPick}}" hint-size="372px,390px"></dc-import>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":null},"$preview":{"width":1440,"height":1440}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    var s = this;
+    this._th = function () { s.forceUpdate(); };
+    window.addEventListener('storage', this._th);
+    window.addEventListener('sk-theme', this._th);
+  }
+  componentWillUnmount() {
+    clearTimeout(this._t);
+    window.removeEventListener('storage', this._th);
+    window.removeEventListener('sk-theme', this._th);
+  }
+  themeVals() {
+    // Shared light / dark / system choice, remembered per viewer and synced across boards
+    var stored = 'system';
+    try { stored = localStorage.getItem('sk-theme') || 'system'; } catch (e) {}
+    var theme = this.props.theme || stored;
+    var self = this;
+    var opts = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(function (o) {
+      var on = theme === o[0];
+      return { id: o[0], label: o[1], pressed: on ? 'true' : 'false',
+        isLight: o[0] === 'light', isDark: o[0] === 'dark', isSystem: o[0] === 'system',
+        style: on ? 'background:#2A2E36;color:#FFFFFF' : 'background:transparent;color:#A9ADB6',
+        set: function () {
+          try { localStorage.setItem('sk-theme', o[0]); } catch (e) {}
+          window.dispatchEvent(new Event('sk-theme'));
+          self.forceUpdate();
+        } };
+    });
+    return { theme: theme, themeOpts: opts };
+  }
+  renderVals() {
+    var tv = this.themeVals();
+    var green = 'var(--green)', blue = 'var(--blue)';
+    var raw = [
+      { num: '005', name: 'Rename Summation to Integral & Add Signal Sum Block', done: 14, total: 15, open: 1, warn: 0, href: 'Feature.dc.html', prog: true, docs: ['Spec', 'Plan', 'Research', 'Data model', 'Quickstart', 'Tasks', 'Contracts', 'Checklist'] },
+      { num: '002', name: 'Nocturnal Redesign & Canvas-Inline Analysis', done: 24, total: 32, open: 8, warn: 0, href: '#', prog: true, docs: ['Spec', 'Plan', 'Tasks'] },
+      { num: '001', name: 'Serial Data Processing Studio', done: 123, total: 123, open: 0, warn: 6, href: 'Feature.dc.html', prog: false, docs: ['Spec', 'Plan', 'Research', 'Data model', 'Quickstart', 'Tasks', '4 contracts', 'Checklist'] },
+      { num: '003', name: 'New Signal Blocks', done: 72, total: 72, open: 0, warn: 0, href: '#', prog: false, docs: ['Spec', 'Plan', 'Tasks'] }
+    ];
+    var self = this;
+    var st = this.state || {};
+    var open = st.open || { f005: true, 'f005-p5': true, f001: true };
+    function tog(key) { return function () { var o = Object.assign({}, open); o[key] = !o[key]; self.setState({ open: o, level: null }); }; }
+    var phaseData = {
+      '005': [
+        ['Phase 1', 'Setup', 0, 0, '', []],
+        ['Phase 2', 'Foundational (Blocking Prerequisites)', 0, 0, '', []],
+        ['Phase 3', 'US1 — Rename Summation Block to Integral', 4, 4, 'P1', []],
+        ['Phase 4', 'US2 — Add Signal Sum Block', 6, 6, 'P1', []],
+        ['Phase 5', 'US3 — Configure Signal Sum Input Count', 2, 2, 'P2', []],
+        ['Phase 6', 'Polish & Cross-Cutting Concerns', 2, 3, '', [
+          ['T013', 'Run all backend tests via `go test ./...` and verify no regressions', '', 'done'],
+          ['T014', 'Run frontend tests via `cd frontend && npm test` and verify no regressions', '', 'done'],
+          ['T015', 'Run quickstart.md end-to-end validation scenarios in `specs/005-integral-signal-sum/quickstart.md`', '', 'next']
+        ]]
+      ],
+      '001': [
+        ['Phase 1', 'Setup (Project Initialization)', 9, 9, '', []],
+        ['Phase 2', 'Foundational (Blocking Prerequisites)', 17, 17, '', []],
+        ['Phase 3', 'US1 — Connect a Data Source and View Live Data', 20, 20, 'P1', []],
+        ['Phase 4', 'US2 — Build a Multi-Step Processing Pipeline', 23, 23, 'P2', [
+          ['T046', 'Write unit tests for Moving Average block in `internal/processing/movingaverage_test.go`: feed known values, assert rolling average is correct for window sizes 1, 5, 10', '', 'done'],
+          ['T047', 'Write unit tests for Signal Simulator in `internal/input/simulator_test.go`: assert sine waveform emits exactly `sampleRateHz` chunks per second', '', 'done'],
+          ['T048', 'Write unit tests for Byte Parser in `internal/processing/byteparser_test.go`: test float32-le parsing (4-byte frames → float64 value)', '', 'done'],
+          ['T049', 'Write unit tests for FFT block in `internal/processing/fft_test.go`: feed a 512-sample pure sine wave at 10 Hz (sample rate 100 Hz)', '', 'done'],
+          ['T050', 'Write unit tests for Summation and Scaling in `internal/processing/summation_test.go` and `internal/processing/scaling_test.go`', '', 'done'],
+          ['T051', 'Implement Signal Simulator input block in `internal/input/simulator.go`: generate sine/square/sawtooth/noise waveforms at `sampleRateHz`', '', 'done'],
+          ['T052', 'Implement Moving Average block in `internal/processing/movingaverage.go`: maintain circular buffer of `windowSize` float64 samples', '', 'done'],
+          ['T053', 'Implement Summation block in `internal/processing/summation.go`: maintain running sum; emit DataChunk with same Timestamp', '', 'done'],
+          ['T054', 'Implement Value Scaling/Offset block in `internal/processing/scaling.go`: `output = input*scale + offset`; preserve Timestamp', '', 'done'],
+          ['T055', 'Implement Byte Parser block in `internal/processing/byteparser.go`: buffer incoming `Raw` bytes; when buffer contains `frameSize` bytes', '', 'done'],
+          ['T056', 'Implement FFT processing block in `internal/processing/fft.go`: accumulate `windowSize` float64 samples in buffer', '', 'done'],
+          ['T057', 'Implement Line Chart analysis block in `internal/analysis/linechart.go`: satisfies `AnalysisBlock`; ring buffer with `BufferConfig`', '', 'done'],
+          ['T058', 'Implement Data Table analysis block in `internal/analysis/datatable.go`: satisfies `AnalysisBlock`; ring buffer', '', 'done'],
+          ['T059', 'Add fan-out test to `internal/pipeline/engine_test.go`: create 1 stub Input → 1 stub Processing → 2 stub Analysis blocks', '', 'done'],
+          ['T060', 'Implement pipeline start validation for unconnected blocks in `services/pipeline_service.go`: on `Start()`, check every Processing block', '', 'done'],
+          ['T061', 'Create `frontend/src/components/blocks/inputs/SimulatorBlockConfig.vue`: waveform `<select>` (sine/square/sawtooth/noise), frequency Hz', '', 'done'],
+          ['T062', 'Create `frontend/src/components/blocks/processing/MovingAverageConfig.vue`: `windowSize` number input (min 1)', '', 'done'],
+          ['T063', 'Create `frontend/src/components/blocks/processing/FFTConfig.vue`: `windowSize` select (128/256/512/1024/2048)', '', 'done'],
+          ['T064', 'Create `frontend/src/components/blocks/processing/ScalingConfig.vue`: `scale` and `offset` number inputs with default 1.0 and 0.0', '', 'done'],
+          ['T065', 'Create `frontend/src/components/blocks/processing/ByteParserConfig.vue`: `format` select (float32-le/float32-be/int16-le/int16-be/uint8)', '', 'done'],
+          ['T066', 'Create `frontend/src/components/blocks/analysis/LineChartBlock.vue`: uPlot streaming time-series chart; subscribes to `pipeline:data`', '', 'done'],
+          ['T067', 'Create `frontend/src/components/blocks/analysis/DataTableBlock.vue`: PrimeVue `DataTable` with virtual scroll', '', 'done'],
+          ['T068', 'Expand `frontend/src/components/panels/BlockLibraryPanel.vue`: add all Processing block types and additional Analysis types', '', 'done']
+        ]],
+        ['Phase 5', 'US5 — Multiple Inputs and Analysis Blocks', 10, 10, 'P2', []],
+        ['Phase 6', 'US3 — Manage and Persist Workflows', 11, 11, 'P3', []],
+        ['Phase 7', 'US6 — Review a Past Data Session', 9, 9, 'P3', []],
+        ['Phase 8', 'US4 — Full-Screen Analysis View', 4, 4, 'P3', []],
+        ['Phase 9', 'Polish & Cross-Cutting Concerns', 17, 17, '', []],
+        ['Phase 10', 'Sampler Processing Block (FR-034)', 3, 3, '', []]
+      ]
+    };
+    var prioStyles = { P1: 'background:var(--inv-bg);color:var(--inv-fg)', P2: 'background:var(--chip-n);color:var(--text)', P3: 'background:var(--surface);color:var(--text);border:1px solid var(--outline-n)' };
+    var rot = 'transform:rotate(90deg)';
+    var sorts = [
+      { id: 'status', label: 'In progress first', fn: function (a, b) { return (b.prog - a.prog) || b.num.localeCompare(a.num); } },
+      { id: 'number', label: 'Number', fn: function (a, b) { return a.num.localeCompare(b.num); } },
+      { id: 'progress', label: 'Least complete', fn: function (a, b) { return (a.done / a.total) - (b.done / b.total) || a.num.localeCompare(b.num); } },
+      { id: 'name', label: 'Name A–Z', fn: function (a, b) { return a.name.localeCompare(b.name); } }
+    ];
+    var si = st.sortIdx || 0;
+    var sorted = raw.slice().sort(sorts[si].fn);
+    var rows = [];
+    sorted.forEach(function (f) {
+      var fk = 'f' + f.num, fOpen = !!open[fk];
+      rows.push({ rid: 'tr-' + f.num, fnum: f.num, pi: -1, tid: null, isFeature: true, isPhase: false, isTask: false, guides: [], expanded: fOpen ? 'true' : 'false',
+        rowStyle: fOpen ? 'background:var(--surface-2)' : '', toggle: tog(fk), chev: fOpen ? rot : '',
+        num: f.num, name: f.name, href: f.href, pct: Math.round(f.done / f.total * 100) + '%',
+        dotStyle: f.prog ? 'border:2px solid var(--blue)' : 'background:var(--green)',
+        statusLabel: f.prog ? f.open + ' open' : 'Complete',
+        pillStyle: f.prog ? 'background:var(--blue-bg);color:var(--blue-text)' : 'background:var(--green-bg);color:var(--green-text)',
+        warn: f.warn > 0, warnLabel: f.warn + ' warnings', barColor: f.prog ? blue : green,
+        counts: f.done + '/' + f.total });
+      if (!fOpen) return;
+      if (f.warn > 0) {
+        rows.push({ isFeature: false, isPhase: false, isTask: false, isWarn: true, guides: [1], expanded: 'false', rowStyle: '',
+          warnTitle: f.warn + ' checkboxes without a task ID', href: f.href });
+      }
+      var phs = phaseData[f.num];
+      if (!phs) {
+        rows.push({ isFeature: false, isPhase: true, isTask: false, guides: [1], expanded: 'false', rowStyle: '', hasKids: false, noKids: true,
+          num: '', title: '[Phases load from tasks.md]', titleColor: 'var(--muted-2)', prio: '', counts: '', countColor: 'var(--muted)' });
+        return;
+      }
+      phs.forEach(function (p, pi) {
+        var pk = fk + '-p' + pi, pOpen = !!open[pk], kids = p[5].length > 0, empty = p[3] === 0;
+        var complete = p[2] === p[3];
+        rows.push({ rid: 'tr-' + f.num + '-p' + pi, fnum: f.num, pi: pi, tid: null, isFeature: false, isPhase: true, isTask: false, guides: [1], expanded: pOpen ? 'true' : 'false', rowStyle: '',
+          hasKids: kids, noKids: !kids, toggle: tog(pk), chev: pOpen ? rot : '',
+          num: p[0], title: p[1], titleColor: empty ? 'var(--muted-2)' : 'var(--text)', prio: p[4], prioStyle: prioStyles[p[4]] || '',
+          counts: empty ? '—' : p[2] + '/' + p[3] + (complete ? ' ✓' : ''), countColor: complete ? 'var(--green-text)' : 'var(--blue-text)' });
+        if (!pOpen) return;
+        p[5].forEach(function (t) {
+          var isNext = t[3] === 'next', isDone = t[3] === 'done';
+          rows.push({ rid: 'tr-' + f.num + '-' + t[0], fnum: f.num, pi: pi, tid: t[0], isFeature: false, isPhase: false, isTask: true, guides: [1, 2], expanded: 'false',
+            rowStyle: isNext ? 'background:var(--orange-bg)' : '',
+            id: t[0], title: t[1], chip: t[2], next: isNext, done: isDone,
+            markStyle: isDone ? 'background:var(--green)' : (isNext ? 'border:2px solid #c2410c' : 'border:2px solid var(--blue)'),
+            titleStyle: isNext ? 'font-weight:600;color:var(--text)' : 'color:var(--text-3)' });
+        });
+      });
+    });
+    function openFor(level) {
+      var o = {};
+      if (level === 'features') return o;
+      raw.forEach(function (f) {
+        o['f' + f.num] = true;
+        if (level === 'tasks' && phaseData[f.num]) {
+          phaseData[f.num].forEach(function (p, pi) { if (p[5].length) o['f' + f.num + '-p' + pi] = true; });
+        }
+      });
+      return o;
+    }
+    var curLevel = st.level || null;
+    var levels = [['features', 'Features'], ['phases', 'Phases'], ['tasks', 'Tasks']].map(function (l) {
+      var on = curLevel === l[0];
+      return { label: l[1], pressed: on ? 'true' : 'false',
+        style: on ? 'background:var(--surface);color:var(--text);font-weight:500;box-shadow:0 1px 2px rgba(21,23,28,0.08)' : 'background:transparent;color:var(--text-4)',
+        set: function () { self.setState({ level: l[0], open: openFor(l[0]) }); } };
+    });
+    var cycleSort = function () { self.setState({ sortIdx: (si + 1) % sorts.length }); };
+    var features = raw.map(function (f) {
+      return {
+        name: f.name, href: f.href,
+        dotStyle: f.prog ? 'border:2px solid var(--blue-ring);box-sizing:border-box' : 'background:#3FB27F',
+        sideMeta: f.prog ? f.open + ' open' : '✓',
+        sideMetaColor: f.prog ? '#A8BCF5' : '#6FCFA0'
+      };
+    });
+    var doneS = 'background:var(--green)', openS = 'background:var(--surface);border:1.5px solid var(--blue)', nextS = 'background:#c2410c';
+    function dots(total, openIdx, nextIdx) {
+      var out = [];
+      for (var i = 0; i < total; i++) {
+        var s = doneS;
+        if (openIdx.indexOf(i) >= 0) s = openS;
+        if (i === nextIdx) s = nextS;
+        out.push({ s: s });
+      }
+      return out;
+    }
+    var groups = [
+      { label: 'Serial Data Processing Studio', meta: '123/123', dots: dots(123, [], -1) },
+      { label: 'Nocturnal Redesign & Canvas-Inline Analysis', meta: '24/32', dots: dots(32, [8, 9, 10, 11, 12, 13, 14, 23], -1) },
+      { label: 'New Signal Blocks', meta: '72/72', dots: dots(72, [], -1) },
+      { label: 'Rename Summation to Integral', meta: '14/15', dots: dots(15, [], 14) }
+    ];
+    function locate(info) {
+      if (!info) return null;
+      var phs = phaseData[info.feature], pi = -1;
+      if (phs) {
+        var cum = 0;
+        for (var i = 0; i < phs.length; i++) { if (info.index < cum + phs[i][3]) { pi = i; break; } cum += phs[i][3]; }
+      }
+      return { num: info.feature, pi: pi, id: info.id };
+    }
+    function matches(r, loc) {
+      if (!loc || r.fnum !== loc.num || !r.rid) return false;
+      if (r.isFeature) return true;
+      if (r.isPhase) return r.pi === loc.pi;
+      if (r.isTask) return r.tid === loc.id;
+      return false;
+    }
+    function paint(loc, all, deep) {
+      var last = -1;
+      rows.forEach(function (r, i) { if (matches(r, loc)) { if (all) r.rowStyle = all; last = i; } });
+      if (last >= 0) rows[last].rowStyle = deep;
+      return last >= 0 ? rows[last].rid : null;
+    }
+    var hoverLoc = locate(st.hover), selLoc = locate(st.sel);
+    paint(hoverLoc, 'background:var(--blue-bg-3)', 'background:var(--blue-bg);box-shadow:inset 0 0 0 1.5px var(--blue-ring)');
+    paint(selLoc, null, 'background:var(--blue-bg);box-shadow:inset 0 0 0 2px var(--blue)');
+    var onMapHover = function (info) {
+      if (!info && !st.hover) return;
+      self.setState({ hover: info });
+    };
+    var onMapPick = function (info) {
+      var loc = locate(info);
+      var o = Object.assign({}, open);
+      o['f' + loc.num] = true;
+      var target = 'tr-' + loc.num;
+      var phs = phaseData[loc.num];
+      if (loc.pi >= 0) {
+        target += '-p' + loc.pi;
+        var kids = phs[loc.pi][5];
+        if (kids.length) {
+          o['f' + loc.num + '-p' + loc.pi] = true;
+          if (loc.id && kids.some(function (t) { return t[0] === loc.id; })) target = 'tr-' + loc.num + '-' + loc.id;
+        }
+      }
+      self.setState({ open: o, level: null, sel: info });
+      setTimeout(function () {
+        var box = document.getElementById('feature-tree'), el = document.getElementById(target);
+        if (box && el) box.scrollTo({ top: Math.max(0, el.offsetTop - 80), behavior: 'smooth' });
+      }, 30);
+    };
+    return { theme: tv.theme, themeOpts: tv.themeOpts, rows: rows, levels: levels, cycleSort: cycleSort, sortLabel: sorts[si].label, onMapHover: onMapHover, onMapPick: onMapPick, features: features, groups: groups };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Task map — component states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--bg)}
+.sk{--bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#FAF9F6;--subtle:#EEECE6;--subtle-2:#F1EFEA;--track:#EAE8E2;--border:#E4E1D9;--border-strong:#DEDBD3;--dashed:#C9C5BB;--text:#15171C;--text-2:#2E3238;--text-2b:#25282E;--text-3:#3E434C;--text-4:#4A4F59;--muted:#5B606A;--muted-2:#6B7079;--chip-n:#D8DBE1;--outline-n:#B9BDC5;--inv-bg:#15171C;--inv-fg:#FFFFFF;--chrome:#15171C;--chrome-2:#15171C;--chrome-edge:transparent;--tip-edge:transparent;--green:#1F7A5A;--green-text:#16603F;--green-bg:#E3F1EA;--green-bg-2:#DCEBE3;--blue:#2F5BD3;--blue-text:#1E3F9E;--blue-bg:#E6ECFB;--blue-bg-2:#EEF2FD;--blue-bg-3:#F1F4FD;--blue-soft:#C9D5F5;--blue-ring:#7C9CF0;--orange-bg:#FFF4ED;--amber-bg:#FEF3C7;--amber-bg-2:#FFFBEB;--amber-text:#713F12;--amber-text-2:#854D0E;--amber-border:#E8C872;--purple-bg:#EFE9FB;--purple-text:#4C2D91;--red-bg:#FDE7DC;--red-text:#9A3412;color-scheme:light}.sk[data-theme="dark"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}@media (prefers-color-scheme: dark){.sk[data-theme="system"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}}
+</style>
+</helmet>
+<div class="sk" data-theme="{{theme}}" style="width: 1324px; height: 1240px; box-sizing: border-box; padding: 56px; background: var(--bg); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: var(--text); display: flex; flex-direction: column; gap: 40px">
+
+<header style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted)">Component</span>
+<h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 48px; line-height: 1">Task map — all states</h1>
+<p style="margin: 0; font-size: 15px; color: var(--text-4)">Stacked by default; “By feature” expands it into per-feature groups. Hover any dot in Play to try it live.</p>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 48px; row-gap: 56px">
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">01</span><span style="font-size: 15px; font-weight: 600">Default · stacked</span></div>
+<dc-import name="TaskMap" theme="{{theme}}" mode="stacked" hover-idx="-1" tip-idx="-1" hint-size="372px,390px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">02</span><span style="font-size: 15px; font-weight: 600">Hover · 0–500 ms</span><span style="font-size: 13px; color: var(--muted)">dot grows</span></div>
+<dc-import name="TaskMap" theme="{{theme}}" mode="stacked" hover-idx="46" tip-idx="-1" hint-size="372px,390px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">03</span><span style="font-size: 15px; font-weight: 600">Hover · after 500 ms</span><span style="font-size: 13px; color: var(--muted)">tooltip</span></div>
+<dc-import name="TaskMap" theme="{{theme}}" mode="stacked" hover-idx="46" tip-idx="46" hint-size="372px,390px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">04</span><span style="font-size: 15px; font-weight: 600">Expanded · by feature</span></div>
+<dc-import name="TaskMap" theme="{{theme}}" mode="grouped" hover-idx="-1" tip-idx="-1" hint-size="372px,390px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">05</span><span style="font-size: 15px; font-weight: 600">Expanded · hover + tooltip</span></div>
+<dc-import name="TaskMap" theme="{{theme}}" mode="grouped" hover-idx="241" tip-idx="241" hint-size="372px,390px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">—</span><span style="font-size: 15px; font-weight: 600">Spec</span></div>
+<div style="width: 372px; height: 340px; margin-top: 50px; box-sizing: border-box; border: 1px dashed var(--dashed); border-radius: 18px; padding: 22px; display: grid; grid-template-columns: 112px minmax(0, 1fr); align-content: start; row-gap: 14px; column-gap: 12px; font-size: 13px; line-height: 1.45">
+<span style="color: var(--muted)">Dot size</span><span>13 px stacked · 9 px by feature · 3 px gap</span>
+<span style="color: var(--muted)">Colours</span><span>Done filled green · Open blue outline · Next filled orange</span>
+<span style="color: var(--muted)">Hover</span><span>Scale 1.6 with 2-ring outline · 120 ms ease-out. Other dots unchanged.</span>
+<span style="color: var(--muted)">Tooltip</span><span>Appears 500 ms after hover starts, hides at once on leave. ID, status, title, feature.</span>
+<span style="color: var(--muted)">Placement</span><span>Above the dot; left/right-aligned near card edges so it never clips</span>
+<span style="color: var(--muted)">Toggle</span><span>“By feature” ⇄ “Stack all”, top-right outside the card, like the Features header</span>
+<span style="color: var(--muted)">Click a dot</span><span>Opens that task on its feature page</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":null},"$preview":{"width":1324,"height":1240}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    var s = this;
+    this._th = function () { s.forceUpdate(); };
+    window.addEventListener('storage', this._th);
+    window.addEventListener('sk-theme', this._th);
+  }
+  componentWillUnmount() {
+    clearTimeout(this._t);
+    window.removeEventListener('storage', this._th);
+    window.removeEventListener('sk-theme', this._th);
+  }
+  themeVals() {
+    // Shared light / dark / system choice, remembered per viewer and synced across boards
+    var stored = 'system';
+    try { stored = localStorage.getItem('sk-theme') || 'system'; } catch (e) {}
+    var theme = this.props.theme || stored;
+    var self = this;
+    var opts = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(function (o) {
+      var on = theme === o[0];
+      return { id: o[0], label: o[1], pressed: on ? 'true' : 'false',
+        isLight: o[0] === 'light', isDark: o[0] === 'dark', isSystem: o[0] === 'system',
+        style: on ? 'background:#2A2E36;color:#FFFFFF' : 'background:transparent;color:#A9ADB6',
+        set: function () {
+          try { localStorage.setItem('sk-theme', o[0]); } catch (e) {}
+          window.dispatchEvent(new Event('sk-theme'));
+          self.forceUpdate();
+        } };
+    });
+    return { theme: theme, themeOpts: opts };
+  }
+  renderVals() {
+    var tv = this.themeVals(); return { theme: tv.theme, themeOpts: tv.themeOpts }; }
+}
+</script>
+</body>
+</html>

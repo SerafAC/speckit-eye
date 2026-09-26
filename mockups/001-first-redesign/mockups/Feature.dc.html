@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Feature — Serial Data Processing Studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+a{color:inherit;text-decoration:none}a:hover{color:var(--blue)}
+button{font-family:inherit}
+.sk{--bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#FAF9F6;--subtle:#EEECE6;--subtle-2:#F1EFEA;--track:#EAE8E2;--border:#E4E1D9;--border-strong:#DEDBD3;--dashed:#C9C5BB;--text:#15171C;--text-2:#2E3238;--text-2b:#25282E;--text-3:#3E434C;--text-4:#4A4F59;--muted:#5B606A;--muted-2:#6B7079;--chip-n:#D8DBE1;--outline-n:#B9BDC5;--inv-bg:#15171C;--inv-fg:#FFFFFF;--chrome:#15171C;--chrome-2:#15171C;--chrome-edge:transparent;--tip-edge:transparent;--green:#1F7A5A;--green-text:#16603F;--green-bg:#E3F1EA;--green-bg-2:#DCEBE3;--blue:#2F5BD3;--blue-text:#1E3F9E;--blue-bg:#E6ECFB;--blue-bg-2:#EEF2FD;--blue-bg-3:#F1F4FD;--blue-soft:#C9D5F5;--blue-ring:#7C9CF0;--orange-bg:#FFF4ED;--amber-bg:#FEF3C7;--amber-bg-2:#FFFBEB;--amber-text:#713F12;--amber-text-2:#854D0E;--amber-border:#E8C872;--purple-bg:#EFE9FB;--purple-text:#4C2D91;--red-bg:#FDE7DC;--red-text:#9A3412;color-scheme:light}.sk[data-theme="dark"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}@media (prefers-color-scheme: dark){.sk[data-theme="system"]{--bg:#0E1013;--surface:#171A1F;--surface-2:#1C1F25;--subtle:#23272E;--subtle-2:#262A31;--track:#22262D;--border:#2A2E36;--border-strong:#363B45;--dashed:#454B56;--text:#ECEDF0;--text-2:#D6D8DD;--text-2b:#D6D8DD;--text-3:#BEC2C9;--text-4:#A9AEB7;--muted:#9197A1;--muted-2:#8A909A;--chip-n:#3A3F4A;--outline-n:#4A505C;--inv-bg:#ECEDF0;--inv-fg:#15171C;--chrome:#0A0B0E;--chrome-2:#1F232A;--chrome-edge:#23272E;--tip-edge:#3A3F48;--green:#3FB27F;--green-text:#7FD8AE;--green-bg:#163A2B;--green-bg-2:#1A3B2D;--blue:#7C9CF0;--blue-text:#B4C6F8;--blue-bg:#1F2A48;--blue-bg-2:#1B2440;--blue-bg-3:#171F35;--blue-soft:#33456E;--blue-ring:#7C9CF0;--orange-bg:#36200F;--amber-bg:#3A2E0F;--amber-bg-2:#2F260E;--amber-text:#F6D77E;--amber-text-2:#F6D77E;--amber-border:#6E5617;--purple-bg:#2B2242;--purple-text:#C9B8F5;--red-bg:#3D1F14;--red-text:#F7AD8A;color-scheme:dark}}
+</style>
+</helmet>
+<div class="sk" data-theme="{{theme}}" style="width: 1440px; height: 2020px; display: flex; background: var(--bg); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: var(--text)">
+
+<aside style="width: 272px; flex-shrink: 0; background: var(--chrome); border-right: 1px solid var(--chrome-edge); color: #e7e8eb; display: flex; flex-direction: column; gap: 22px; padding: 24px 16px; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<div style="width: 30px; height: 30px; border-radius: 9px; background: #f4f3ef; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15171c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</div>
+<div style="font-size: 15px; font-weight: 600">speckit-eye</div>
+</div>
+<button style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 12px; background: #22252c; border: 1px solid #2e323a; border-radius: 12px; color: #e7e8eb; text-align: left; cursor: pointer">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #a9adb6">Project</span>
+<span style="font-size: 14px; font-weight: 600">byte-flow-studio</span>
+</div>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a9adb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+</button>
+<button style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px; background: transparent; border: 1px solid #2e323a; border-radius: 10px; color: #a9adb6; font-size: 14px; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="flex-grow: 1; text-align: left">Search tasks, specs…</span>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 2px 6px; border: 1px solid #3a3f48; border-radius: 6px">⌘K</span>
+</button>
+<nav aria-label="Main" style="display: flex; flex-direction: column; gap: 2px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #c9ccd2; font-size: 14px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+Overview</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #c9ccd2; font-size: 14px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V7l-8-4z"></path></svg>
+Constitution</a>
+</nav>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; padding: 0 12px 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #a9adb6"><span>Features</span><span>2 / 4 done</span></div>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 12px; border-radius: 10px; color: #e7e8eb; font-size: 13.5px"><span style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #7c9cf0; box-sizing: border-box; flex-shrink: 0"></span><span style="flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rename Summation to Integral &amp; Add Signal Sum Block</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #a8bcf5">1 open</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 12px; border-radius: 10px; color: #e7e8eb; font-size: 13.5px"><span style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #7c9cf0; box-sizing: border-box; flex-shrink: 0"></span><span style="flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Nocturnal Redesign &amp; Canvas-Inline Analysis</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #a8bcf5">8 open</span></a>
+<a href="Feature.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 12px; border-radius: 10px; background: #2a2e36; color: #ffffff; font-size: 13.5px; font-weight: 500"><span style="width: 10px; height: 10px; border-radius: 50%; background: #3fb27f; flex-shrink: 0"></span><span style="flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Serial Data Processing Studio</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #6fcfa0">✓</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 12px; border-radius: 10px; color: #e7e8eb; font-size: 13.5px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #3fb27f; flex-shrink: 0"></span><span style="flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">New Signal Blocks</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #6fcfa0">✓</span></a>
+</div>
+<div role="group" aria-label="Theme" style="margin-top: auto; display: flex; padding: 3px; gap: 2px; background: #1b1e24; border: 1px solid #2e323a; border-radius: 10px">
+<sc-for list="{{themeOpts}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.set}}" aria-pressed="{{o.pressed}}" style="flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; border: 0; border-radius: 8px; font-family: inherit; font-size: 12.5px; cursor: pointer; {{o.style}}">
+<sc-if value="{{o.isLight}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></sc-if>
+<sc-if value="{{o.isDark}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></sc-if>
+<sc-if value="{{o.isSystem}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></sc-if>
+{{o.label}}</button>
+</sc-for>
+</div>
+<div style="padding: 12px; border-top: 1px solid #2e323a; font-size: 12px; color: #a9adb6; font-family: 'Geist Mono', ui-monospace, monospace">speckit-eye 1.0.0</div>
+</aside>
+
+<main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; box-sizing: border-box">
+
+<!-- Feature header -->
+<header style="padding: 32px 48px 0; display: flex; flex-direction: column; gap: 18px; background: var(--surface); border-bottom: 1px solid var(--border)">
+<nav aria-label="Breadcrumb" style="display: flex; gap: 8px; font-size: 13px; color: var(--muted)"><a href="Main.dc.html">Overview</a><span aria-hidden="true">/</span><span>Features</span></nav>
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--green-bg); color: var(--green-text)"><span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor"></span>Complete</span>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: var(--bg); color: var(--text-3)">001-serial-data-studio</span>
+</div>
+<h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 46px; line-height: 1.02">Serial Data Processing Studio</h1>
+</div>
+<div style="display: flex; align-items: center; gap: 20px; padding-bottom: 6px">
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 34px; line-height: 1">123<span style="font-size: 20px; color: var(--muted-2)"> / 123</span></span><span style="font-size: 12px; color: var(--muted)">tasks · 10 of 10 phases</span></div>
+<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="23" fill="none" stroke="var(--green-bg)" stroke-width="6"></circle><circle cx="28" cy="28" r="23" fill="none" stroke="var(--green)" stroke-width="6"></circle><path d="m20 28 6 6 11-12" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+</div>
+
+<!-- Spec documents live here as tabs (replaces the link dump) -->
+<nav aria-label="Feature documents" style="display: flex; gap: 4px; margin-top: 4px">
+<a href="Feature.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--text); border-bottom: 2px solid var(--text)">Tasks<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; padding: 1px 6px; border-radius: 5px; background: var(--inv-bg); color: var(--inv-fg)">123</span></a>
+<a href="Doc.dc.html" style="display: flex; align-items: center; min-height: 46px; padding: 0 14px; font-size: 14px; color: var(--text-4)">Specification</a>
+<a href="Doc.dc.html" style="display: flex; align-items: center; min-height: 46px; padding: 0 14px; font-size: 14px; color: var(--text-4)">Plan</a>
+<a href="Doc.dc.html" style="display: flex; align-items: center; min-height: 46px; padding: 0 14px; font-size: 14px; color: var(--text-4)">Research</a>
+<a href="Doc.dc.html" style="display: flex; align-items: center; min-height: 46px; padding: 0 14px; font-size: 14px; color: var(--text-4)">Data model</a>
+<a href="Doc.dc.html" style="display: flex; align-items: center; min-height: 46px; padding: 0 14px; font-size: 14px; color: var(--text-4)">Quickstart</a>
+<a href="Doc.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; font-size: 14px; color: var(--text-4)">Contracts<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; padding: 1px 6px; border-radius: 5px; background: var(--subtle); color: var(--text-3)">4</span></a>
+<a href="Doc.dc.html" style="display: flex; align-items: center; min-height: 46px; padding: 0 14px; font-size: 14px; color: var(--text-4)">Quality checklist</a>
+</nav>
+</header>
+
+<div style="padding: 28px 48px 48px; display: flex; flex-direction: column; gap: 22px">
+
+<!-- Phase rail -->
+<section aria-label="Phases" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 4px">
+<sc-for list="{{phases}}" as="p" hint-placeholder-count="10">
+<a href="#" onClick="{{p.select}}" aria-pressed="{{p.pressed}}" title="{{p.full}}" style="cursor: pointer; transition: background 120ms ease-out; flex-grow: {{p.n}}; flex-basis: 0; min-width: 44px; height: 48px; box-sizing: border-box; border-radius: 10px; padding: 6px 9px; display: flex; flex-direction: column; justify-content: space-between; {{p.style}}">
+<span style="font-size: 11px; font-weight: 600">{{p.short}}</span>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px">{{p.n}}</span>
+</a>
+</sc-for>
+</div>
+<div style="font-size: 13px; color: var(--muted)">Phase width = task count. Selected: <strong style="color: var(--text); font-weight: 600">{{selPhaseLabel}}</strong></div>
+</section>
+
+<!-- Warnings, collapsed -->
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; background: var(--amber-bg); color: var(--amber-text); font-size: 14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+<span style="flex-grow: 1"><strong style="font-weight: 600">6 checkboxes without a task ID</strong> in tasks.md (lines 23, 254–258) — counted, but not linkable.</span>
+<button style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--amber-border); background: var(--amber-bg-2); color: var(--amber-text); font-size: 13px; cursor: pointer">Show lines</button>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start">
+
+<!-- Task list -->
+<section aria-label="Tasks" style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px">
+<div role="group" aria-label="Filter" style="display: flex; padding: 3px; background: var(--track); border-radius: 10px">
+<button style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--surface); font-size: 13px; font-weight: 500; color: var(--text); cursor: pointer">All 123</button>
+<button style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; color: var(--text-4); cursor: pointer">Open 0</button>
+<button style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; color: var(--text-4); cursor: pointer">Tests</button>
+<button style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; color: var(--text-4); cursor: pointer">Backend</button>
+<button style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; color: var(--text-4); cursor: pointer">Frontend</button>
+</div>
+<label style="margin-left: auto; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; width: 240px; box-sizing: border-box; color: var(--muted)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter tasks</span>
+<input placeholder="Filter by ID, file, word" style="border: 0; outline: none; font-family: inherit; font-size: 13px; flex-grow: 1; min-width: 0; background: transparent; color: var(--text)">
+</label>
+<button onClick="{{toggleAll}}" style="min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer">{{toggleAllLabel}}</button>
+</div>
+
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden">
+<sc-for list="{{phaseRows}}" as="p" hint-placeholder-count="10">
+<button onClick="{{p.select}}" aria-expanded="{{p.expanded}}" style="width: 100%; display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 0 18px; border: 0; border-bottom: 1px solid var(--subtle); text-align: left; font-family: inherit; font-size: 14px; color: var(--text); cursor: pointer; {{p.headStyle}}">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; transition: transform 120ms ease-out; {{p.chev}}"><path d="m9 6 6 6-6 6"></path></svg>
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted); width: 66px">{{p.num}}</span>
+<span style="flex-grow: 1; {{p.titleStyle}}">{{p.title}}</span>
+<sc-if value="{{p.prio}}" hint-placeholder-val="{{ true }}"><span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; {{p.prioStyle}}">{{p.prio}}</span></sc-if>
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--green-text); width: 64px; text-align: right">{{p.count}} ✓</span>
+</button>
+<sc-if value="{{p.open}}" hint-placeholder-val="{{ false }}">
+<sc-for list="{{p.tasks}}" as="t" hint-placeholder-count="23">
+<div style="border-bottom: 1px solid var(--subtle-2); {{t.rowStyle}}">
+<button onClick="{{t.toggle}}" aria-expanded="{{t.expanded}}" title="{{t.plain}}" style="width: 100%; display: flex; align-items: center; gap: 14px; min-height: 46px; padding: 0 18px 0 20px; border: 0; background: transparent; text-align: left; font-family: inherit; font-size: 14px; color: var(--text); cursor: pointer; {{t.btnStyle}}">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; transition: transform 120ms ease-out; {{t.chev}}"><path d="m9 6 6 6-6 6"></path></svg>
+<svg width="16" height="16" viewBox="0 0 24 24" aria-label="Done" fill="none" stroke="var(--green)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg>
+<span style="flex-shrink: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted); width: 40px">{{t.id}}</span>
+<span style="flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; {{t.titleStyle}}"><sc-for list="{{t.segs}}" as="s" hint-placeholder-count="5"><span style="{{s.style}}">{{s.text}}</span></sc-for></span>
+<span style="flex-shrink: 0; width: 64px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; border-radius: 6px; {{t.kindStyle}}">{{t.kind}}</span>
+<span style="flex-shrink: 0; width: 200px; height: 22px; box-sizing: border-box; display: flex; align-items: center; padding: 0 8px; border-radius: 6px; background: var(--bg); font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--text-3)"><span style="min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.file}}</span></span>
+</button>
+<sc-if value="{{t.open}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 0 18px 14px 110px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{t.tags}}" as="g" hint-placeholder-count="2"><span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; {{g.style}}">{{g.label}}</span></sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{p.empty}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 14px 18px 14px 50px; border-bottom: 1px solid var(--subtle); font-size: 13px; color: var(--muted-2)">[{{p.count}} tasks from tasks.md render here, same as Phase 4]</div>
+</sc-if>
+</sc-if>
+</sc-for>
+</div>
+</section>
+
+<!-- Task detail drawer -->
+<aside aria-label="Task detail" style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 18px; margin-top: 56px">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 3px 8px; border-radius: 6px; background: var(--inv-bg); color: var(--inv-fg)">{{sel.id}}</span>
+<span style="display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--green-text)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"></path></svg>Done</span>
+<button aria-label="Close" style="margin-left: auto; width: 36px; height: 36px; border: 0; background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.65; color: var(--text)"><sc-for list="{{sel.segs}}" as="s" hint-placeholder-count="5"><span style="{{s.style}}">{{s.text}}</span></sc-for></p>
+<div style="display: grid; grid-template-columns: 88px minmax(0, 1fr); row-gap: 10px; column-gap: 8px; font-size: 13px; padding-top: 16px; border-top: 1px solid var(--subtle)">
+<span style="color: var(--muted)">Phase</span><span>4 · US2 — Multi-Step Pipeline</span>
+<span style="color: var(--muted)">Markers</span><span style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{sel.tags}}" as="g" hint-placeholder-count="2"><span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; {{g.style}}">{{g.label}}</span></sc-for></span>
+<span style="color: var(--muted)">Files</span><span style="display: flex; flex-direction: column; gap: 4px"><sc-for list="{{sel.files}}" as="p" hint-placeholder-count="1"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; word-break: break-all">{{p}}</span></sc-for></span>
+</div>
+<div style="display: flex; gap: 8px; padding-top: 16px; border-top: 1px solid var(--subtle)">
+<button style="flex-grow: 1; min-height: 44px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text); cursor: pointer">Copy ID</button>
+<button style="flex-grow: 1; min-height: 44px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; color: var(--text); cursor: pointer">View source line</button>
+</div>
+</aside>
+</div>
+</div>
+</main>
+<p style="margin: 0; position: absolute; left: 186px; top: 1398px">ks should be shortene</p></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":null},"$preview":{"width":1440,"height":2020}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    var s = this;
+    this._th = function () { s.forceUpdate(); };
+    window.addEventListener('storage', this._th);
+    window.addEventListener('sk-theme', this._th);
+  }
+  componentWillUnmount() {
+    clearTimeout(this._t);
+    window.removeEventListener('storage', this._th);
+    window.removeEventListener('sk-theme', this._th);
+  }
+  themeVals() {
+    // Shared light / dark / system choice, remembered per viewer and synced across boards
+    var stored = 'system';
+    try { stored = localStorage.getItem('sk-theme') || 'system'; } catch (e) {}
+    var theme = this.props.theme || stored;
+    var self = this;
+    var opts = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(function (o) {
+      var on = theme === o[0];
+      return { id: o[0], label: o[1], pressed: on ? 'true' : 'false',
+        isLight: o[0] === 'light', isDark: o[0] === 'dark', isSystem: o[0] === 'system',
+        style: on ? 'background:#2A2E36;color:#FFFFFF' : 'background:transparent;color:#A9ADB6',
+        set: function () {
+          try { localStorage.setItem('sk-theme', o[0]); } catch (e) {}
+          window.dispatchEvent(new Event('sk-theme'));
+          self.forceUpdate();
+        } };
+    });
+    return { theme: theme, themeOpts: opts };
+  }
+  renderVals() {
+    var tv = this.themeVals();
+    var ph = [
+      ['P1', 'Setup (Project Initialization)', 9, ''],
+      ['P2', 'Foundational (Blocking Prerequisites)', 17, ''],
+      ['P3', 'US1 — Connect a Data Source and View Live Data', 20, 'P1'],
+      ['P4', 'US2 — Build a Multi-Step Processing Pipeline', 23, 'P2'],
+      ['P5', 'US5 — Multiple Inputs and Analysis Blocks', 10, 'P2'],
+      ['P6', 'US3 — Manage and Persist Workflows', 11, 'P3'],
+      ['P7', 'US6 — Review a Past Data Session', 9, 'P3'],
+      ['P8', 'US4 — Full-Screen Analysis View', 4, 'P3'],
+      ['P9', 'Polish & Cross-Cutting Concerns', 17, ''],
+      ['P10', 'Sampler Processing Block (FR-034)', 3, '']
+    ];
+    var prioStyles = { P1: 'background:var(--inv-bg);color:var(--inv-fg)', P2: 'background:var(--chip-n);color:var(--text)', P3: 'background:var(--surface);color:var(--text);border:1px solid var(--outline-n)' };
+    var me = this, st0 = this.state || {};
+    var selPh = st0.phase === undefined ? 3 : st0.phase;   // -1 = all closed
+    function selectPhase(i) { return function (e) { if (e && e.preventDefault) e.preventDefault(); me.setState({ phase: selPh === i ? -1 : i }); }; }
+    var phases = ph.map(function (p, i) {
+      var sel = i === selPh;
+      return { short: p[0], n: p[2], full: 'Phase ' + (i + 1) + ' · ' + p[1], select: selectPhase(i), pressed: sel ? 'true' : 'false',
+        style: sel ? 'background:var(--inv-bg);color:var(--inv-fg)' : 'background:var(--green-bg-2);color:var(--green-text)' };
+    });
+    var rows = ph.map(function (p, i) {
+      var sel = i === selPh;
+      return { num: 'Phase ' + (i + 1), title: p[1], count: p[2], prio: p[3], prioStyle: prioStyles[p[3]] || '',
+        select: selectPhase(i), open: sel, expanded: sel ? 'true' : 'false',
+        chev: sel ? 'transform:rotate(90deg)' : '',
+        headStyle: sel ? 'background:var(--surface-2)' : 'background:var(--surface)',
+        titleStyle: sel ? 'font-weight:600' : 'font-weight:500' };
+    });
+    var selPhaseLabel = selPh >= 0 ? 'Phase ' + (selPh + 1) + ' · ' + ph[selPh][1] + (ph[selPh][3] ? ' · ' + ph[selPh][3] : '') : 'None';
+    var K = {
+      test: ['Go test', 'background:var(--purple-bg);color:var(--purple-text)'],
+      go: ['Go', 'background:var(--blue-bg);color:var(--blue-text)'],
+      vue: ['Vue', 'background:var(--green-bg);color:var(--green-text)']
+    };
+    // Lines exactly as they appear in tasks.md
+    var t = [
+      ['- [X] T046 [US2] Write unit tests for Moving Average block in `internal/processing/movingaverage_test.go`: feed known values, assert rolling average is correct for window sizes 1, 5, 10; assert `Timestamp` preserved from input; assert `Configure()` with new `windowSize` takes effect immediately on next chunk', 'test', 'movingaverage_test.go'],
+      ['- [X] T047 [US2] Write unit tests for Signal Simulator in `internal/input/simulator_test.go`: assert sine waveform emits exactly `sampleRateHz` chunks per second (within 5% tolerance over 1 second); assert `Values[0]` set (not `Raw`); assert each chunk\'s `Timestamp` is monotonically increasing', 'test', 'simulator_test.go'],
+      ['- [X] T048 [US2] Write unit tests for Byte Parser in `internal/processing/byteparser_test.go`: test float32-le parsing (4-byte frames → float64 value), int16-be (2-byte), uint8 (1-byte); test multi-channel (`channels=2`): 8-byte frame → `Values` of length 2; test partial frame buffering (feed 3 bytes of a 4-byte frame, then 1 more → one chunk emitted)', 'test', 'byteparser_test.go'],
+      ['- [X] T049 [US2] Write unit tests for FFT block in `internal/processing/fft_test.go`: feed a 512-sample pure sine wave at 10 Hz (sample rate 100 Hz); assert dominant frequency bin in output is bin 51 (10 Hz); assert Hann window applied when `windowFunction = "hann"`; assert output DataChunk `Values` length equals `windowSize/2`', 'test', 'fft_test.go'],
+      ['- [X] T050 [US2] Write unit tests for Summation and Scaling in `internal/processing/summation_test.go` and `internal/processing/scaling_test.go`: Summation: assert cumulative sum after N inputs; Scaling: assert `output = input*scale + offset` for edge values (zero, negative, large)', 'test', '2 files'],
+      ['- [X] T051 [US2] Implement Signal Simulator input block in `internal/input/simulator.go`: generate sine/square/sawtooth/noise waveforms at `sampleRateHz` using a ticker; emit `DataChunk{Timestamp: now.UnixMilli(), SourceID: id, Values: []float64{sample}}` per tick; expose port `"out"` type `numeric`; handle context cancellation; register `"simulator"` in `init()`', 'go', 'simulator.go'],
+      ['- [X] T052 [US2] Implement Moving Average block in `internal/processing/movingaverage.go`: maintain circular buffer of `windowSize` float64 samples; on each DataChunk compute average of buffer; emit `DataChunk` with same `Timestamp` and `SourceID` as input; support `Configure()` hot-reload of `windowSize` while paused; register `"moving-average"` in `init()`', 'go', 'movingaverage.go'],
+      ['- [X] T053 [US2] Implement Summation block in `internal/processing/summation.go`: maintain running sum; emit DataChunk with same Timestamp and running sum as `Values[0]`; register `"summation"` in `init()`', 'go', 'summation.go'],
+      ['- [X] T054 [US2] Implement Value Scaling/Offset block in `internal/processing/scaling.go`: `output = input*scale + offset`; preserve Timestamp; register `"scaling"` in `init()`', 'go', 'scaling.go'],
+      ['- [X] T055 [US2] Implement Byte Parser block in `internal/processing/byteparser.go`: buffer incoming `Raw` bytes; when buffer contains `frameSize` bytes, parse `channels` values per frame using `format` (float32-le, int16-be, uint8, etc.); emit `DataChunk{Values: parsedValues, Timestamp: inputTimestamp}`; input port `"in"` type `raw-bytes`, output port `"out"` type `numeric`; register `"byte-parser"` in `init()`', 'go', 'byteparser.go'],
+      ['- [X] T056 [US2] Implement FFT processing block in `internal/processing/fft.go`: accumulate `windowSize` float64 samples in buffer; when full, apply window function (`none`/`hann`/`hamming`) using `gonum.org/v1/gonum/dsp/fourier`; compute real FFT; emit magnitude spectrum as `DataChunk{Values: magnitudes, Timestamp: midpointTimestamp}`; register `"fft"` in `init()`', 'go', 'fft.go'],
+      ['- [X] T057 [US2] Implement Line Chart analysis block in `internal/analysis/linechart.go`: satisfies `AnalysisBlock`; ring buffer with `BufferConfig` (samples or duration); on each DataChunk emits `pipeline:data` Wails event with `blockId` and `{timestamp, values}[]`; input port `"in"` type `numeric`; register `"line-chart"` in `init()` (imports shared registry from `internal/processing`)', 'go', 'linechart.go'],
+      ['- [X] T058 [US2] Implement Data Table analysis block in `internal/analysis/datatable.go`: satisfies `AnalysisBlock`; ring buffer; emits `pipeline:data` events with all channel values per chunk; input port `"in"` type `numeric`; register `"data-table"` in `init()` (imports shared registry from `internal/processing`)', 'go', 'datatable.go'],
+      ['- [X] T059 [US2] Add fan-out test to `internal/pipeline/engine_test.go`: create 1 stub Input → 1 stub Processing → 2 stub Analysis blocks; run engine; assert both Analysis blocks receive every DataChunk emitted by the Input; no DataChunk lost or duplicated', 'test', 'engine_test.go'],
+      ['- [X] T060 [US2] Implement pipeline start validation for unconnected blocks in `services/pipeline_service.go`: on `Start()`, check that every Processing block in the workflow has at least one connected input port and one connected output port that forms part of a valid Input→Analysis path; return `"block <id> (<type>): not reachable from any Input→Analysis path"` and emit `pipeline:block-status` with `status: "error"` for the offending block(s)', 'go', 'pipeline_service.go'],
+      ['- [X] T061 [US2] Create `frontend/src/components/blocks/inputs/SimulatorBlockConfig.vue`: waveform `<select>` (sine/square/sawtooth/noise), frequency Hz, amplitude, DC offset, sample rate Hz number inputs; calls `UpdateBlockParams` on change', 'vue', 'SimulatorBlockConfig.vue'],
+      ['- [X] T062 [US2] Create `frontend/src/components/blocks/processing/MovingAverageConfig.vue`: `windowSize` number input (min 1); calls `UpdateBlockParams` on change', 'vue', 'MovingAverageConfig.vue'],
+      ['- [X] T063 [US2] Create `frontend/src/components/blocks/processing/FFTConfig.vue`: `windowSize` select (128/256/512/1024/2048), `windowFunction` select (none/hann/hamming); calls `UpdateBlockParams`', 'vue', 'FFTConfig.vue'],
+      ['- [X] T064 [US2] Create `frontend/src/components/blocks/processing/ScalingConfig.vue`: `scale` and `offset` number inputs with default 1.0 and 0.0; calls `UpdateBlockParams`', 'vue', 'ScalingConfig.vue'],
+      ['- [X] T065 [US2] Create `frontend/src/components/blocks/processing/ByteParserConfig.vue`: `format` select (float32-le/float32-be/int16-le/int16-be/uint8), `channels` number (min 1), `frameSize` number (auto-calculated from format with override option); calls `UpdateBlockParams`', 'vue', 'ByteParserConfig.vue'],
+      ['- [X] T066 [US2] Create `frontend/src/components/blocks/analysis/LineChartBlock.vue`: uPlot streaming time-series chart; subscribes to `pipeline:data` Wails event filtered by `blockId`; maintains client-side ring buffer of `bufferSamples` or `bufferDurationSec` seconds of data; re-renders incrementally (append only, no full redraw); configurable title, xLabel, yLabel, unit, decimals; targets ≤10% CPU at 1,000 pts/sec', 'vue', 'LineChartBlock.vue'],
+      ['- [X] T067 [US2] Create `frontend/src/components/blocks/analysis/DataTableBlock.vue`: PrimeVue `DataTable` with virtual scroll; shows `timestamp` (formatted) and one column per channel; respects `maxRows`; updates from `pipeline:data` events; appends rows, evicts oldest when full', 'vue', 'DataTableBlock.vue'],
+      ['- [X] T068 [US2] Expand `frontend/src/components/panels/BlockLibraryPanel.vue`: add all Processing block types (Moving Average, Summation, FFT, Scaling, Byte Parser, Passthrough) and additional Analysis types (Line Chart, Data Table) to the categorized library with drag-to-canvas support', 'vue', 'BlockLibraryPanel.vue']
+    ];
+
+    // Inline markdown → styled segments: `code`, **bold**, *em*, [text](link), FR-/SC- refs
+    var mono = "font-family:'Geist Mono',ui-monospace,monospace;";
+    var SEG = {
+      text: '',
+      code: mono + 'font-size:0.86em;background:var(--subtle-2);color:var(--text);padding:1px 5px;border-radius:4px',
+      bold: 'font-weight:600',
+      em: 'font-style:italic',
+      link: 'color:var(--blue);text-decoration:underline;text-underline-offset:2px',
+      ref: mono + 'font-size:0.8em;background:var(--blue-bg);color:var(--blue-text);padding:1px 5px;border-radius:4px'
+    };
+    function parseInline(s) {
+      var re = /`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*|\[([^\]]+)\]\(([^)]+)\)|\b((?:FR|SC)-\d+)\b/g;
+      var out = [], last = 0, m;
+      while ((m = re.exec(s))) {
+        if (m.index > last) out.push({ text: s.slice(last, m.index), style: SEG.text });
+        if (m[1] != null) out.push({ text: m[1], style: SEG.code, code: m[1] });
+        else if (m[2] != null) out.push({ text: m[2], style: SEG.bold });
+        else if (m[3] != null) out.push({ text: m[3], style: SEG.em });
+        else if (m[4] != null) out.push({ text: m[4], style: SEG.link });
+        else out.push({ text: m[6], style: SEG.ref, ref: m[6] });
+        last = re.lastIndex;
+      }
+      if (last < s.length) out.push({ text: s.slice(last), style: SEG.text });
+      return out;
+    }
+    var TAG = {
+      P: ['Parallel', 'background:var(--purple-bg);color:var(--purple-text)'],
+      US: ['', 'background:var(--inv-bg);color:var(--inv-fg)']
+    };
+    function parseLine(line) {
+      var m = /^- \[( |x|X)\] (T\d+)((?: \[[^\]]+\])*) (.*)$/.exec(line) || [];
+      var tags = (m[3] || '').match(/\[[^\]]+\]/g) || [];
+      tags = tags.map(function (x) {
+        var v = x.slice(1, -1);
+        if (v === 'P') return { label: TAG.P[0], style: TAG.P[1] };
+        return { label: v, style: TAG.US[1] };
+      });
+      var body = m[4] || line;
+      var segs = parseInline(body);
+      var files = segs.filter(function (s) { return s.code && /[\/.]\w+$/.test(s.code) && s.code.indexOf('/') >= 0; }).map(function (s) { return s.code; });
+      var refs = segs.filter(function (s) { return s.ref; }).map(function (s) { return { label: s.ref, style: 'background:var(--blue-bg);color:var(--blue-text)' }; });
+      return { done: /x/i.test(m[1] || ''), id: m[2] || '', tags: tags.concat(refs), segs: segs, files: files,
+        plain: body.replace(/`/g, '').replace(/\*\*/g, '') };
+    }
+
+    var self = this, st = this.state || {};
+    var open = st.open || { T047: true };
+    var selId = st.sel || 'T047';
+    var parsed = t.map(function (r) { var p = parseLine(r[0]); p.kind = K[r[1]]; p.file = r[2]; return p; });
+    var allOpen = parsed.every(function (p) { return open[p.id]; });
+    var tasks = parsed.map(function (p) {
+      var isOpen = !!open[p.id], isSel = p.id === selId;
+      return { id: p.id, segs: p.segs, plain: p.plain, tags: p.tags, kind: p.kind[0], kindStyle: p.kind[1], file: p.file,
+        open: isOpen, expanded: isOpen ? 'true' : 'false', chev: isOpen ? 'transform:rotate(90deg)' : '',
+        btnStyle: isOpen ? 'align-items:flex-start;padding-top:13px;padding-bottom:10px' : '',
+        titleStyle: isOpen ? 'white-space:normal;line-height:1.6;margin-top:-2px' : '',
+        rowStyle: isSel ? 'background:var(--blue-bg-2);box-shadow:inset 0 0 0 1.5px var(--blue)' : '',
+        toggle: function () { var o = Object.assign({}, open); o[p.id] = !isOpen; self.setState({ open: o, sel: p.id }); } };
+    });
+    var selP = parsed.filter(function (p) { return p.id === selId; })[0] || parsed[0];
+    var sel = { id: selP.id, segs: selP.segs, tags: selP.tags, files: selP.files.length ? selP.files : ['—'] };
+    var toggleAll = function () {
+      var o = {};
+      if (!allOpen) parsed.forEach(function (p) { o[p.id] = true; });
+      self.setState({ open: o });
+    };
+    var phaseRows = rows.map(function (r, i) {
+      r.tasks = i === 3 ? tasks : [];
+      r.empty = r.open && i !== 3;
+      return r;
+    });
+    return { theme: tv.theme, themeOpts: tv.themeOpts, phases: phases, phaseRows: phaseRows, selPhaseLabel: selPhaseLabel, sel: sel,
+      toggleAll: toggleAll, toggleAllLabel: allOpen ? 'Collapse all' : 'Expand all' };
+  }
+}
+</script>
+</body>
+</html>
