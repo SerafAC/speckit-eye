@@ -1063,16 +1063,19 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
    blue outline, blocked rose outline and tint, next filled orange (FR-022).
    Not positioned: as flex items the squares take the hover z-index anyway,
    and 2,000 positioned squares would each be a paint layer the engine has to
-   order and overlap-test on every frame of the hover growth (SC-006). */
+   order and overlap-test on every frame of the hover growth (SC-006).
+   Only the transform is animated: the engines run it on the compositor. An
+   animated box-shadow would repaint the map's whole layer, all 2,000
+   squares, on every frame of the growth and hold up the main thread (and the
+   tooltip timer) by hundreds of milliseconds on slower machines (SC-006), so
+   the hover rings switch at once. */
 [data-region="taskmap"] a[data-state] {
   --sq-fill: transparent;
   --sq-ring: inset 0 0 0 1.5px var(--blue);
   @apply block size-[13px] shrink-0 cursor-pointer rounded-[3px];
   background-color: var(--sq-fill);
   box-shadow: var(--sq-ring);
-  transition:
-    transform 120ms ease-out,
-    box-shadow 120ms ease-out;
+  transition: transform 120ms ease-out;
 }
 
 [data-region="taskmap"][data-layout="grouped"] a[data-state] {

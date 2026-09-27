@@ -5,6 +5,7 @@ import {
   init,
   placeTooltip,
   tooltipContent,
+  treeRows,
   highlight,
   applyMode,
   TOOLTIP_DELAY_MS,
@@ -299,6 +300,50 @@ describe("taskmap highlight (FR-025)", () => {
     highlight(document, square(document, "001-alpha/T001"));
     highlight(document, square(document, "003-gamma/T001"));
     assert.deepEqual(hl(document), { "003-gamma": "deepest" });
+  });
+
+  test("the hover path never scans the tree (SC-006: 2,000 squares)", async () => {
+    const { window, document, deps } = await page();
+    init(document, deps);
+    tree.reveal(document, "task-002-beta-T004");
+    const treeEl = document.querySelector('[data-region="tree"]');
+    const sq = square(document, "002-beta/T004");
+    const scans = [];
+    for (const target of [document, treeEl]) {
+      for (const name of ["querySelector", "querySelectorAll"]) {
+        const original = target[name].bind(target);
+        target[name] = (selector) => {
+          if (/data-key|data-hl|data-feature/.test(selector)) scans.push(selector);
+          return original(selector);
+        };
+      }
+    }
+    pointer(window, "pointerover", sq);
+    const tinted = scans.length;
+    assert.deepEqual(hl(document), {
+      "002-beta": "ancestor",
+      "002-beta/p2": "ancestor",
+      "002-beta/p2/US2": "ancestor",
+      "002-beta/T004": "deepest",
+    });
+    const tipText = tooltipContent(sq, treeEl);
+    assert.equal(tipText.text, "b, depends on T003");
+    assert.equal(tipText.feature, "Beta");
+    const hlScans = scans.length - tinted; // hl() itself scans on purpose
+    pointer(window, "pointerout", sq);
+    assert.deepEqual(scans.slice(0, tinted), [], "hover: no scan");
+    assert.equal(scans.length - tinted, hlScans, "tooltip content and leave: no scan");
+    assert.deepEqual(hl(document), {});
+  });
+
+  test("treeRows finds rows by selector when the task row has no id", async () => {
+    const { document, deps } = await page();
+    init(document, deps);
+    const sq = square(document, "002-beta/T004");
+    document.getElementById("task-002-beta-T004").removeAttribute("id");
+    const rows = treeRows(document.querySelector('[data-region="tree"]'), sq);
+    assert.deepEqual([...rows.keys()].sort(), ["002-beta", "002-beta/T004", "002-beta/p2", "002-beta/p2/US2"]);
+    assert.equal(rows.get("002-beta/T004").tagName, "LI");
   });
 
   test("rows hidden by Open tasks only are skipped", async () => {

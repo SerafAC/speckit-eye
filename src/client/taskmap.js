@@ -94,6 +94,40 @@ function parentKeys(square) {
 }
 
 /**
+ * The tree rows of a square's task, by key: the task row and its feature,
+ * phase and story group rows (`data-parents`), each only when the tree has
+ * it. The hover path runs this with 2,000 squares (SC-006), so it never
+ * scans the tree: the task row is found by its id (the square's `href`
+ * fragment) and its parents by walking up from it. A key not found that way
+ * (a task without a row, markup from elsewhere) falls back to a selector.
+ * @param {Element} tree
+ * @param {Element} square
+ * @returns {Map<string, Element>}
+ */
+export function treeRows(tree, square) {
+  const key = square.getAttribute("data-key") ?? "";
+  const keys = [...parentKeys(square), key].filter(Boolean);
+  /** @type {Map<string, Element>} */
+  const rows = new Map();
+  const anchor = anchorOf(square);
+  const doc = tree.ownerDocument;
+  const taskRow = anchor && doc ? doc.getElementById(anchor) : null;
+  if (taskRow && key && taskRow.getAttribute("data-key") === key && tree.contains(taskRow)) {
+    const wanted = new Set(keys);
+    for (let el = /** @type {Element | null} */ (taskRow); el && el !== tree; el = el.parentElement) {
+      const k = el.getAttribute("data-key");
+      if (k !== null && wanted.has(k) && !rows.has(k)) rows.set(k, el);
+    }
+  }
+  for (const k of keys) {
+    if (rows.has(k)) continue;
+    const el = tree.querySelector(`[data-key=${quoted(k)}]`);
+    if (el) rows.set(k, el);
+  }
+  return rows;
+}
+
+/**
  * What the tooltip shows for a square: ID (or "Checkbox without a task ID"),
  * state and its label, task text and feature name. The ID and label come
  * from the square's title ("T018 · Blocked — text — feature"); the text and
@@ -109,11 +143,17 @@ export function tooltipContent(square, tree) {
   const name = m ? m[1] : "";
   let text = m ? m[3] : title;
   let feature = m ? m[4] : "";
+  const rows = tree ? treeRows(tree, square) : new Map();
   const key = square.getAttribute("data-key");
-  const row = key ? tree?.querySelector(`li[data-key=${quoted(key)}] [data-part="text"]`) : null;
+  const taskRow = key ? rows.get(key) : null;
+  const row = taskRow?.tagName === "LI" ? taskRow.querySelector('[data-part="text"]') : null;
   if (row) text = row.getAttribute("title") ?? row.textContent ?? text;
   const dir = parentKeys(square)[0];
-  const featureTitle = dir ? tree?.querySelector(`li[data-feature=${quoted(dir)}] > details > summary [data-part="title"]`) : null;
+  const featureRow = dir ? rows.get(dir) : null;
+  const featureTitle =
+    featureRow?.tagName === "DETAILS" && featureRow.parentElement?.matches("li[data-feature]")
+      ? featureRow.querySelector(':scope > summary [data-part="title"]')
+      : null;
   if (featureTitle) feature = featureTitle.textContent ?? feature;
   return {
     id: !name || name === "No ID" ? NO_ID_TEXT : name,
@@ -143,10 +183,27 @@ function isShown(el, tree) {
 }
 
 /**
+ * The rows each root's last {@link highlight} tinted.
+ * @type {WeakMap<Document | Element, Element[]>}
+ */
+const tinted = new WeakMap();
+
+/**
+ * Removes the rows the last {@link highlight} tinted, without scanning the
+ * tree (the hover path, SC-006).
+ * @param {Document | Element} root
+ */
+function untint(root) {
+  for (const el of tinted.get(root) ?? []) el.removeAttribute("data-hl");
+  tinted.delete(root);
+}
+
+/**
  * Removes every map highlight from the tree.
  * @param {Document | Element} root
  */
 export function clearHighlight(root) {
+  untint(root);
   for (const el of root.querySelectorAll('[data-region="tree"] [data-hl]')) el.removeAttribute("data-hl");
 }
 
@@ -158,15 +215,15 @@ export function clearHighlight(root) {
  * @param {Element} square
  */
 export function highlight(root, square) {
-  clearHighlight(root);
+  untint(root);
   const tree = root.querySelector('[data-region="tree"]');
   if (!tree) return;
+  const found = treeRows(tree, square);
   const keys = [...parentKeys(square), square.getAttribute("data-key") ?? ""].filter(Boolean);
-  const rows = keys
-    .map((key) => tree.querySelector(`[data-key=${quoted(key)}]`))
-    .filter((el) => el !== null && isShown(el, tree));
+  const rows = keys.map((key) => found.get(key) ?? null).filter((el) => el !== null && isShown(el, tree));
   for (const el of rows) el.setAttribute("data-hl", "ancestor");
   rows.at(-1)?.setAttribute("data-hl", "deepest");
+  tinted.set(root, rows);
 }
 
 /**
@@ -321,7 +378,7 @@ export function init(root, deps) {
     if (to && square.contains(to)) return;
     if (state.hovered === square) state.hovered = null;
     hide();
-    clearHighlight(root);
+    untint(root);
   });
 
   // A press focuses the link too; that focus must not show the tooltip at
@@ -346,7 +403,7 @@ export function init(root, deps) {
   map.addEventListener("focusout", (event) => {
     if (!squareOf(event.target)) return;
     hide();
-    clearHighlight(root);
+    untint(root);
   });
 
   // Click, tap or Enter: reveal the task in the tree instead of jumping.

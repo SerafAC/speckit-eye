@@ -152,9 +152,11 @@ function setup({ main = overviewMain(), reduced = false, shell = [], app = undef
     createElement: (tag) => el(tag),
     createTextNode: (text) => ({ nodeType: 3, textContent: text }),
   };
+  const winListeners = new Map();
   const window = {
     scrollX: 0,
     scrollY: 0,
+    addEventListener: (type, fn) => winListeners.set(type, [...(winListeners.get(type) ?? []), fn]),
     location: { pathname: "/index.html" },
     scrollTo(x, y) {
       window.scrolledTo = [x, y];
@@ -204,7 +206,11 @@ function setup({ main = overviewMain(), reduced = false, shell = [], app = undef
   const flush = async () => {
     for (let i = 0; i < 10; i++) await Promise.resolve();
   };
-  return { document, window, server, client, respond, toggle, es, flush, frames, runFrames, docListeners, body, dispatched };
+  /** Fires a window event (pagehide / pageshow) at the client. */
+  const fire = (type, init = {}) => {
+    for (const fn of winListeners.get(type) ?? []) fn({ type, ...init });
+  };
+  return { document, window, server, client, respond, toggle, es, flush, frames, runFrames, docListeners, body, dispatched, fire };
 }
 
 describe("collectSigs / changedKeys / applyToggles", () => {
@@ -497,6 +503,46 @@ describe("createLiveClient", () => {
     mock.timers.tick(RECONNECT_MS);
     assert.equal(FakeEventSource.instances.length, 2);
     assert.equal(first.closed, true);
+  });
+
+  test("pagehide closes the stream, so a page in the back/forward cache holds no connection", () => {
+    const t = setup();
+    t.client.start();
+    const first = t.es();
+    t.fire("pagehide", { persisted: true });
+    assert.equal(first.closed, true);
+    assert.equal(FakeEventSource.instances.length, 1, "nothing reopens while hidden");
+    t.fire("pageshow", { persisted: false });
+    assert.equal(FakeEventSource.instances.length, 1, "a fresh load starts its own client");
+  });
+
+  test("pageshow from the back/forward cache reopens the stream and its hello catches up", async () => {
+    const t = setup();
+    t.body.setAttribute("data-model-version", "1");
+    t.client.start();
+    t.es().emit("hello", { version: 1 });
+    t.fire("pagehide", { persisted: true });
+    t.fire("pageshow", { persisted: true });
+    assert.equal(FakeEventSource.instances.length, 2);
+    assert.equal(t.es().closed, false);
+    t.fire("pageshow", { persisted: true });
+    assert.equal(FakeEventSource.instances.length, 2, "one stream at a time");
+    // A change landed while the page was cached: the greeting's version differs.
+    t.respond(overviewMain({ done: 2 }));
+    t.es().emit("hello", { version: 2 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 1);
+  });
+
+  test("pagehide cancels a pending reconnect", () => {
+    const t = setup();
+    t.client.start();
+    const first = t.es();
+    first.readyState = 2;
+    first.emit("error");
+    t.fire("pagehide", { persisted: true });
+    mock.timers.tick(RECONNECT_MS);
+    assert.equal(FakeEventSource.instances.length, 1);
   });
 
   test("changes during a refresh lead to exactly one more refresh", async () => {
