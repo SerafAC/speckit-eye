@@ -30,55 +30,13 @@ import { renderTaskMap } from "./taskmap.js";
 /** Label of each tree order (FR-012); defined once, in the browser module. */
 export { ORDER_LABELS };
 
-/** 001 task state → display state, for models without `display`. */
-const DISPLAY_OF = Object.freeze({ completed: "done", current: "next", blocked: "blocked", future: "open" });
-
-/**
- * Tree status of a feature (data-model FeatureStatus), from its stage when
- * the model has no `status`.
- * @param {Pick<Feature, "stage"> & {status?: string}} feature
- * @returns {"done" | "in-progress" | "not-started" | "no-tasks"}
- */
-export function featureStatus(feature) {
-  if (feature.status) return /** @type {any} */ (feature.status);
-  if (feature.stage === "complete") return "done";
-  if (feature.stage === "in-progress") return "in-progress";
-  if (feature.stage === "ready") return "not-started";
-  return "no-tasks";
-}
-
-/**
- * Attribute-safe element ids for keys: `prefix` + the key with every
- * character outside `[A-Za-z0-9_-]` replaced by `-`, plus `-2`, `-3`, … when
- * two keys map to the same id.
- * @param {Iterable<string>} keys
- * @param {string} prefix
- * @returns {Map<string, string>} key → id
- */
-export function elementIds(keys, prefix) {
-  /** @type {Map<string, string>} */
-  const ids = new Map();
-  const used = new Set();
-  for (const key of keys) {
-    if (ids.has(key)) continue;
-    const base = prefix + key.replace(/[^A-Za-z0-9_-]/g, "-");
-    let id = base;
-    for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
-    used.add(id);
-    ids.set(key, id);
-  }
-  return ids;
-}
-
 /**
  * The display state of a task (done, next, blocked, open).
  * @param {Task} task
  * @returns {"done" | "next" | "blocked" | "open"}
  */
 export function displayOf(task) {
-  if (task.display) return task.display;
-  if (task.state) return DISPLAY_OF[task.state];
-  return task.done ? "done" : "open";
+  return task.display ?? (task.done ? "done" : "open");
 }
 
 /**
@@ -96,32 +54,6 @@ export function anchorOf(task) {
  */
 export function featureAnchor(dir) {
   return `feature-${dir.replace(/[^A-Za-z0-9_-]/g, "-")}`;
-}
-
-/**
- * Heading of a phase: "Phase N · USn – Title (Pn)" for a merged phase,
- * otherwise "Phase N: Title" (001 FR-015a). The synthetic phase is "Unphased".
- * @param {Phase} phase
- * @returns {string}
- */
-export function phaseHeading(phase) {
-  const prefix = phase.number === null ? "Unphased" : `Phase ${phase.number}`;
-  const story = phase.mergedStory;
-  if (story) {
-    const priority = story.priority ? ` (${story.priority})` : "";
-    return `${prefix} · ${story.label} – ${story.title ?? phase.title}${priority}`;
-  }
-  return phase.number === null ? prefix : `${prefix}: ${phase.title}`;
-}
-
-/**
- * @param {StoryGroup} group
- * @returns {string} "USn – Title (Pn)", or just the label when spec.md has no such story
- */
-export function groupHeading(group) {
-  if (!group.story) return group.label;
-  const priority = group.story.priority ? ` (${group.story.priority})` : "";
-  return `${group.label} – ${group.story.title}${priority}`;
 }
 
 /**
@@ -172,27 +104,6 @@ function nextEntry(project) {
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * The stats card numbers (data-model OverviewStats), from `project.overview`
- * when present.
- * @param {Project} project
- * @returns {Project["overview"]}
- */
-function statsOf(project) {
-  if (project.overview) return project.overview;
-  const { tasks, specs, phases } = project.totals;
-  return {
-    percent: tasks.percent,
-    done: tasks.done,
-    total: tasks.total,
-    features: { ...specs, inProgress: project.features.filter((f) => featureStatus(f) === "in-progress").length },
-    phases: { ...phases, remaining: phases.total - phases.completed },
-    openTasks: { count: tasks.open, features: project.features.filter((f) => f.counts.open > 0).length },
-    segments: [],
-    legend: { done: tasks.done, open: tasks.open, blocked: 0, next: 0 },
-  };
-}
-
-/**
  * `<header data-region="page-head">` with the project name, the title and the
  * hidden view filter (FR-010, FR-019).
  * @param {Project} project
@@ -228,7 +139,7 @@ function renderSegment(s, feature) {
  * @returns {Raw}
  */
 function renderStats(project) {
-  const o = statsOf(project);
+  const o = project.overview;
   const byDir = new Map(project.features.map((f) => [f.dir, f]));
   const stat = (/** @type {string} */ name, /** @type {string} */ sig, /** @type {Raw} */ body) =>
     html`<div data-stat="${name}" data-key="stat:${name}" data-sig="${sig}">${body}</div>`;
@@ -289,13 +200,13 @@ function phaseLabel(phase) {
 function renderUpNext(project, base) {
   const entry = nextEntry(project);
   if (!entry) {
-    const total = statsOf(project).total;
+    const total = project.overview.total;
     const complete = total > 0;
     return html`<section data-region="up-next" class="always-dark" aria-label="Up next" data-empty="${complete ? "complete" : "no-tasks"}">
 <span data-part="eyebrow">Up next</span>
 <span data-part="text">${
       complete
-        ? statsOf(project).done === total
+        ? project.overview.done === total
           ? "Every task is complete"
           : "Every task of the active feature is complete"
         : "No tasks yet"
@@ -441,7 +352,7 @@ function renderWarningRows(feature, base) {
  */
 function renderFeature(feature, active, base) {
   const isActive = feature.dir === active?.featureDir;
-  const status = featureStatus(feature);
+  const status = feature.status;
   const complete = status === "done";
   const warnings = feature.warnings?.length ?? 0;
   const ranks = feature.ranks ?? { progress: 0, number: 0, least: 0, name: 0 };

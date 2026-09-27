@@ -2,11 +2,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   renderOverview,
-  phaseHeading,
-  groupHeading,
   phaseItems,
-  featureStatus,
-  elementIds,
   ORDER_LABELS,
 } from "../../src/render/overview.js";
 import { buildModel } from "../../src/model/build-model.js";
@@ -493,18 +489,6 @@ describe("renderOverview: map click targets (T071)", () => {
     assert.match(tagOf(doc, "tree", "002-beta"), /id="feature-002-beta"/);
   });
 
-  test("elementIds replaces unsafe characters and suffixes collisions", () => {
-    const ids = elementIds(["a/b@L3", "a-b-L3", "a b.L3", "a/b@L3", "ok_1"], "task-");
-    assert.deepEqual(
-      [...ids],
-      [
-        ["a/b@L3", "task-a-b-L3"],
-        ["a-b-L3", "task-a-b-L3-2"],
-        ["a b.L3", "task-a-b-L3-3"],
-        ["ok_1", "task-ok_1"],
-      ],
-    );
-  });
 });
 
 describe("renderOverview: links into feature pages (T051)", () => {
@@ -570,38 +554,10 @@ describe("renderOverview: partial models", () => {
     p.warnings = [{ code: "W10", file: ".specify/feature.json", line: 3, message: "odd" }];
     assert.match(render(p), /<li>\.specify\/feature\.json:3 odd<\/li>/);
   });
-
-  test("a model without ranks, statuses, display states or overview stats still renders", async () => {
-    const p = await model(MIXED);
-    delete p.overview;
-    for (const f of p.features) {
-      delete f.ranks;
-      delete f.status;
-      delete f.warningGroups;
-      for (const ph of f.phases) for (const t of ph.tasks) delete t.display;
-    }
-    const out = render(p);
-    assert.deepEqual([...out.matchAll(/<li data-feature="([^"]+)"/g)].map((m) => m[1]), ["001-alpha", "002-beta", "003-gamma", "004-delta"]);
-    assert.match(tagOf(out, "tree", "002-beta"), /data-status="in-progress"/);
-    assert.match(tagOf(out, "tree", "002-beta/T011"), /data-state="next"/);
-    assert.match(out, /<span data-part="value">62 %<\/span>/);
-    assert.doesNotMatch(out, /data-part="segments"/);
-  });
 });
 
 describe("helpers", () => {
   const phase = (over) => ({ number: 2, title: "Core", tasks: [], groups: [], mergedStory: null, ...over });
-  test("phaseHeading", () => {
-    assert.equal(phaseHeading(phase()), "Phase 2: Core");
-    assert.equal(phaseHeading(phase({ number: null, title: "Unphased" })), "Unphased");
-    assert.equal(phaseHeading(phase({ mergedStory: { label: "US1", title: "See it", priority: "P1" } })), "Phase 2 · US1 – See it (P1)");
-    assert.equal(phaseHeading(phase({ mergedStory: { label: "US9", title: null, priority: null } })), "Phase 2 · US9 – Core");
-  });
-  test("groupHeading", () => {
-    assert.equal(groupHeading({ label: "US9", story: null }), "US9");
-    assert.equal(groupHeading({ label: "US1", story: { label: "US1", title: "A", priority: "P2" } }), "US1 – A (P2)");
-    assert.equal(groupHeading({ label: "US1", story: { label: "US1", title: "A", priority: null } }), "US1 – A");
-  });
   test("phaseItems places each group at its first task", () => {
     const t = (id, story) => ({ id, story });
     const tasks = [t("T1", null), t("T2", "US2"), t("T3", "US1"), t("T4", null), t("T5", "US2")];
@@ -612,12 +568,5 @@ describe("helpers", () => {
     const items = phaseItems(phase({ tasks, groups }));
     assert.deepEqual(items.map((i) => (i.task ? i.task.id : i.group.label)), ["T1", "US2", "US1", "T4"]);
     assert.deepEqual(phaseItems(phase({ tasks })).map((i) => i.task.id), ["T1", "T2", "T3", "T4", "T5"]);
-  });
-  test("featureStatus", () => {
-    assert.equal(featureStatus({ stage: "complete" }), "done");
-    assert.equal(featureStatus({ stage: "in-progress" }), "in-progress");
-    assert.equal(featureStatus({ stage: "ready" }), "not-started");
-    for (const stage of ["empty", "specified", "planned"]) assert.equal(featureStatus({ stage }), "no-tasks");
-    assert.equal(featureStatus({ stage: "ready", status: "done" }), "done");
   });
 });

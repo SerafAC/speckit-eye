@@ -139,14 +139,6 @@
   --rose-text: light-dark(#9F1239, #FDA4AF);
   /* The next task: the same orange in both themes (FR-047). */
   --next: #C2410C;
-
-  /* 001 status names, kept as aliases of the tokens above until the 001
-     components are replaced; they add no color values of their own. */
-  --status-done: var(--green);
-  --status-active: var(--next);
-  --status-started: var(--blue);
-  --status-not-started: var(--muted-2);
-  --status-blocked: var(--rose);
 }
 
 :root[data-theme="light"] {
@@ -587,7 +579,9 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 
 [data-region="stats"] [data-part="segments"] > a {
   @apply flex h-full overflow-hidden rounded-sm bg-(--track);
-  flex-shrink: 0;
+  /* Segments shrink by the same factor so the gaps between many segments
+     fit inside the card; min-w-[3px] keeps tiny ones visible. */
+  flex-shrink: 1;
 }
 
 [data-region="stats"] [data-part="segments"] > a:hover {
@@ -613,7 +607,7 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 }
 
 [data-region="stats"] [data-part="labels"] > span {
-  @apply shrink-0 overflow-hidden text-center whitespace-nowrap;
+  @apply shrink overflow-hidden text-center whitespace-nowrap;
 }
 
 [data-region="stats"] [data-part="legend"] {
@@ -1241,8 +1235,8 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
    the same 1.5 s instead (live.js removes the attribute). */
 @keyframes speckit-eye-changed {
   from {
-    background-color: color-mix(in srgb, var(--status-active) 45%, transparent);
-    box-shadow: 0 0 0 2px var(--status-active);
+    background-color: color-mix(in srgb, var(--next) 45%, transparent);
+    box-shadow: 0 0 0 2px var(--next);
   }
   to {
     background-color: transparent;
@@ -1267,7 +1261,7 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
   [data-region="taskmap"] a[data-changed],
   [data-region="stats"] [data-changed],
   progress[data-changed] {
-    outline: 2px solid var(--status-active);
+    outline: 2px solid var(--next);
     outline-offset: 1px;
   }
 }
@@ -1364,51 +1358,14 @@ dialog[data-region="search"] [data-part="status"][hidden] {
 
 /* The page's source file was deleted (live.js got a 404). */
 [data-region="not-found"] {
-  @apply mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900;
+  @apply mb-4 rounded-md border px-4 py-3 text-sm;
+  border-color: color-mix(in srgb, var(--red-text) 35%, transparent);
+  background-color: var(--red-bg);
+  color: var(--red-text);
 }
 
 [data-region="not-found"] a {
   @apply font-semibold underline underline-offset-2;
-}
-
-/* ------------------------------------------------------------------------ */
-/* Site menu (FR-022, FR-025): a <details>, so it works without scripts      */
-/* ------------------------------------------------------------------------ */
-
-header[data-region="header"] [data-region="menu"] {
-  @apply relative ml-auto text-sm;
-}
-
-header[data-region="header"] [data-region="menu"] > summary {
-  @apply cursor-pointer rounded-md border border-gray-300 px-3 py-1 font-medium text-gray-700 select-none hover:bg-gray-50;
-}
-
-header[data-region="header"] [data-region="menu"] > nav {
-  @apply absolute right-0 z-40 mt-2 max-h-[70vh] w-80 max-w-[90vw] overflow-y-auto rounded-md border border-gray-200 bg-white p-3 shadow-lg;
-}
-
-header[data-region="header"] [data-region="menu"] ul {
-  @apply m-0 list-none p-0;
-}
-
-header[data-region="header"] [data-region="menu"] li {
-  @apply py-0.5;
-}
-
-header[data-region="header"] [data-region="menu"] li[data-part="group"] {
-  @apply mt-2;
-}
-
-header[data-region="header"] [data-region="menu"] [data-part="group-title"] {
-  @apply block text-xs font-semibold tracking-wide text-gray-500 uppercase;
-}
-
-header[data-region="header"] [data-region="menu"] li[data-part="group"] ul {
-  @apply ml-2 border-l border-gray-200 pl-2;
-}
-
-header[data-region="header"] [data-region="menu"] a {
-  @apply text-gray-800 no-underline hover:underline;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -1539,7 +1496,9 @@ header[data-region="header"] [data-region="menu"] a {
 }
 
 [data-region="tasks"] [data-part="rail"] [data-part="block"] {
-  @apply flex shrink-0 items-center justify-between gap-1 rounded-md px-2 font-mono text-xs no-underline;
+  /* Blocks shrink by the same factor so the gaps fit; below their minimum
+     width (many phases, narrow screens) the rail scrolls instead. */
+  @apply flex shrink items-center justify-between gap-1 rounded-md px-2 font-mono text-xs no-underline;
   min-width: 3.5rem;
   min-height: var(--hit);
   background-color: var(--subtle);
