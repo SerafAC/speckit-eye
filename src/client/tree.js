@@ -81,8 +81,10 @@ export function applyOrder(root, order) {
       const n = Number(li.getAttribute(`data-rank-${order}`));
       return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
     };
-    rows.sort((a, b) => rank(a) - rank(b));
-    for (const li of rows) list.appendChild(li);
+    const sorted = [...rows].sort((a, b) => rank(a) - rank(b));
+    // The page is rendered in the default order: moving 50 rows that are
+    // already in place would only cost style and layout work before load.
+    if (sorted.some((li, i) => li !== rows[i])) for (const li of sorted) list.appendChild(li);
   }
   for (const button of all(root, 'button[data-part="order"]')) {
     const label = ORDER_LABELS[/** @type {Order} */ (order)] ?? order;

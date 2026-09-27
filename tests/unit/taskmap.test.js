@@ -87,7 +87,7 @@ describe("renderTaskMap (T035, FR-021)", () => {
     assert.deepEqual([...render(p).matchAll(/<div data-part="group" data-key="map:([^"]+)"/g)].map((m) => m[1]), ["001-alpha", "002-beta", "003-gamma"]);
   });
 
-  test("square attributes: state, parents, href to the tree row, tabindex, title and aria-label", async () => {
+  test("square attributes: state, parents, href to the tree row, tabindex and title (also the accessible name)", async () => {
     const doc = render(await model(MIXED));
     const blocked = squareTag(doc, "002-beta/T018");
     assert.match(blocked, /data-state="blocked"/);
@@ -96,7 +96,8 @@ describe("renderTaskMap (T035, FR-021)", () => {
     // A Tab stop in every engine, WebKit included (FR-050).
     assert.match(blocked, /href="#task-002-beta-T018" tabindex="0" /);
     assert.match(blocked, /title="T018 · Blocked — Search box, depends on T011 — Beta"/);
-    assert.match(blocked, /aria-label="T018 · Blocked — Search box, depends on T011 — Beta"/);
+    // The title names the empty link; no aria-label copy (SC-007 page size).
+    assert.doesNotMatch(blocked, /aria-label=/);
     const next = squareTag(doc, "002-beta/T011");
     assert.match(next, /data-state="next"/);
     assert.match(next, /data-parents="002-beta 002-beta\/p3"/);

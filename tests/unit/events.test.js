@@ -51,6 +51,8 @@ describe("createEventHub", () => {
     assert.equal(res.status, 200);
     assert.equal(res.headers["Content-Type"], "text/event-stream");
     assert.equal(res.headers["Cache-Control"], "no-store");
+    // A stream's connection is never reused for another request.
+    assert.equal(res.headers.Connection, "close");
     assert.equal(res.text(), 'event: hello\ndata: {"version":4}\n\n');
     assert.equal(hub.size(), 1);
   });
