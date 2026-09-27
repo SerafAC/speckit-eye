@@ -438,6 +438,26 @@ describe("taskmap mode (FR-021, FR-028)", () => {
     assert.equal(button(document).hidden, false);
   });
 
+  test("the map is marked loaded at the load event, not before (SC-007 content visibility)", async () => {
+    const { window, document, deps } = await page();
+    assert.equal(document.readyState, "interactive");
+    init(document, deps);
+    assert.equal(map(document).hasAttribute("data-loaded"), false);
+    window.dispatchEvent(new window.Event("load"));
+    assert.equal(map(document).hasAttribute("data-loaded"), true);
+  });
+
+  test("after load, a swapped-in map is marked loaded at once", async () => {
+    const { document, deps } = await page();
+    Object.defineProperty(document, "readyState", { value: "complete", configurable: true });
+    init(document, deps);
+    assert.equal(map(document).hasAttribute("data-loaded"), true);
+    document.querySelector("main").innerHTML = await overviewHtml();
+    assert.equal(map(document).hasAttribute("data-loaded"), false);
+    init(document, deps);
+    assert.equal(map(document).hasAttribute("data-loaded"), true);
+  });
+
   test("init is idempotent: one click toggles once", async () => {
     const { window, document, deps } = await page();
     init(document, deps);

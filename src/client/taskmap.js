@@ -2,7 +2,8 @@
  * Overview task map behavior (FR-024 to FR-026, FR-028, research D8;
  * contracts/routes.md "Browser modules"): the "By feature" / "Stack all"
  * mode toggle, the shared delayed tooltip, the tree highlight of a hovered
- * or focused square, and click / Enter → reveal the task in the tree.
+ * or focused square, click / Enter → reveal the task in the tree, and
+ * `data-loaded` on the map once the page has loaded.
  *
  * The map works without this module: every square keeps its state color, a
  * native `title` and an `href` to its task row in the tree, and the toggle
@@ -260,6 +261,21 @@ function anchorOf(square) {
 }
 
 /**
+ * Marks the map `data-loaded` at the load event, or at once when the page
+ * has already loaded (a live swap). Until then CSS lets the "By feature"
+ * groups off screen skip rendering (SC-007); from then on the whole map is
+ * rendered (src/styles/input.css says why).
+ * @param {Element} map
+ * @param {Document} document
+ * @param {Window | null | undefined} view
+ */
+export function markLoaded(map, document, view) {
+  const mark = () => map.setAttribute("data-loaded", "");
+  if (document.readyState === "complete" || !view) mark();
+  else view.addEventListener("load", mark, { once: true });
+}
+
+/**
  * @param {Document} document
  * @param {string} tag
  * @param {string} part
@@ -290,6 +306,7 @@ export function init(root, deps) {
   const setTimer = deps.setTimeout ?? ((fn, ms) => setTimeout(fn, ms));
   const clearTimer = deps.clearTimeout ?? ((id) => clearTimeout(id));
   const tip = /** @type {HTMLElement | null} */ (document.querySelector('[data-region="tooltip"]'));
+  markLoaded(map, document, deps.window ?? document.defaultView);
 
   /** @type {MapState} */
   const state = states.get(map) ?? { timer: null, hovered: null, pointerFocus: false };

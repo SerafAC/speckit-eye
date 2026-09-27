@@ -81,7 +81,7 @@ No element carries a `style` attribute (CSP). Widths come from `w-pct-<0..100>` 
               phases: <details data-key="<phaseKey>" data-status … [data-complete]> (001 nesting, story level kept)
                 tasks: <li data-key="<taskKey>" id="<anchor>" data-state="done|next|blocked|open">
                          mark · <a href="features/<dir>/index.html#<anchor>">T012</a> · text · [NEXT]
-<section data-region="taskmap" data-layout="stacked|grouped|bars">
+<section data-region="taskmap" data-layout="stacked|grouped|bars" [data-loaded]>
    header: <button data-part="map-mode" aria-pressed>   (JS)
    <div data-part="grid"> <a data-key data-sig data-state data-parents="<dir> <phaseKey> [groupKey]"
                              href="#<anchor>" title="T046 · Done — text — feature"> …
@@ -92,6 +92,7 @@ No element carries a `style` attribute (CSP). Widths come from `w-pct-<0..100>` 
 - The server renders the tree in `progress` order; `data-rank-*` are the positions from the model (data-model FeatureRanks).
 - `data-filter="open"` on the tree hides `[data-complete]` items and `li[data-state="done"]` by CSS (FR-019).
 - Rendering `data-layout`: `stacked` up to 1,000 tasks, `grouped` from 1,001 to 5,000 (both modes available with the toggle), `bars` above 5,000 (no toggle).
+- `data-loaded` (JS, set at the load event): until then the `grouped` groups off screen use `content-visibility: auto` (SC-007); from then on every group is rendered, because WebKit misses the pointer on squares of a skipped group scrolled into view (research D16).
 
 ## Feature page `<main>`
 
@@ -140,7 +141,7 @@ Each module exports `init(root, deps)` (idempotent, called on load and after eve
 | `prefs.js` | all | Safe `localStorage` access and defaults |
 | `theme.js` | all | Blocking head script, generated from `applyStoredTheme` in `prefs.js` by `render/theme-script.js` (not a separate source file); the switch buttons are wired by `app.js` |
 | `tree.js` | overview | Order, depth, filter, and reveal-task (open ancestors, scroll the tree card, `data-selected`) |
-| `taskmap.js` | overview | Map mode toggle, hover → tree highlight, tooltip (delay, touch rule, placement), click → `tree.reveal` |
+| `taskmap.js` | overview | Map mode toggle, hover → tree highlight, tooltip (delay, touch rule, placement), click → `tree.reveal`, `data-loaded` at the load event |
 | `feature.js` | feature | Rail ↔ list sync, choose-again-to-close, filters and text filter, expand/collapse all, selection and detail panel, copy, address fragment |
 | `reader.js` | document | Contents highlighting and progress, expand all, raw view toggle, "show more" answers, requirement area chips |
 | `search.js` | all | Dialog, shortcut, index loading, matching (search-index.md), keyboard navigation |
