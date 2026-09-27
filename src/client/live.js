@@ -15,6 +15,12 @@
  * footer) are replaced too, so sidebar counts follow the files. After each
  * swap an `sk:change` event is dispatched on `document`.
  *
+ * The stream is closed on `pagehide` and opened again on a `pageshow` from
+ * the back/forward cache (whose `hello` then catches up on missed changes).
+ * A page kept in that cache would otherwise hold its stream open: browsers
+ * allow 6 HTTP/1.1 connections per host, so a few cached pages use them all
+ * up and the next navigation stalls (seen in WebKit).
+ *
  * Every browser API is injected so the logic is unit tested with fakes
  * (constitution §IV); only the last line passes the real globals.
  */
@@ -323,6 +329,7 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   }
 
   function connect() {
+    if (source) source.close();
     const es = new EventSource(EVENTS_URL);
     source = es;
     es.addEventListener("hello", (event) => {
@@ -358,12 +365,27 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
     });
   }
 
+  /** Leaving the page (or entering the back/forward cache): let the stream go. */
+  const onPageHide = () => {
+    const es = source;
+    source = null; // also cancels a pending reconnect
+    es?.close();
+  };
+
+  /** @param {Event} event back from the back/forward cache: listen again */
+  const onPageShow = (event) => {
+    if (!(/** @type {PageTransitionEvent} */ (event).persisted) || source) return;
+    connect();
+  };
+
   return {
     /** Starts listening. */
     start() {
       seen = versionAttr(document.body);
       remember(document.querySelector("main"));
       document.addEventListener("toggle", onToggle, true);
+      window.addEventListener?.("pagehide", onPageHide);
+      window.addEventListener?.("pageshow", onPageShow);
       connect();
     },
     /** Exposed for tests: runs one update now. */

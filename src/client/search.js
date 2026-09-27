@@ -13,7 +13,9 @@
  *   Ctrl+K and on an entry's click. The index is fetched on first use from
  *   `{base}assets/search-index.json` and again on the next use after a live
  *   `sk:change` event. Arrow keys move the active option
- *   (`aria-activedescendant`), Enter or a click opens it at `base + url`,
+ *   (`aria-activedescendant`), Enter or a click opens it at `base + url`
+ *   (an Enter pressed while the index is still loading opens the first
+ *   result as soon as it arrives, so typing fast never loses the key),
  *   "N more" shows the whole group, Escape closes and focus returns to the
  *   opener. Every text is set with `textContent`.
  *
@@ -124,6 +126,8 @@ export function isMac(navigator) {
  * @property {Element | null} opener focused when the dialog opened
  * @property {Set<string>} expanded groups whose "N more" was chosen
  * @property {number} active index of the active option
+ * @property {boolean} pendingEnter Enter was pressed while the index was
+ *   loading; the active option opens once the results are rendered
  */
 
 /** @type {WeakMap<Document, SearchState>} */
@@ -312,6 +316,11 @@ function load(document, state) {
       state.loading = null;
     }
     render(document, state);
+    if (state.pendingEnter) {
+      state.pendingEnter = false;
+      const option = optionsOf(document)[state.active];
+      if (option && dialogOf(document)?.open) choose(document, state, option);
+    }
   })();
   return state.loading;
 }
@@ -368,6 +377,7 @@ function wireDialog(document, dialog, state) {
   wired.add(dialog);
   const input = /** @type {HTMLInputElement} */ (dialog.querySelector('input[data-part="query"]'));
   input.addEventListener("input", () => {
+    state.pendingEnter = false;
     state.expanded.clear();
     render(document, state);
   });
@@ -375,13 +385,21 @@ function wireDialog(document, dialog, state) {
     const e = /** @type {KeyboardEvent} */ (event);
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
+      state.pendingEnter = false;
       const count = optionsOf(document).length;
       if (!count) return;
       const step = e.key === "ArrowDown" ? 1 : -1;
       setActive(document, state, (state.active + step + count) % count);
     } else if (e.key === "Enter") {
       const option = optionsOf(document)[state.active];
-      if (!option) return;
+      if (!option) {
+        // The index is still on its way: open the first result once it is.
+        if (state.loading && input.value.trim()) {
+          e.preventDefault();
+          state.pendingEnter = true;
+        }
+        return;
+      }
       e.preventDefault();
       choose(document, state, option);
     } else if (e.key === "Escape") {
@@ -404,6 +422,7 @@ function wireDialog(document, dialog, state) {
     choose(document, state, option);
   });
   dialog.addEventListener("close", () => {
+    state.pendingEnter = false;
     const opener = /** @type {HTMLElement | null} */ (state.opener);
     state.opener = null;
     if (opener && typeof opener.focus === "function" && opener.isConnected) opener.focus();
@@ -420,7 +439,7 @@ export function init(root, deps) {
   if (!dialog) return;
   let state = states.get(document);
   if (!state) {
-    state = { deps, entries: null, stale: false, loading: null, failed: false, opener: null, expanded: new Set(), active: -1 };
+    state = { deps, entries: null, stale: false, loading: null, failed: false, opener: null, expanded: new Set(), active: -1, pendingEnter: false };
     states.set(document, state);
   } else state.deps = { ...state.deps, ...deps };
   const current = state;

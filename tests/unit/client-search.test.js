@@ -357,6 +357,71 @@ describe("client/search.js: results and navigation (FR-049a, FR-049b)", () => {
     assert.deepEqual(p.assigned, ["/features/002-beta/index.html#task-002-beta-T018"]);
   });
 
+  test("Enter pressed while the index is still loading opens the first result once it arrives", async () => {
+    const p = page();
+    /** @type {(v: unknown) => void} */
+    let release = () => {};
+    const gate = new Promise((r) => (release = r));
+    p.deps.fetch = async (url) => {
+      p.fetched.push(url);
+      await gate;
+      return { ok: true, json: async () => ({ version: 1, entries: MANY }) };
+    };
+    init(p.document, p.deps);
+    const loaded = openSearch(p.document);
+    p.type("T018 search box");
+    assert.equal(p.options().length, 0, "no results yet");
+    assert.equal(p.key(p.input(), "Enter"), false, "the key is kept, not dropped");
+    assert.deepEqual(p.assigned, []);
+    release(undefined);
+    await loaded;
+    assert.deepEqual(p.assigned, ["/features/002-beta/index.html#task-002-beta-T018"]);
+    assert.equal(p.dialog().open, false);
+  });
+
+  test("a pending Enter is dropped when typing goes on, arrows move, or the dialog closes", async () => {
+    for (const cancel of ["type", "arrow", "close"]) {
+      const p = page();
+      /** @type {(v: unknown) => void} */
+      let release = () => {};
+      const gate = new Promise((r) => (release = r));
+      p.deps.fetch = async () => {
+        await gate;
+        return { ok: true, json: async () => ({ version: 1, entries: MANY }) };
+      };
+      init(p.document, p.deps);
+      const loaded = openSearch(p.document);
+      p.type("T018");
+      p.key(p.input(), "Enter");
+      if (cancel === "type") p.type("T018 search");
+      else if (cancel === "arrow") p.key(p.input(), "ArrowDown");
+      else p.dialog().close();
+      release(undefined);
+      await loaded;
+      assert.deepEqual(p.assigned, [], cancel);
+    }
+  });
+
+  test("a pending Enter opens nothing when the index fails to load", async () => {
+    const p = page();
+    /** @type {(v: unknown) => void} */
+    let release = () => {};
+    const gate = new Promise((r) => (release = r));
+    p.deps.fetch = async () => {
+      await gate;
+      return { ok: false, status: 500, json: async () => ({}) };
+    };
+    init(p.document, p.deps);
+    const loaded = openSearch(p.document);
+    p.type("T018");
+    p.key(p.input(), "Enter");
+    release(undefined);
+    await loaded;
+    assert.deepEqual(p.assigned, []);
+    assert.equal(p.options().length, 0);
+    assert.equal(p.dialog().open, true, "the dialog stays open showing the failure");
+  });
+
   test("a click on a result opens it", async () => {
     const p = page();
     await openSearch(p.document);
