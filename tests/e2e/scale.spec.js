@@ -116,7 +116,9 @@ test("US2 FR-027 map opens By feature above 1,000 tasks", async ({ page }) => {
   await expect(heads.first().locator('[data-part="count"]')).toHaveText("0/40");
   await expect(map(page).locator("a[data-state]")).toHaveCount(2000);
   await expect(map(page).locator('[data-part="legend"] li').last()).toHaveText("1 dot = 1 task");
-  // Squares keep the click behavior.
+  // Once loaded, groups off screen no longer skip rendering (src/styles/input.css).
+  await expect(map(page)).toHaveAttribute("data-loaded", "");
+  // Squares keep the click behavior, also in the last group.
   const key = `${featureDir(49)}/T001`;
   await map(page).locator(`a[data-key="${key}"]`).click();
   const row = page.locator(`[data-region="tree"] li[data-key="${key}"]`);
@@ -170,10 +172,12 @@ test("US2 SC-006 hover growth within 150 ms and tooltip at 500 ± 100 ms with 2,
   await page.mouse.move(box.x + box.width / 2, box.y - 200);
   await page.waitForTimeout(200);
   const t = await page.evaluate(() => /** @type {any} */ (window).__t);
-  expect(t.grown - t.entered).toBeLessThanOrEqual(150);
-  expect(t.shown - t.entered).toBeGreaterThanOrEqual(400);
-  expect(t.shown - t.entered).toBeLessThanOrEqual(600);
-  expect(t.hidden - t.left).toBeLessThanOrEqual(100);
+  // Every measured moment in each message: a missing one shows as NaN.
+  const moments = JSON.stringify(t);
+  expect(t.grown - t.entered, moments).toBeLessThanOrEqual(150);
+  expect(t.shown - t.entered, moments).toBeGreaterThanOrEqual(400);
+  expect(t.shown - t.entered, moments).toBeLessThanOrEqual(600);
+  expect(t.hidden - t.left, moments).toBeLessThanOrEqual(100);
 });
 
 test("US2 FR-024 a grown square at a group's edge keeps both rings inside its group", async ({ page }) => {
