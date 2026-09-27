@@ -8,6 +8,12 @@
 
 **Input**: User description: "Make project open-source production grade quality. Prepare it for first npm release, prepare action to bump version, prepare change log and release it to npm. Prepare guide on how to release version. Ensure release safety. Add documentation in "/docs" and add docmd framework to release it through GitHub pages. Add workflow to build and deploy documentation page from master on change. And also add "speckit-eye" generated page from a project and link it in both README.md and docmd main page. It will show both project status and project demo."
 
+## Clarifications
+
+### Session 2026-09-27
+
+- Q: Which version number should the first npm release be? → A: `1.0.0`, a stable first release matching `package.json`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Install speckit-eye from npm (Priority: P1)
@@ -171,7 +177,7 @@ templates.
 
 - **FR-001**: The package MUST be publishable to the public npm registry under the name `speckit-eye` with complete metadata: description, license, keywords, author, repository, homepage (the documentation site), issue tracker, and the supported Node.js range.
 - **FR-002**: The published package MUST contain only the files needed at runtime plus README, CHANGELOG and LICENSE; an automated check MUST compare the package contents against this allowed list and fail on any difference.
-- **FR-003**: Before the first release, the changelog MUST be finalized: the current "Unreleased" entries become the first version's dated section, and comparison links for each version exist at the bottom.
+- **FR-003**: The first release MUST be version `1.0.0` (stable, no pre-release). Before it, the changelog MUST be finalized: the current "Unreleased" entries become the dated `1.0.0` section, and comparison links for each version exist at the bottom.
 - **FR-004**: The first version MUST be released through the same automated path as every later version (no manual publish from a developer machine).
 
 **Version bump automation**
@@ -244,7 +250,7 @@ templates.
 ## Assumptions
 
 - The repository's default branch is `main` (the user wrote "master"); "master" in the request is read as "the default branch".
-- The first published version is the one already in `package.json` (`1.0.0`), whose entries are currently collected under "Unreleased" in the changelog; the maintainer may choose a different number at bump time.
+- The first published version is `1.0.0`, already in `package.json`, whose entries are currently collected under "Unreleased" in the changelog. Because `package.json` already says `1.0.0`, the first release sets that version as-is rather than bumping from it.
 - The npm name `speckit-eye` is available (or owned by the maintainer); securing it and configuring npm trusted publishing for this repository are one-time manual steps performed by the maintainer and documented in the guide — they cannot be done from inside the repository.
 - The actual first publish is triggered and approved by the maintainer after this feature is merged; this feature delivers everything needed so that the publish is a guided, approved run.
 - The documentation site and the dashboard are hosted together on this repository's GitHub Pages project site (a sub-path per repository name), with the dashboard under its own sub-path (for example `/status/`); no custom domain.
