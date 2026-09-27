@@ -92,3 +92,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   still changes the current page. The sidebar, icon rail, Up next bar and map
   tooltips stay dark and the next-task orange is the same in both themes;
   document text follows the theme.
+- Added: a document reader for every document page (feature documents, the
+  constitution and assessments). A document list links back to the feature
+  page, shows the feature title and status, and groups its documents under
+  Define, Design, Contracts, Build and Other with the current one marked;
+  project documents get a project document list. The reading column shows
+  the document kind and file name, the title and numbered top-level sections
+  (01, 02, …); an "On this page" panel lists the sections, marks the one being
+  read and shows reading progress. "Expand all" opens every collapsed part and
+  "Raw markdown" shows the exact source and toggles back. On narrow screens
+  the contents panel is hidden and the document list sits behind a menu.
+- Added: a structured view of `spec.md` wherever it follows the Spec Kit
+  template: a metadata card (feature branch, created, status), the original
+  request as a pull quote, clarifications grouped by session ("N answered ·
+  M sessions", the first session open, "Show N more answers") with aligned
+  Yes / No badges, user stories as cards (priority, why this priority,
+  independent test, a numbered Given / When / Then table and the phase that
+  implements the story with its progress), functional requirements with area
+  chips and MUST, MUST NOT, SHOULD, SHOULD NOT and MAY highlighted, and key
+  entities as a grid of cards. Everything else is shown as ordinary formatted
+  text; no line of the document is left out and no wording is changed.
