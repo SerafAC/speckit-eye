@@ -15,3 +15,7 @@
 ## 2026-09-27 — Phase 8: User Story 6 [T067-T072]
 **Q:** The search-index contract contradicts itself. Its table and T067 say `terms` = label + detail, but its JSON example indexes only the label for features and headings. The implementation follows the example. Which is right?
 **A:** Label only (keep as built) — There are fewer false hits: "done" doesn't match every finished feature. Tasks and documents search `label + " " + detail`; features and headings search only their `label`. The contract table and T067 wording were corrected to match.
+
+## 2026-09-27 — Phase 9: Polish [T080]
+**Q:** WebKit's Tab key skips links: Safari needs Option+Tab by default, and Playwright's Windows WebKit never tabs to links. FR-050 requires map squares to stay reachable by keyboard. How should squares get keyboard focus?
+**A:** tabindex="0" on squares — Every square is a Tab stop in every engine, whatever the browser's link-tabbing setting. Chrome and Firefox don't change. The FR-050 keyboard test is not changed.
