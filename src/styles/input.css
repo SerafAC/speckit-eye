@@ -1046,19 +1046,27 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
   @apply flex min-w-0 flex-wrap gap-[3px];
 }
 
-/* "By feature" with many tasks (FR-027): groups off screen are neither
-   styled, laid out nor painted until they scroll near the viewport
-   (SC-007). Content visibility also clips each group to its padding box, so
-   the group gets 10 px of padding, taken back by a negative margin, for the
+/* "By feature" with many tasks (FR-027): while the page loads, groups off
+   screen are neither styled, laid out nor painted (SC-007). At the load
+   event src/client/taskmap.js marks the map `data-loaded` and every group
+   is rendered: WebKit loses track of a skipped group once one of its
+   squares is scrolled into view (Tab focus, `scrollIntoView`), and the
+   squares then miss the pointer: no hover growth, and a click never
+   reaches them. Without scripts the groups keep content visibility.
+   Content visibility also clips each group to its padding box, so the
+   group gets 10 px of padding, taken back by a negative margin, for the
    grown square and its rings (FR-024) without moving anything: scale(1.6)
    also scales the 3 px outer ring, so a 9 px square reaches 2.7 + 4.8 =
    7.5 px past its edge. The intrinsic size is one group of two rows until
    the real one is known. */
 [data-region="taskmap"][data-layout="grouped"] [data-part="group"] {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 51px;
   margin: -10px;
   padding: 10px;
+}
+
+[data-region="taskmap"][data-layout="grouped"]:not([data-loaded]) [data-part="group"] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 51px;
 }
 
 [data-region="taskmap"][data-layout="stacked"] [data-part="grid"] {
