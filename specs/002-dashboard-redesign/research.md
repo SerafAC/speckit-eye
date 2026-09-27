@@ -169,6 +169,13 @@ The stats bar segments, their done/open/next parts, the phase rail blocks and th
 
 **CI findings (T080, first run)**: WebKit skips links on Tab (Safari needs Option+Tab; Playwright's Windows WebKit never tabs to links), so map squares carry `tabindex="0"` (decisions.md). One WebKit `page.goto` failed once with "WebKit encountered an internal error" (us5-reader, ubuntu) and passed on retry. WebKit raises that message only from its own internal load state. Raw-socket checks of the server found exact `Content-Length` on every resource, clean SSE framing, and no response written after a socket closed, so it is treated as an engine issue, not a product one. If it recurs, look first at a navigation that interrupts an in-flight `EventSource` or fetch.
 
+**CI status when autopilot stopped (T080 open, run 36326396044 on 95e425e)**: unit tests (Node 22, 24) and WSL live updates pass. Windows passes everything except WebKit SC-006, and the SC-007 overview load now passes in all engines. Still failing:
+- WebKit, all three OSes: `scale.spec.js` SC-006 never sees the hover growth (`grown` is NaN). Round 3 (95e425e) changed the grouped map to `content-visibility: auto` and made the growth instant (`transition: none`). Before that, the growth was merely late (192 ms), so the regression came with round 3.
+- WebKit on macOS and Ubuntu: `scale.spec.js` FR-027. Clicking a square in feature 50 no longer selects its tree row. It lies in an off-screen `content-visibility: auto` group, so round 3 again.
+- Firefox on macOS: SC-006 tooltip at 606 ms (limit 600), flaky.
+- WebKit on Ubuntu: `us5-reader.spec.js:408` navigation timeout, flaky and not root-caused. It persists after the pagehide fix and `Connection: close`.
+Suggested next step: revert the round-3 `content-visibility` rule and give the growth a very short transition instead of none, then re-measure SC-006 and SC-007 in WebKit.
+
 ## D17. Page addresses
 
 **Decision** (existing addresses may change, clarified; most stay because they are fine): overview `index.html`; feature page `features/<dir>/index.html` (new); documents keep `features/<dir>/<rel>.html`, `constitution.html`, `assessments/<slug>/<rel>.html`; the selected task is the fragment `#task-<key>`; a `tasks.md` line is `features/<dir>/tasks.html#L<line>`. See [contracts/routes.md](./contracts/routes.md).
