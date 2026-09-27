@@ -13,6 +13,7 @@
 ### Session 2026-09-27
 
 - Q: Which version number should the first npm release be? → A: `1.0.0`, a stable first release matching `package.json`.
+- Q: After the version-bump change is merged, how should the release get from there to npm? → A: Merging the reviewed bump change automatically creates the `vX.Y.Z` tag and starts publishing, which waits for maintainer approval; no one types a tag by hand.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -67,7 +68,7 @@ section) each stop the release before anything is published.
 
 1. **Given** unreleased changelog entries on the default branch, **When** the maintainer starts the version bump and picks "minor", **Then** a reviewable change is proposed that updates the version and the changelog (new dated section, fresh empty "Unreleased" section, updated comparison links) and nothing else.
 2. **Given** the changelog's "Unreleased" section is empty, **When** the maintainer starts a version bump, **Then** the bump stops with a clear message and proposes nothing.
-3. **Given** the bump change is merged and a release is triggered, **When** the publishing automation runs, **Then** it verifies that the tag, the package version and the changelog section agree, that all unit and end-to-end tests pass on the tagged commit, and that the package contents match the allowed list, before publishing.
+3. **Given** the bump change is merged, **When** the merge lands on the default branch, **Then** the matching version tag is created automatically and the publishing automation starts; **When** it runs, **Then** it verifies that the tag, the package version and the changelog section agree, that all unit and end-to-end tests pass on the tagged commit, and that the package contents match the allowed list, before publishing.
 4. **Given** any of those checks fails, **When** the publishing automation runs, **Then** nothing is published to npm, no GitHub release is created, and the failure names the check that failed.
 5. **Given** the version to publish already exists on npm, **When** the publishing automation runs, **Then** it stops without publishing and says so.
 6. **Given** a successful publish, **When** a user inspects the package, **Then** it carries verifiable provenance linking it to the exact source commit and automation run that built it, and a GitHub release exists whose notes are that version's changelog section.
@@ -158,7 +159,8 @@ templates.
 ### Edge Cases
 
 - The bump is started while a previous bump proposal is still open: the new run refuses or updates the existing proposal rather than creating a conflicting second one.
-- A tag is pushed that does not match the package version (e.g. `v1.2.0` while the package says `1.1.0`): publishing stops before anything is uploaded.
+- A merged change touches the version but was not produced by the version bump (e.g. a hand edit): no tag is created automatically, and the guide explains that releases only go through the bump.
+- A tag is pushed by hand that does not match the package version (e.g. `v1.2.0` while the package says `1.1.0`): publishing stops before anything is uploaded.
 - A tag is pushed on a commit that is not on the default branch: publishing stops.
 - A pre-release version (e.g. `1.1.0-rc.1`) is published: it is published under a pre-release channel so that `npx speckit-eye` still installs the latest stable version.
 - npm publishes the package but creating the GitHub release fails: the guide explains how to finish the release without republishing; rerunning the automation does not attempt to publish the same version twice.
@@ -182,14 +184,14 @@ templates.
 
 **Version bump automation**
 
-- **FR-005**: Maintainers MUST be able to start a version bump on demand, choosing patch, minor, major, or a pre-release of one of these.
+- **FR-005**: Maintainers MUST be able to start a version bump on demand, choosing patch, minor, major, a pre-release of one of these, or an explicit version (used for the first release, which keeps the existing `1.0.0`).
 - **FR-006**: The version bump MUST update the version only in its single authoritative location and MUST move the changelog's "Unreleased" entries under a new section headed with the new version and the current date, leaving a fresh empty "Unreleased" section.
 - **FR-007**: The version bump MUST propose its change for review rather than writing directly to the default branch.
 - **FR-008**: The version bump MUST refuse to run when the "Unreleased" section has no entries.
 
 **Publishing and release safety**
 
-- **FR-009**: Publishing MUST start only from a version tag on a commit that belongs to the default branch.
+- **FR-009**: Merging a version-bump change into the default branch MUST automatically create the matching `vX.Y.Z` tag on the merge commit and start publishing; no manual tagging is part of the normal process. Publishing MUST start only from a version tag on a commit that belongs to the default branch.
 - **FR-010**: Before publishing, the automation MUST verify that the tag, the package version and the changelog's latest section name the same version, and that the version does not already exist on npm.
 - **FR-011**: Before publishing, the automation MUST run the full unit and end-to-end test suites and the package-contents check on the tagged commit; any failure MUST stop the release with nothing published.
 - **FR-012**: Publishing MUST require approval by an authorized maintainer through a protected release environment.
@@ -239,7 +241,7 @@ templates.
 ### Measurable Outcomes
 
 - **SC-001**: On a clean machine with only a supported Node.js installed, the README's install command starts the dashboard for a Spec Kit project in under 1 minute on a normal connection.
-- **SC-002**: A maintainer who has never released the project can publish a new version by following only the release guide, with no more than 3 manual actions (start bump, approve/merge proposal, approve release) and in under 30 minutes of their own time excluding test run time.
+- **SC-002**: A maintainer who has never released the project can publish a new version by following only the release guide, with no more than 3 manual actions (start the bump, merge the bump change, approve the release) and in under 30 minutes of their own time excluding test run time.
 - **SC-003**: 100% of the deliberately broken release attempts (version mismatch, failing test, empty changelog section, already-published version, unexpected package file, tag off the default branch) end with nothing published.
 - **SC-004**: Every published version has a matching git tag, GitHub release, changelog section and verifiable provenance — 0 exceptions.
 - **SC-005**: A documentation change merged to the default branch is visible on the public site within 10 minutes, without manual steps.
