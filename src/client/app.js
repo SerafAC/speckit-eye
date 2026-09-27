@@ -13,6 +13,7 @@ import { createPrefs, browserStorage, ALLOWED } from "./prefs.js";
 import * as tree from "./tree.js";
 import * as taskmap from "./taskmap.js";
 import * as feature from "./feature.js";
+import * as reader from "./reader.js";
 
 /**
  * @typedef {object} Deps
@@ -58,6 +59,15 @@ const taskmapModule = { name: "taskmap", init: taskmap.init };
 const featureModule = { name: "feature", init: feature.init, save: feature.save };
 
 /**
+ * The document reader: contents highlight and progress, "Expand all", the
+ * raw view, "Show more" answers and requirement area chips
+ * (src/client/reader.js). Its raw view, expansion, area and open "Show
+ * more" parts are page-local state kept across live swaps.
+ * @type {PageModule}
+ */
+const readerModule = { name: "reader", init: reader.init, save: reader.save };
+
+/**
  * The modules run on each page type; `all` runs on every page first.
  * @type {Record<"overview" | "feature" | "document" | "all", PageModule[]>}
  */
@@ -65,7 +75,7 @@ export const MODULES = {
   all: [],
   overview: [treeModule, taskmapModule],
   feature: [featureModule],
-  document: [],
+  document: [readerModule],
 };
 
 /** Theme switch buttons already wired (idempotent `initShell`). */

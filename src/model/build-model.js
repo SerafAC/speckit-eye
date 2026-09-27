@@ -4,6 +4,7 @@
  */
 
 import { parseSpec } from "../parse/spec.js";
+import { parseSpecStructure } from "../parse/spec-structure.js";
 import { parseTasks } from "../parse/tasks.js";
 import {
   classifyKind,
@@ -125,7 +126,20 @@ import { taskFiles, taskKind, taskRefs, kindChips } from "./task-files.js";
  *   of first appearance (feature-page kind filters, FR-034)
  * @property {number[]} phaseShares percent share of each phase in the
  *   feature's tasks, largest remainder; 0 for phases without tasks (FR-032)
+ * @property {import("../parse/spec-structure.js").SpecStructure | null} spec
+ *   the structured `spec.md` (FR-042); each story block carries its `phases`
+ *   (StoryPhaseLink[]); null without `spec.md`
  * @property {string} [sig]
+ */
+
+/**
+ * @typedef {object} StoryPhaseLink a phase implementing a user story
+ *   (data-model SpecStructure "phase links")
+ * @property {string} key the phase key
+ * @property {number | null} number
+ * @property {string} title
+ * @property {Counts} counts the story's tasks in that phase: the whole
+ *   phase when it is merged into the story, else the story's group
  */
 
 /**
@@ -344,6 +358,38 @@ export function featureDocuments(artifacts, dir) {
 }
 
 /**
+ * The phases whose merged story or story groups carry `label`, with the
+ * counts of that story's tasks in each.
+ * @param {Phase[]} phases
+ * @param {string} label "US<n>"
+ * @returns {StoryPhaseLink[]}
+ */
+export function storyPhaseLinks(phases, label) {
+  /** @type {StoryPhaseLink[]} */
+  const out = [];
+  for (const p of phases) {
+    const group = p.groups.find((g) => g.label === label);
+    const counts = p.mergedStory?.label === label ? p.counts : group?.counts;
+    if (counts) out.push({ key: p.key, number: p.number, title: p.title, counts });
+  }
+  return out;
+}
+
+/**
+ * The structured spec.md with each story's phase links resolved.
+ * @param {string | undefined} text
+ * @param {Phase[]} phases
+ */
+function featureSpec(text, phases) {
+  if (text === undefined) return null;
+  const spec = parseSpecStructure(text);
+  for (const b of spec.blocks) {
+    if (b.kind === "story") b.phases = storyPhaseLinks(phases, b.id);
+  }
+  return spec;
+}
+
+/**
  * @param {string} dir
  * @param {Map<string, string>} files
  * @param {Warning[]} scanWarnings warnings from the scan that belong to this feature
@@ -462,6 +508,7 @@ function buildFeature(dir, files, scanWarnings) {
     warnings,
     kindChips: kindChips(parsed.tasks.map((t) => /** @type {Task} */ (taskOf.get(t)))),
     phaseShares: shares(phases.map((p) => p.counts.total)),
+    spec: featureSpec(files.get("spec.md"), phases),
   };
 }
 

@@ -627,3 +627,60 @@ describe("feature.phaseShares (T044, FR-032)", () => {
     assert.deepEqual(m.features[0].phaseShares, []);
   });
 });
+
+describe("feature.spec (T059, FR-042)", () => {
+  const SPEC_MD = [
+    "# Feature Specification: X",
+    "",
+    "**Status**: Draft",
+    "",
+    "## User Scenarios",
+    "",
+    "### User Story 1 - First (Priority: P1)",
+    "",
+    "### User Story 2 - Second (Priority: P2)",
+    "",
+    "### User Story 3 - Unplanned (Priority: P3)",
+  ].join("\n");
+  const TASKS = [
+    "## Phase 1: Setup",
+    "- [x] T001 setup",
+    "## Phase 2: User Story 1",
+    "- [x] T002 [US1] a",
+    "- [ ] T003 [US1] b",
+    "## Phase 3: Mixed",
+    "- [x] T004 [US2] c",
+    "- [ ] T005 [US1] d",
+    "- [ ] T006 [US2] e",
+    "- [ ] T007 [US2] f",
+  ].join("\n");
+
+  test("parseSpecStructure of the spec.md already read", async () => {
+    const f = (await model({ "specs/001-x/spec.md": SPEC_MD, "specs/001-x/tasks.md": TASKS })).features[0];
+    assert.deepEqual(f.spec.metadata, { status: "Draft" });
+    assert.deepEqual(
+      f.spec.blocks.filter((b) => b.kind === "story").map((b) => b.id),
+      ["US1", "US2", "US3"],
+    );
+  });
+
+  test("each story links the phases whose merged story or groups carry its label, with their counts", async () => {
+    const f = (await model({ "specs/001-x/spec.md": SPEC_MD, "specs/001-x/tasks.md": TASKS })).features[0];
+    const [us1, us2, us3] = f.spec.blocks.filter((b) => b.kind === "story");
+    assert.deepEqual(
+      us1.phases.map((p) => [p.key, p.number, p.title, p.counts.done, p.counts.total]),
+      [
+        ["001-x/p2", 2, "User Story 1", 1, 2],
+        ["001-x/p3", 3, "Mixed", 0, 1],
+      ],
+    );
+    assert.deepEqual(us2.phases.map((p) => [p.key, p.counts.done, p.counts.total]), [["001-x/p3", 1, 3]]);
+    assert.deepEqual(us3.phases, []);
+  });
+
+  test("stories get empty phase links without tasks.md; spec is null without spec.md", async () => {
+    const m = await model({ "specs/001-x/spec.md": SPEC_MD, "specs/002-y/plan.md": "# Plan" });
+    assert.ok(m.features[0].spec.blocks.filter((b) => b.kind === "story").every((b) => b.phases.length === 0));
+    assert.equal(m.features[1].spec, null);
+  });
+});

@@ -269,7 +269,7 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     assert.match(s.get("index.html").body, /<a data-part="warning" data-code="W11" href="\/features\/001-full\/index.html#warnings">[\s\S]*?1 name not supported for a page<\/span> <span data-part="note">— skipped</);
   });
 
-  test("an artifact page is a full page with the breadcrumb and the rendered article", async () => {
+  test("an artifact page is a full page in the reader layout (FR-038, T061)", async () => {
     const { type, body } = (await artifactSite()).get("features/001-full/plan.html");
     assert.equal(type, HTML_TYPE);
     assert.match(body, /^<!doctype html>/);
@@ -278,9 +278,11 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     assert.match(body, /<body [^>]*data-page="document"/);
     assert.match(body, /<nav data-region="rail"/);
     assert.doesNotMatch(body, /data-region="sidebar"/);
-    assert.match(body, /<main><nav data-region="breadcrumb"[^>]*><a href="\/index.html">Overview<\/a>[\s\S]*Full[\s\S]*Plan<\/span><\/nav>/);
-    assert.match(body, /<article class="prose" data-region="artifact" data-key="specs\/001-full\/plan.md">/);
-    assert.match(body, /<h1 id="plan">Plan<\/h1>/);
+    assert.match(body, /<main><div data-region="reader">\n<nav data-region="doc-list" data-keep-scroll="docs"/);
+    assert.match(body, /<a data-part="back" href="\/features\/001-full\/index.html">/);
+    assert.match(body, /<article data-region="doc" data-key="specs\/001-full\/plan.md" data-kind="plan">/);
+    assert.match(body, /<p data-part="eyebrow">IMPLEMENTATION PLAN · plan.md<\/p>\n<h1>Plan<\/h1>/);
+    assert.match(body, /<nav data-region="toc" aria-label="On this page">/);
   });
 
   test("links between artifacts go to their pages; other links are plain text (FR-023)", async () => {
@@ -300,10 +302,27 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     assert.match(article, /<pre><code class="language-mermaid">graph TD/);
   });
 
-  test("assessment and constitution pages have their own breadcrumb", async () => {
+  test("assessment and constitution pages get the project document list (FR-039)", async () => {
     const s = await artifactSite();
-    assert.match(s.get("assessments/idea-x/intake.html").body, /<span data-part="parent">Assessment: idea-x<\/span>/);
-    assert.doesNotMatch(s.get("constitution.html").body, /data-part="parent"/);
+    const list = (key) => {
+      const body = s.get(key).body;
+      const at = body.indexOf('<div data-part="doc-groups">');
+      return body.slice(at, body.indexOf("</nav>", at));
+    };
+    for (const key of ["constitution.html", "assessments/idea-x/intake.html"]) {
+      assert.match(list(key), /<h2>Project<\/h2><ul><li><a href="\/constitution.html"/);
+      assert.match(list(key), /<h2>Assessment: idea-x<\/h2><ul><li><a href="\/assessments\/idea-x\/intake.html"/);
+      assert.match(list(key), /href="\/assessments\/idea-x\/notes.html"/);
+    }
+    assert.match(list("assessments/idea-x/intake.html"), /<a href="\/assessments\/idea-x\/intake.html" aria-current="page">/);
+    assert.match(list("constitution.html"), /<a href="\/constitution.html" aria-current="page">/);
+  });
+
+  test("spec.md pages use the structured view (FR-042)", async () => {
+    const { body } = (await artifactSite()).get("features/001-full/spec.html");
+    assert.match(body, /<p data-part="eyebrow">SPECIFICATION · spec.md<\/p>\n<h1>Feature Specification: Full<\/h1>/);
+    assert.equal(body.split("<h1").length, 2, "the title is shown once, in the header");
+    assert.doesNotMatch(body, /data-part="title"/);
   });
 
   test("one feature page per feature, rendered with the sidebar marking it current (FR-029, T022)", async () => {

@@ -90,10 +90,11 @@ describe("start", () => {
     assert.deepEqual(log.map(([n]) => n), ["a"]);
   });
 
-  test("the default table runs tree.js and taskmap.js on the overview and feature.js on the feature page", () => {
+  test("the default table runs tree.js and taskmap.js on the overview, feature.js on the feature page and reader.js on document pages", () => {
     assert.deepEqual(MODULES.overview.map((m) => m.name), ["tree", "taskmap"]);
     assert.deepEqual(MODULES.feature.map((m) => m.name), ["feature"]);
-    assert.deepEqual([...MODULES.all, ...MODULES.document], []);
+    assert.deepEqual(MODULES.document.map((m) => m.name), ["reader"]);
+    assert.deepEqual(MODULES.all, []);
     const w = page("overview");
     w.document.querySelector("main").innerHTML = `${TREE}<section data-region="taskmap" data-layout="stacked"><header><button type="button" data-part="map-mode" aria-pressed="false" hidden><span data-part="mode-label">By feature</span></button></header><div data-part="card"><div data-part="grid"><a data-key="002-b/T1" data-state="next" data-parents="002-b 002-b/p1" href="#b-t1" title="T1 · Next — t — B"></a></div></div></section>`;
     const storage = memoryStorage({ "sk-map": "grouped" });
@@ -108,6 +109,24 @@ describe("start", () => {
     assert.deepEqual(save(doc), { tree: { depth: null } });
     // A second start on the same document does not attach the listeners twice.
     assert.doesNotThrow(() => start({ document: doc, window: w, storage }));
+  });
+
+  test("the default table wires the reader on document pages, and its state survives save / reinit", () => {
+    const w = page("document", { rail: true });
+    const article = `<article data-region="doc" data-key="specs/001-x/spec.md"><header data-part="doc-head"><button type="button" data-part="expand-all" hidden>Expand all</button><details data-part="raw" data-key="raw:x"><summary>Raw markdown</summary><pre><code>src</code></pre></details></header><div data-part="formatted"><details data-part="story" data-key="s1"><summary>US1</summary></details></div></article><nav data-region="toc" aria-label="On this page"><div data-part="progress" hidden><span data-part="progress-bar" class="w-pct-0"></span></div></nav>`;
+    const main = w.document.querySelector("main");
+    main.innerHTML = article;
+    start({ document: w.document, window: w, storage: memoryStorage() });
+    const doc = w.document;
+    assert.equal(doc.querySelector('button[data-part="expand-all"]').hidden, false);
+    assert.equal(doc.querySelector('[data-part="progress"]').hidden, false);
+    doc.querySelector('button[data-part="expand-all"]').click();
+    const state = save(doc);
+    assert.deepEqual(state, { reader: { raw: false, expanded: true, area: "all", more: [] } });
+    main.innerHTML = article;
+    reinit(doc, state);
+    assert.equal(doc.querySelector('details[data-key="s1"]').open, true);
+    assert.equal(doc.querySelector('button[data-part="expand-all"]').textContent, "Collapse all");
   });
 
   test("the default table wires the tree: controls un-hidden, stored order applied, order click stored", () => {

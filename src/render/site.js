@@ -7,7 +7,7 @@
 
 import { renderPage } from "./layout.js";
 import { renderOverview } from "./overview.js";
-import { renderArtifact } from "./artifact.js";
+import { renderDocument } from "./reader.js";
 import { renderFeaturePage } from "./feature.js";
 import { createMarkdown } from "./markdown.js";
 import { themeScript } from "./theme-script.js";
@@ -19,7 +19,7 @@ import { themeScript } from "./theme-script.js";
  * Every artifact of the project with the feature or assessment it belongs to:
  * the constitution, each feature's artifacts, each assessment's artifacts.
  * @param {Project} project
- * @returns {{artifact: Artifact, feature: {title: string} | null, assessment: {slug: string} | null}[]}
+ * @returns {{artifact: Artifact, feature: import("../model/build-model.js").Feature | null, assessment: {slug: string} | null}[]}
  */
 export function allArtifacts(project) {
   const out = [];
@@ -136,10 +136,9 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
     });
   }
 
-  // One document page per artifact (US3, FR-021), keyed by its url; the icon
-  // rail layout until US5 replaces these pages.
+  // One document page per artifact (US3, FR-021), keyed by its url, in the
+  // reader layout (FR-038).
   for (const { artifact, feature, assessment } of entries) {
-    const body = renderMarkdown(artifact.source, artifact.content ?? "");
     site.set(artifact.url, {
       type: HTML_TYPE,
       body: renderPage({
@@ -149,7 +148,7 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
         project,
         page: "document",
         current: documentDestination(artifact, assessment),
-        main: renderArtifact(artifact, body, { base, feature, assessment }),
+        main: renderDocument(artifact, { base, project, feature, assessment, md: renderMarkdown }),
         version,
         generatedAt,
       }),
