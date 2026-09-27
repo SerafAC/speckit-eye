@@ -5,7 +5,10 @@ projects. Point it at a project folder and open the printed address: you see
 how far along the project is, which feature and phase are being worked on, and
 which task comes next, without reading a single `tasks.md` by hand.
 
-![The speckit-eye overview: a dark sidebar with the features, a stats card with the overall percentage and a bar per feature, the Up next bar naming the next task, the feature tree with the active phase open, and the task map with one square per task](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img src="docs/screenshot.png" width="1440" alt="The speckit-eye overview: a dark sidebar with the features, a stats card with the overall percentage and a bar per feature, the Up next bar naming the next task, the feature tree with the active phase open, and the task map with one square per task">
+</picture>
 
 speckit-eye only reads your project. It never creates, changes, or deletes a
 file in it; a static build writes only to the output folder you name.
