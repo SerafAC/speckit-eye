@@ -19,3 +19,7 @@
 ## 2026-09-27 — Phase 9: Polish [T080]
 **Q:** WebKit's Tab key skips links: Safari needs Option+Tab by default, and Playwright's Windows WebKit never tabs to links. FR-050 requires map squares to stay reachable by keyboard. How should squares get keyboard focus?
 **A:** tabindex="0" on squares — Every square is a Tab stop in every engine, whatever the browser's link-tabbing setting. Chrome and Firefox don't change. The FR-050 keyboard test is not changed.
+
+## 2026-09-27 — Phase 9: Polish [T080]
+**Q:** T080 has failed CI twice after fixes. The remaining failures are timing checks on shared runners: WebKit hover growth at 192 ms (limit 150), the 2,000-task overview loading in 2.3–2.8 s in Firefox and WebKit on Windows (limit 2 s), and a WebKit navigation that passes on retry. How should autopilot continue?
+**A:** Profile and speed up — One more round, focused on performance, of the overview render/load and the WebKit hover path, with the limits and tests unchanged. If CI is still red after that round, stop and report.
