@@ -271,8 +271,8 @@ describe("run: non-Error failures", () => {
 });
 
 describe("defaultLoadAssets (T011)", () => {
-  test("the module list is app.js, prefs.js, live.js, tree.js, taskmap.js and feature.js", () => {
-    assert.deepEqual([...CLIENT_MODULES], ["app.js", "prefs.js", "live.js", "tree.js", "taskmap.js", "feature.js"]);
+  test("the module list is app.js, prefs.js, live.js, tree.js, taskmap.js, feature.js and reader.js", () => {
+    assert.deepEqual([...CLIENT_MODULES], ["app.js", "prefs.js", "live.js", "tree.js", "taskmap.js", "feature.js", "reader.js"]);
     assert.ok(Object.isFrozen(CLIENT_MODULES));
   });
 

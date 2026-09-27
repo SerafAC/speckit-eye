@@ -149,7 +149,7 @@ test("US2 AC4 an open artifact page shows new content within 2 s", async ({ page
   const connected = page.waitForResponse((r) => r.url().endsWith("/__events"));
   await page.goto(`${server.url}features/001-alpha/plan.html`);
   await connected;
-  const article = page.locator('article[data-region="artifact"]');
+  const article = page.locator('article[data-region="doc"]');
   await expect(article).toContainText("Old ending.");
 
   await page.evaluate(() => window.scrollTo(0, 600));
@@ -170,7 +170,7 @@ test("US2 FR-026 a deleted artifact's open page shows a notice linking to the ov
   const connected = page.waitForResponse((r) => r.url().endsWith("/__events"));
   await page.goto(`${server.url}features/002-beta/research.html`);
   await connected;
-  await expect(page.locator('article[data-region="artifact"]')).toContainText("Findings.");
+  await expect(page.locator('article[data-region="doc"]')).toContainText("Findings.");
 
   await rm(research);
   const notice = page.locator('[data-region="not-found"]');

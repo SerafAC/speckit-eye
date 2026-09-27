@@ -98,7 +98,7 @@ test("US4 AC2 FR-004 FR-032 a deep link under the base loads with styles and wor
 
   const res = await page.goto(`${host.url}features/001-alpha/plan.html`);
   expect(res?.status()).toBe(200);
-  await expect(page.locator('article[data-region="artifact"]')).toHaveAttribute("data-key", "specs/001-alpha/plan.md");
+  await expect(page.locator('article[data-region="doc"]')).toHaveAttribute("data-key", "specs/001-alpha/plan.md");
   // The stylesheet loaded and applies (the prose article is styled by it).
   const rules = await page.evaluate(() => [...document.styleSheets].reduce((n, s) => n + s.cssRules.length, 0));
   expect(rules).toBeGreaterThan(10);

@@ -1928,24 +1928,177 @@ aside[data-region="detail"] [data-part="copied"]:not([hidden]) {
 }
 
 /* ------------------------------------------------------------------------ */
-/* Artifact pages (FR-020)                                                   */
+/* Document reader (FR-038–FR-044, handoff "Document reader"): document list */
+/* (264 px), reading column, "On this page" panel (240 px). Narrow screens:  */
+/* the list sits behind a <details> control and the contents panel hides.   */
 /* ------------------------------------------------------------------------ */
 
-[data-region="breadcrumb"] {
-  @apply mb-4 flex flex-wrap items-baseline gap-x-1 text-sm text-(--muted);
+[data-region="reader"] {
+  @apply flex flex-col gap-6;
 }
 
-[data-region="breadcrumb"] a {
-  @apply text-(--text-4) underline underline-offset-2 hover:text-(--text);
+@media (width >= 64rem) {
+  body[data-page="document"] > main {
+    @apply p-0;
+  }
+
+  [data-region="reader"] {
+    @apply grid items-start gap-0;
+    grid-template-columns: 264px minmax(0, 1fr);
+  }
 }
 
-[data-region="breadcrumb"] [data-part="current"] {
+@media (width >= 80rem) {
+  [data-region="reader"] {
+    grid-template-columns: 264px minmax(0, 1fr) 240px;
+  }
+}
+
+/* ---- Document list ---- */
+
+[data-region="doc-list"] {
+  @apply flex flex-col gap-3 text-sm;
+}
+
+[data-region="doc-list"] [data-part="back"] {
+  @apply inline-flex items-center text-(--muted) no-underline hover:text-(--text);
+  min-height: var(--hit);
+}
+
+[data-region="doc-list"] [data-part="doc-feature"] {
+  @apply m-0 flex flex-wrap items-center gap-2 font-medium text-(--text);
+}
+
+[data-region="doc-list"] [data-part="doc-feature"] [data-part="name"] {
+  @apply min-w-0 flex-1;
+}
+
+[data-region="doc-list"] [data-part="doc-group"] h2 {
+  @apply m-0 mt-3 mb-1 px-2 text-xs font-medium tracking-wide text-(--muted) uppercase;
+}
+
+[data-region="doc-list"] ul {
+  @apply m-0 list-none p-0;
+}
+
+[data-region="doc-list"] [data-part="doc-group"] a {
+  @apply flex items-center rounded-md px-2 text-(--text-3) no-underline;
+  min-height: var(--hit);
+}
+
+[data-region="doc-list"] [data-part="doc-group"] a:hover {
+  background-color: var(--subtle);
+}
+
+[data-region="doc-list"] [data-part="doc-group"] a[aria-current="page"] {
   @apply font-medium text-(--text);
+  background-color: var(--subtle-2);
+  box-shadow: inset 2px 0 0 var(--blue);
+}
+
+/* Narrow screens: the list behind "Documents"; wide screens: always open. */
+[data-region="doc-list"] [data-part="doc-menu"] > summary {
+  @apply flex cursor-pointer items-center rounded-md border border-(--border) px-3 font-medium;
+  min-height: 44px;
+  background-color: var(--surface);
+}
+
+[data-region="doc-list"] [data-part="doc-groups"] {
+  display: none;
+}
+
+@media (width >= 64rem) {
+  [data-region="doc-list"] {
+    @apply sticky top-0 h-screen overflow-y-auto border-r border-(--border) px-4 py-6;
+    background-color: var(--surface-2);
+    overscroll-behavior: contain;
+  }
+
+  [data-region="doc-list"] [data-part="doc-menu"] {
+    display: none;
+  }
+
+  [data-region="doc-list"] [data-part="doc-groups"] {
+    display: block;
+  }
+}
+
+/* ---- Reading column ---- */
+
+article[data-region="doc"] {
+  @apply mx-auto w-full min-w-0;
+  max-width: 46rem;
+}
+
+@media (width >= 64rem) {
+  article[data-region="doc"] {
+    @apply px-10 py-8;
+  }
+}
+
+[data-part="doc-head"] {
+  @apply mb-6 border-b border-(--border) pb-5;
+}
+
+[data-part="doc-head"] [data-part="eyebrow"] {
+  @apply m-0 mb-2 font-mono text-xs tracking-wide text-(--muted);
+  overflow-wrap: anywhere;
+}
+
+[data-part="doc-head"] h1 {
+  @apply m-0 font-serif leading-tight font-normal text-(--text);
+  font-size: 40px;
+}
+
+[data-part="doc-head"] [data-part="doc-actions"] {
+  @apply mt-4 flex flex-wrap items-start gap-2;
+}
+
+[data-part="doc-head"] [data-part="expand-all"],
+[data-part="doc-head"] [data-part="raw"] > summary {
+  @apply inline-flex cursor-pointer items-center rounded-md border border-(--border) px-3 text-sm font-medium text-(--text-2);
+  min-height: var(--hit);
+  background-color: var(--surface);
+}
+
+[data-part="doc-head"] [data-part="expand-all"][hidden] {
+  display: none;
+}
+
+[data-part="doc-head"] [data-part="raw"][open] {
+  @apply w-full;
+}
+
+[data-part="doc-head"] [data-part="raw"] > summary {
+  @apply w-fit list-none;
+}
+
+[data-part="doc-head"] [data-part="raw"] > summary::-webkit-details-marker {
+  display: none;
+}
+
+[data-part="doc-head"] [data-part="raw"][open] > summary,
+[data-part="doc-head"] [data-part="expand-all"][aria-pressed="true"] {
+  background-color: var(--inv-bg);
+  border-color: var(--inv-bg);
+  color: var(--inv-fg);
+}
+
+[data-part="doc-head"] [data-part="raw"] pre {
+  @apply mt-3 max-h-[70vh] overflow-auto rounded-md border border-(--border) p-4 font-mono text-xs leading-relaxed whitespace-pre text-(--text-2);
+  background-color: var(--surface-2);
+}
+
+/* With JS the raw view replaces the formatted view (src/client/reader.js
+   sets data-view="raw" while "Raw markdown" is open); without JS the source
+   simply opens above the formatted view. */
+article[data-region="doc"][data-view="raw"] [data-part="formatted"] {
+  display: none;
 }
 
 /* The typography plugin's colors mapped to the theme tokens, so document
    text follows Light / Dark / System (FR-047, SC-010). */
-article[data-region="artifact"] {
+article[data-region="doc"] [data-part="formatted"] {
   @apply max-w-none;
   --tw-prose-body: var(--text-2);
   --tw-prose-headings: var(--text);
@@ -1967,12 +2120,39 @@ article[data-region="artifact"] {
   --tw-prose-td-borders: var(--border);
 }
 
-article[data-region="artifact"] ul.contains-task-list {
+article[data-region="doc"] [data-part="formatted"] :is(h2, h3) {
+  @apply font-serif font-normal;
+  scroll-margin-top: 1.5rem;
+}
+
+article[data-region="doc"] [data-part="formatted"] h2 {
+  @apply mt-10 flex items-baseline gap-3;
+  font-size: 30px;
+}
+
+article[data-region="doc"] [data-part="formatted"] h2 [data-part="num"] {
+  @apply font-mono text-sm text-(--muted);
+}
+
+article[data-region="doc"] [data-part="formatted"] h2 [data-part="count"] {
+  @apply ml-auto font-sans text-sm font-normal whitespace-nowrap text-(--muted);
+}
+
+article[data-region="doc"] ul.contains-task-list {
   @apply list-none pl-0;
 }
 
-article[data-region="artifact"] li.task-list-item input[type="checkbox"] {
+article[data-region="doc"] li.task-list-item input[type="checkbox"] {
   @apply mr-1 align-middle;
+}
+
+article[data-region="doc"] [data-part="formatted"] pre {
+  @apply overflow-x-auto;
+}
+
+/* Tables scroll inside the column; the page never scrolls sideways (FR-009). */
+article[data-region="doc"] [data-part="formatted"] table {
+  @apply block overflow-x-auto;
 }
 
 /* tasks.md task lines (FR-044): "View source line" lands on #L<line>. */
@@ -1986,4 +2166,330 @@ article [data-source-line]:target {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* ---- Structured spec.md (FR-042) ---- */
+
+[data-part="formatted"] [data-part="metadata"] {
+  @apply my-6 grid gap-x-6 gap-y-3 rounded-lg border border-(--border) p-4 text-sm;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  background-color: var(--surface);
+}
+
+[data-part="metadata"] dt {
+  @apply text-xs tracking-wide text-(--muted) uppercase;
+}
+
+[data-part="metadata"] dd {
+  @apply m-0 mt-1 text-(--text-2);
+  overflow-wrap: anywhere;
+}
+
+[data-part="metadata"] [data-field="branch"] dd {
+  @apply font-mono text-xs;
+}
+
+[data-part="formatted"] [data-part="request"] {
+  @apply my-6 border-l-2 border-(--border-strong) pl-5;
+}
+
+[data-part="request"] figcaption {
+  @apply mb-2 text-xs tracking-wide text-(--muted) uppercase;
+}
+
+[data-part="request"] blockquote {
+  @apply m-0 font-serif text-xl leading-snug text-(--text) italic;
+}
+
+[data-part="request"] blockquote p {
+  @apply m-0;
+}
+
+/* Clarifications: question | fixed 56 px badge | answer, one grid for every
+   row so the badges line up in one column (handoff). */
+[data-part="formatted"] [data-part="clarifications"] {
+  @apply my-4 flex flex-col gap-3;
+}
+
+[data-part="clarifications"] [data-part="session"] {
+  @apply rounded-lg border border-(--border);
+  background-color: var(--surface);
+}
+
+[data-part="clarifications"] details[data-part="session"] > summary {
+  @apply flex cursor-pointer items-center justify-between gap-3 px-4 font-medium text-(--text);
+  min-height: 44px;
+}
+
+[data-part="clarifications"] [data-part="session"] [data-part="count"] {
+  @apply text-sm font-normal text-(--muted);
+}
+
+[data-part="clarifications"] [data-part="answers"] {
+  @apply m-0 list-none p-0;
+}
+
+[data-part="clarifications"] [data-part="answer"],
+[data-part="clarifications"] li[data-part="plain"] {
+  @apply grid items-start gap-x-4 border-t border-(--border) px-4 py-3 text-sm;
+  grid-template-columns: minmax(0, 2fr) 56px minmax(0, 3fr);
+}
+
+[data-part="clarifications"] li[data-part="plain"] > * {
+  grid-column: 1 / -1;
+}
+
+[data-part="clarifications"] [data-part="question"] {
+  @apply text-(--text);
+}
+
+[data-part="clarifications"] [data-part="badge"] {
+  @apply inline-flex items-center justify-center rounded font-mono text-xs font-medium;
+  width: 56px;
+  height: 22px;
+  background-color: var(--subtle);
+  color: var(--text-4);
+}
+
+[data-part="clarifications"] [data-part="badge"][data-badge="yes"] {
+  background-color: var(--green-bg);
+  color: var(--green-text);
+}
+
+[data-part="clarifications"] [data-part="badge"][data-badge="no"] {
+  background-color: var(--red-bg);
+  color: var(--red-text);
+}
+
+[data-part="clarifications"] [data-part="answer-text"] {
+  @apply text-(--text-3);
+}
+
+[data-part="clarifications"] [data-part="answer-text"] p {
+  @apply m-0;
+}
+
+[data-part="clarifications"] [data-part="more"] > summary {
+  @apply flex cursor-pointer items-center border-t border-(--border) px-4 text-sm font-medium text-(--blue-text);
+  min-height: var(--hit);
+}
+
+/* User stories: the first as an open card, the others as collapsed rows. */
+[data-part="formatted"] details[data-part="story"] {
+  @apply my-3 rounded-lg border border-(--border);
+  background-color: var(--surface);
+}
+
+details[data-part="story"] > summary {
+  @apply flex cursor-pointer flex-wrap items-center gap-2 px-4 py-2;
+  min-height: 44px;
+}
+
+details[data-part="story"] [data-part="story-title"] {
+  @apply min-w-0 flex-1 font-medium text-(--text);
+}
+
+details[data-part="story"] > summary [data-part="count"] {
+  @apply text-sm text-(--muted);
+}
+
+details[data-part="story"] [data-part="priority"] {
+  @apply rounded px-1.5 py-0 font-mono;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  background-color: transparent;
+}
+
+details[data-part="story"] [data-part="priority"][data-priority="P1"] {
+  background-color: var(--inv-bg);
+  color: var(--inv-fg);
+  box-shadow: none;
+}
+
+details[data-part="story"] [data-part="priority"][data-priority="P2"] {
+  background-color: var(--subtle);
+  box-shadow: none;
+}
+
+[data-part="story-body"] {
+  @apply flex flex-col gap-4 border-t border-(--border) px-4 py-4 text-sm text-(--text-2);
+}
+
+[data-part="story-body"] p {
+  @apply m-0;
+}
+
+[data-part="story-body"] h4 {
+  @apply m-0 mb-1 text-xs font-medium tracking-wide text-(--muted) uppercase;
+}
+
+[data-part="story-body"] :is([data-part="why"], [data-part="test"]) {
+  @apply rounded-md p-3;
+  background-color: var(--surface-2);
+}
+
+[data-part="story-body"] [data-part="table-wrap"] {
+  @apply overflow-x-auto;
+}
+
+[data-part="story-body"] table {
+  @apply w-full border-collapse text-sm;
+}
+
+[data-part="story-body"] :is(th, td) {
+  @apply border-b border-(--border) px-2 py-2 text-left align-top;
+}
+
+[data-part="story-body"] th {
+  @apply text-xs font-medium text-(--muted);
+}
+
+[data-part="story-body"] [data-part="n"] {
+  @apply w-8 font-mono text-xs text-(--muted);
+}
+
+[data-part="story-body"] [data-part="phases"] ul {
+  @apply m-0 flex list-none flex-col gap-1 p-0;
+}
+
+[data-part="story-body"] [data-part="phases"] a {
+  @apply text-(--blue-text) underline underline-offset-2;
+}
+
+[data-part="story-body"] [data-part="progress"] {
+  @apply font-mono text-xs text-(--muted);
+}
+
+/* Requirements: area chips (shown by src/client/reader.js), ID chips and the
+   highlighted normative keywords. */
+[data-part="formatted"] [data-part="requirements"] {
+  @apply my-6;
+}
+
+[data-part="requirements"] > h3,
+[data-part="entities"] > h3 {
+  @apply mb-3 font-serif text-2xl font-normal text-(--text);
+}
+
+[data-part="requirements"] [data-part="areas"]:not([hidden]) {
+  @apply mb-4 flex flex-wrap gap-1;
+}
+
+[data-part="requirements"] [data-part="areas"] button {
+  @apply cursor-pointer rounded-full border border-(--border) px-3 text-sm text-(--text-3);
+  min-height: var(--hit);
+  background-color: var(--surface);
+}
+
+[data-part="requirements"] [data-part="areas"] button[aria-pressed="true"] {
+  background-color: var(--inv-bg);
+  border-color: var(--inv-bg);
+  color: var(--inv-fg);
+}
+
+[data-part="requirements"] [data-part="area"][hidden] {
+  display: none;
+}
+
+[data-part="requirements"] [data-part="area-name"] {
+  @apply m-0 mt-5 mb-2 text-sm font-semibold text-(--text);
+}
+
+[data-part="requirements"] [data-part="requirement-list"] {
+  @apply m-0 flex list-none flex-col gap-2 p-0;
+}
+
+[data-part="requirements"] [data-part="requirement"] {
+  @apply flex items-start gap-3 text-sm text-(--text-2);
+}
+
+[data-part="requirements"] [data-part="req-id"] {
+  @apply shrink-0;
+}
+
+[data-part="requirements"] [data-part="req-text"] {
+  @apply min-w-0 flex-1;
+}
+
+[data-part="requirements"] [data-part="req-text"] p {
+  @apply m-0;
+}
+
+mark[data-kw] {
+  @apply rounded-sm px-0.5 font-semibold;
+  background-color: var(--amber-bg);
+  color: var(--amber-text);
+}
+
+/* Key entities: a two-column grid of cards. */
+[data-part="formatted"] [data-part="entities"] {
+  @apply my-6;
+}
+
+[data-part="entities"] [data-part="entity-grid"] {
+  @apply grid gap-3 sm:grid-cols-2;
+}
+
+[data-part="entities"] [data-part="entity"],
+[data-part="entities"] [data-part="entity-grid"] > [data-part="plain"] {
+  @apply rounded-lg border border-(--border) p-4 text-sm text-(--text-2);
+  background-color: var(--surface);
+}
+
+[data-part="entities"] [data-part="entity"] h4 {
+  @apply m-0 mb-1 font-medium text-(--text);
+}
+
+[data-part="entities"] [data-part="entity"] p {
+  @apply m-0;
+}
+
+/* ---- On this page ---- */
+
+[data-region="toc"] {
+  display: none;
+}
+
+@media (width >= 80rem) {
+  [data-region="toc"] {
+    @apply sticky top-0 flex max-h-screen flex-col gap-2 overflow-y-auto py-8 pr-4 text-sm;
+  }
+}
+
+[data-region="toc"] h2 {
+  @apply m-0 text-xs font-medium tracking-wide text-(--muted) uppercase;
+}
+
+[data-region="toc"] ol {
+  @apply m-0 list-none p-0;
+}
+
+[data-region="toc"] ol ol {
+  @apply ml-6;
+}
+
+[data-region="toc"] a {
+  @apply flex items-baseline gap-2 rounded px-2 py-1 text-(--text-4) no-underline hover:text-(--text);
+}
+
+[data-region="toc"] a [data-part="num"] {
+  @apply shrink-0 font-mono text-xs whitespace-nowrap text-(--muted);
+}
+
+[data-region="toc"] a[aria-current="location"] {
+  @apply font-medium text-(--text);
+  background-color: var(--subtle);
+}
+
+[data-region="toc"] [data-part="empty"] {
+  @apply m-0 text-(--muted);
+}
+
+[data-region="toc"] [data-part="progress"]:not([hidden]) {
+  @apply mt-2 block h-1 overflow-hidden rounded-full;
+  background-color: var(--track);
+}
+
+[data-region="toc"] [data-part="progress-bar"] {
+  @apply block h-full rounded-full;
+  background-color: var(--blue);
 }
