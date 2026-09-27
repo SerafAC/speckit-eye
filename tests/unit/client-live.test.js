@@ -12,6 +12,7 @@ import {
   CHANGE_EVENT,
   collectScroll,
   restoreScroll,
+  versionOf,
 } from "../../src/client/live.js";
 
 // ---------------------------------------------------------------------------
@@ -433,6 +434,57 @@ describe("createLiveClient", () => {
     t.es().emit("hello");
     await t.flush();
     assert.equal(t.server.requests.length, 1, "only once per reconnect");
+  });
+
+  test("a hello whose version differs from the page's stamp fetches once (a change sent before the stream opened)", async () => {
+    const t = setup();
+    t.body.setAttribute("data-model-version", "0");
+    t.client.start();
+    const banner = t.body.querySelector('[data-region="live-status"]');
+    const next = overviewMain({ done: 2 });
+    t.respond(next);
+    t.es().emit("hello", { version: 1 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 1);
+    assert.equal(t.body.querySelector("main"), next);
+    assert.equal(banner.hidden, true, "no outage banner");
+
+    // The browser reconnects on its own (no error in between): same version, nothing to do.
+    t.es().emit("hello", { version: 1 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 1);
+
+    // After a change event, a hello with that version is not a missed change.
+    t.respond(overviewMain({ done: 3 }));
+    t.es().emit("change", { version: 2 });
+    await t.flush();
+    t.es().emit("hello", { version: 2 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 2);
+  });
+
+  test("a hello with the page's own version, or a page without a stamp, does not fetch", async () => {
+    const stamped = setup();
+    stamped.body.setAttribute("data-model-version", "4");
+    stamped.client.start();
+    stamped.es().emit("hello", { version: 4 });
+    await stamped.flush();
+    assert.equal(stamped.server.requests.length, 0);
+
+    const unstamped = setup();
+    unstamped.client.start();
+    unstamped.es().emit("hello", { version: 9 });
+    await unstamped.flush();
+    assert.equal(unstamped.server.requests.length, 0);
+  });
+
+  test("versionOf reads the version from an event and tolerates bad data", () => {
+    assert.equal(versionOf({ data: '{"version":3}' }), 3);
+    assert.equal(versionOf({ data: "{}" }), null);
+    assert.equal(versionOf({ data: "not json" }), null);
+    assert.equal(versionOf({ data: '{"version":"3"}' }), null);
+    assert.equal(versionOf({}), null);
+    assert.equal(versionOf(undefined), null);
   });
 
   test("a stream closed for good is reopened after a delay", () => {

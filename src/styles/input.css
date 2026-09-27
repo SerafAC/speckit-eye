@@ -1060,11 +1060,14 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
 }
 
 /* Squares: 13 px stacked, 9 px by feature (handoff). Done filled green, open
-   blue outline, blocked rose outline and tint, next filled orange (FR-022). */
+   blue outline, blocked rose outline and tint, next filled orange (FR-022).
+   Not positioned: as flex items the squares take the hover z-index anyway,
+   and 2,000 positioned squares would each be a paint layer the engine has to
+   order and overlap-test on every frame of the hover growth (SC-006). */
 [data-region="taskmap"] a[data-state] {
   --sq-fill: transparent;
   --sq-ring: inset 0 0 0 1.5px var(--blue);
-  @apply relative block size-[13px] shrink-0 cursor-pointer rounded-[3px];
+  @apply block size-[13px] shrink-0 cursor-pointer rounded-[3px];
   background-color: var(--sq-fill);
   box-shadow: var(--sq-ring);
   transition:

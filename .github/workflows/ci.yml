@@ -43,6 +43,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      # Headless browsers have no visible window, so macOS App Nap coalesces
+      # their timers: on the runner the page's own 500 ms tooltip timer fired
+      # after 601 ms (Chromium) and 671 ms (Firefox), measured in the page.
+      # The timing tests (FR-024, SC-006) are about a foreground browser, so
+      # turn App Nap off. macOS only; the runner is discarded after the job.
+      - if: runner.os == 'macOS'
+        run: defaults write NSGlobalDomain NSAppSleepDisabled -bool YES
       - run: pnpm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()

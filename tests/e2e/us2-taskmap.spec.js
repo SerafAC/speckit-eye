@@ -101,35 +101,52 @@ test("US2 FR-024 square grows on hover and tooltip appears after 500 ms, not bef
   const { url } = await serve("mixed");
   await page.goto(url);
   const target = square(page, "002-beta/T014");
-  const neighbour = square(page, "002-beta/T015");
-  const before = await neighbour.boundingBox();
 
-  // Record, in the page, when the pointer entered and when the tooltip showed.
+  // Everything inside the 500 ms window is recorded in the page: when the
+  // pointer entered, the state 300 ms later (tooltip still hidden, square
+  // grown, neighbour untouched) and when the tooltip showed. Playwright calls
+  // in that window would compete with the timer being measured.
   await page.evaluate(() => {
     const w = /** @type {any} */ (window);
-    w.__entered = null;
-    w.__shown = null;
+    const sq = document.querySelector('[data-region="taskmap"] a[data-key="002-beta/T014"]');
+    const neighbour = document.querySelector('[data-region="taskmap"] a[data-key="002-beta/T015"]');
     const tip = document.querySelector('[data-region="tooltip"]');
-    document.querySelector('[data-region="taskmap"] a[data-key="002-beta/T014"]').addEventListener("pointerover", () => {
-      w.__entered ??= performance.now();
+    const rect = (el) => el.getBoundingClientRect().toJSON();
+    w.__t = { entered: null, shown: null, at300: null, neighbourBefore: rect(neighbour) };
+    sq.addEventListener("pointerover", () => {
+      if (w.__t.entered !== null) return;
+      w.__t.entered = performance.now();
+      setTimeout(() => {
+        w.__t.at300 = {
+          elapsed: performance.now() - w.__t.entered,
+          tipHidden: tip.hidden,
+          transform: getComputedStyle(sq).transform,
+          shadow: getComputedStyle(sq).boxShadow,
+          neighbour: rect(neighbour),
+          neighbourTransform: getComputedStyle(neighbour).transform,
+        };
+      }, 300);
     });
     new MutationObserver(() => {
-      if (!tip.hidden) w.__shown ??= performance.now();
+      if (!tip.hidden) w.__t.shown ??= performance.now();
     }).observe(tip, { attributes: true, attributeFilter: ["hidden"] });
   });
   await pointAt(page, target);
-  await page.waitForTimeout(300);
-  await expect(tooltip(page)).toBeHidden();
-  // Grown about 1.6× by now (120 ms transition), with the two-ring outline.
-  const grown = await target.evaluate((el) => ({ transform: getComputedStyle(el).transform, shadow: getComputedStyle(el).boxShadow }));
-  expect(grown.transform).toMatch(/^matrix\(1\.6, 0, 0, 1\.6,/);
-  expect(grown.shadow.match(/rgb/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  await page.waitForTimeout(800);
+  const t = await page.evaluate(() => /** @type {any} */ (window).__t);
+
+  // Not before 500 ms: hidden at 300 ms (checked before the tooltip showed).
+  expect(t.at300.elapsed).toBeLessThan(t.shown - t.entered);
+  expect(t.at300.tipHidden).toBe(true);
+  // Grown about 1.6× by then (120 ms transition), with the two-ring outline.
+  expect(t.at300.transform).toMatch(/^matrix\(1\.6, 0, 0, 1\.6,/);
+  expect(t.at300.shadow.match(/rgb/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   // No other square changes.
-  expect(await neighbour.boundingBox()).toEqual(before);
-  expect(await neighbour.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+  expect(t.at300.neighbour).toEqual(t.neighbourBefore);
+  expect(t.at300.neighbourTransform).toBe("none");
 
   await expect(tooltip(page)).toBeVisible();
-  const delay = await page.evaluate(() => /** @type {any} */ (window).__shown - /** @type {any} */ (window).__entered);
+  const delay = t.shown - t.entered;
   expect(delay).toBeGreaterThanOrEqual(400);
   expect(delay).toBeLessThanOrEqual(600);
   await expect(tooltip(page).locator('[data-part="id"]')).toHaveText("T014");

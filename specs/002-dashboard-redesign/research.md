@@ -167,6 +167,8 @@ The stats bar segments, their done/open/next parts, the phase rail blocks and th
 
 **Note**: the cloud development container has Chromium preinstalled only; Firefox and WebKit runs happen in CI.
 
+**CI findings (T080, first run)**: WebKit skips links on Tab (Safari needs Option+Tab; Playwright's Windows WebKit never tabs to links), so map squares carry `tabindex="0"` (decisions.md). One WebKit `page.goto` failed once with "WebKit encountered an internal error" (us5-reader, ubuntu) and passed on retry. WebKit raises that message only from its own internal load state. Raw-socket checks of the server found exact `Content-Length` on every resource, clean SSE framing, and no response written after a socket closed, so it is treated as an engine issue, not a product one. If it recurs, look first at a navigation that interrupts an in-flight `EventSource` or fetch.
+
 ## D17. Page addresses
 
 **Decision** (existing addresses may change, clarified; most stay because they are fine): overview `index.html`; feature page `features/<dir>/index.html` (new); documents keep `features/<dir>/<rel>.html`, `constitution.html`, `assessments/<slug>/<rel>.html`; the selected task is the fragment `#task-<key>`; a `tasks.md` line is `features/<dir>/tasks.html#L<line>`. See [contracts/routes.md](./contracts/routes.md).

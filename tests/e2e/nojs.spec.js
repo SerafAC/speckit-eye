@@ -223,8 +223,9 @@ test("FR-053 search entry, theme switch, order, depth and filters are not shown"
   await expect(page.locator('[data-part="depth"]')).toBeHidden();
   await expect(page.locator('[data-part="view-filter"]')).toBeHidden();
   await expect(page.locator('button[data-part="map-mode"]')).toBeHidden();
-  // Ctrl/⌘K does nothing.
-  await page.keyboard.press("ControlOrMeta+k");
+  // Neither Ctrl+K nor ⌘K does anything.
+  await page.keyboard.press("Control+k");
+  await page.keyboard.press("Meta+k");
   await expect(page.locator('dialog[data-region="search"]')).toBeHidden();
 
   await page.goto(`${url}${featurePagePath("002-beta")}`);

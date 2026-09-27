@@ -90,11 +90,26 @@ const EVENTS_KEY = "__events";
  */
 
 /**
- * @param {{ getSite: () => Site, events?: EventsHub | null }} options
- *   `events` answers `GET /__events`; without it that path is a 404
+ * Stamps the model version a page was served at on its `<body>`
+ * (`data-model-version`), so the live client can tell whether a change
+ * happened between this response and its `/__events` connection (the
+ * `hello` event carries the current version).
+ * @param {string} html
+ * @param {number} version
+ * @returns {string}
+ */
+export function stampVersion(html, version) {
+  return html.replace("<body ", `<body data-model-version="${Number(version)}" `);
+}
+
+/**
+ * @param {{ getSite: () => Site, events?: EventsHub | null, getVersion?: (() => number) | null }} options
+ *   `events` answers `GET /__events`; without it that path is a 404.
+ *   `getVersion` gives the model version of `getSite()`'s current site; with
+ *   it, HTML pages are stamped with it ({@link stampVersion}).
  * @returns {(req: {method?: string, url?: string}, res: Res) => void}
  */
-export function createHandler({ getSite, events = null }) {
+export function createHandler({ getSite, events = null, getVersion = null }) {
   return function handle(req, res) {
     const method = String(req.method ?? "GET").toUpperCase();
     const key = routeKey(req.url);
@@ -116,6 +131,8 @@ export function createHandler({ getSite, events = null }) {
       send(res, 404, method, TYPES.txt, "Not Found\n");
       return;
     }
-    send(res, 200, method, contentTypeFor(key), entry.body);
+    const type = contentTypeFor(key);
+    const body = getVersion && type === TYPES.html && typeof entry.body === "string" ? stampVersion(entry.body, getVersion()) : entry.body;
+    send(res, 200, method, type, body);
   };
 }

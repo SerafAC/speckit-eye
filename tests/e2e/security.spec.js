@@ -6,7 +6,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { REPO_ROOT, copyFixture, featurePagePath, hashTree, runBuild, startServe } from "./helpers.js";
+import { REPO_ROOT, copyFixture, featurePagePath, hashTree, pressSearchShortcut, runBuild, startServe } from "./helpers.js";
 
 /** Every page the `mixed` fixture has (tests/fixtures/projects/README.md). */
 const PAGES = [
@@ -230,7 +230,7 @@ test("FR-004 SC-013 no page requests another origin", async ({ page }) => {
     await page.goto(`${origin}${p}`);
     await page.evaluate(() => document.fonts.ready.then(() => undefined));
     // Search loads its index on first use.
-    await page.keyboard.press("ControlOrMeta+k");
+    await pressSearchShortcut(page);
     const dialog = page.locator('dialog[data-region="search"]');
     await expect(dialog).toHaveJSProperty("open", true);
     await dialog.locator('input[data-part="query"]').fill("beta");
@@ -276,7 +276,7 @@ test("FR-004 no element carries a style attribute and no inline script exists", 
   await expect(page.locator('[data-region="tooltip"]')).toBeVisible();
   await square.click();
   await page.locator('[data-part="depth"] button[data-depth="tasks"]').click();
-  await page.keyboard.press("ControlOrMeta+k");
+  await pressSearchShortcut(page);
   await page.locator('dialog[data-region="search"] input[data-part="query"]').fill("T0");
   await expect(page.locator('dialog[data-region="search"] [data-part="result"]').first()).toBeVisible();
   // The tooltip is placed next to its square through the CSSOM

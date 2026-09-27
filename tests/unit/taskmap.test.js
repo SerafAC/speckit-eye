@@ -87,12 +87,14 @@ describe("renderTaskMap (T035, FR-021)", () => {
     assert.deepEqual([...render(p).matchAll(/<div data-part="group" data-key="map:([^"]+)"/g)].map((m) => m[1]), ["001-alpha", "002-beta", "003-gamma"]);
   });
 
-  test("square attributes: state, parents, href to the tree row, title and aria-label", async () => {
+  test("square attributes: state, parents, href to the tree row, tabindex, title and aria-label", async () => {
     const doc = render(await model(MIXED));
     const blocked = squareTag(doc, "002-beta/T018");
     assert.match(blocked, /data-state="blocked"/);
     assert.match(blocked, /data-parents="002-beta 002-beta\/p4 002-beta\/p4\/US3"/);
     assert.match(blocked, /href="#task-002-beta-T018"/);
+    // A Tab stop in every engine, WebKit included (FR-050).
+    assert.match(blocked, /href="#task-002-beta-T018" tabindex="0" /);
     assert.match(blocked, /title="T018 · Blocked — Search box, depends on T011 — Beta"/);
     assert.match(blocked, /aria-label="T018 · Blocked — Search box, depends on T011 — Beta"/);
     const next = squareTag(doc, "002-beta/T011");
@@ -102,6 +104,10 @@ describe("renderTaskMap (T035, FR-021)", () => {
     assert.match(squareTag(doc, "003-gamma/T001"), /data-state="open"/);
     assert.match(squareTag(doc, "002-beta/T019"), /data-parents="002-beta 002-beta\/p4"/);
     assert.match(squareTag(doc, "002-beta/T019"), /title="T019 · Open — Shared docs &lt;update&gt; — Beta"/);
+    // Every square, not just one.
+    const all = squares(doc);
+    assert.ok(all.length > 0);
+    assert.equal(all.filter((m) => / tabindex="0" /.test(m[0])).length, all.length);
   });
 
   test("header above the card with the hidden mode toggle; grouped blocks with name and done/total", async () => {
