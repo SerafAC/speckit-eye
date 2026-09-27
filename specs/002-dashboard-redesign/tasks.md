@@ -223,7 +223,7 @@ description: "Task list for the speckit-eye dashboard redesign — sidebar shell
 ### E2E for User Story 5
 
 - [X] T065 [US5] Create `tests/e2e/us5-reader.spec.js` (replacing `tests/e2e/us3-artifacts.spec.js`, whose still-valid 001 checks — every artifact reachable, raw HTML shown as text, deleted-document notice — move here), serving this repository and the `artifacts` fixture: `US5 FR-038 FR-039 document list groups Define, Design, Contracts, Build, Other with the current document marked`; `US5 FR-042 metadata card and pull quote`; `US5 FR-042 clarifications show N answered · M sessions, first session open, Show N more answers and aligned badges` (badge column x-positions equal); `US5 FR-042 user story card has why, independent test, Given/When/Then table and phase progress`; `US5 FR-042 area chip narrows requirements and MUST is highlighted`; `US5 FR-041 contents panel marks the section in view and progress advances on scroll`; `US5 FR-040 Raw markdown shows the exact source and toggles back`; `US5 FR-040 Expand all opens every collapsed part`; `US5 FR-043 SC-012 every non-blank source line appears in the formatted view` (for every `spec.md` of this repository's `specs/*/` and of `tests/fixtures/projects/**`, read by the test runner, which is allowed in E2E tests); `US5 FR-043 a non-template section renders as ordinary text`; `US5 FR-007 document pages show the icon rail instead of the sidebar`; delete `tests/e2e/us3-artifacts.spec.js`
-- [ ] T066 [US5] Add `CHANGELOG.md` lines for the document reader and the structured `spec.md` view
+- [X] T066 [US5] Add `CHANGELOG.md` lines for the document reader and the structured `spec.md` view
 
 **Checkpoint**: All documents use the reader; US1–US5 suites pass.
 
