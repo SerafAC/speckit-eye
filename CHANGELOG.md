@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Live updates in serve mode: open pages follow file changes within
   about 2 seconds, keep scroll position and expanded items, highlight what
   changed, and show a banner while the connection to the tool is lost.
+  On Linux, changes are also picked up after an editor has saved a file by
+  replacing it, and in a folder that was deleted and created again.
 - Added: artifact pages and site menu. Every Markdown artifact (feature files,
   contracts, checklists, the constitution, assessments) has a rendered page,
   linked from its feature in the overview and from a menu on every page.
@@ -30,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   count per feature) and the version; document pages get a narrow icon rail,
   and narrow screens get a menu that works without JavaScript. Replaces the
   old header and Menu.
+- Added: every link and button is at least 36 px tall, with a mouse as well
+  as on touch screens, including task IDs in the feature tree, the segments of
+  the progress bar, the breadcrumb of feature pages, the reader's contents
+  panel and links in document text (task map squares excepted).
 - Added: light, dark and system theme; the choice is remembered in the browser
   and applied before the page is drawn.
 - Added: the sidebar Features list is sorted "In progress first" (features
@@ -84,6 +90,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added: every task has its own address on its feature page; opening it (for
   example from "View task" or a task ID in the tree) shows the task open,
   selected and in view.
+- Added: live updates keep the feature page as you left it: filters, text
+  filter, open phases and task rows (also after "Expand all" or opening a
+  task's address), the selected task and the scroll position. A selected task
+  that is deleted from `tasks.md` is unselected.
 - Added: a Light / Dark / System theme switch in the sidebar and, on document
   pages, in the icon rail. System is the default and follows the operating
   system, also when it changes while a page is open. The choice applies to

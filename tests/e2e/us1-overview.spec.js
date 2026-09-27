@@ -5,10 +5,10 @@
 // has its own suite, us2-taskmap.spec.js.
 
 import { test, expect } from "@playwright/test";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { copyFixture, startServe, runCli, hashTree, sidebar, sidebarFeature, featurePagePath } from "./helpers.js";
+import { REPO_ROOT, checkHitTargets, copyFixture, startServe, runCli, hashTree, sidebar, sidebarFeature, featurePagePath } from "./helpers.js";
 
 /** @type {import("./helpers.js").ServeHandle | null} */
 let server = null;
@@ -645,4 +645,15 @@ test("US1 FR-006 serving never changes the project folder", async ({ page }) => 
   expect(await server.stop()).toBe(0);
   server = null;
   expect(await hashTree(dir)).toBe(before);
+});
+
+test("FR-050 with a mouse too, buttons and links have hit targets of at least 36 px (squares excepted)", async ({ page }) => {
+  const serveRepo = async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "speckit-eye-repo-"));
+    await cp(path.join(REPO_ROOT, "specs"), path.join(dir, "specs"), { recursive: true });
+    await cp(path.join(REPO_ROOT, ".specify"), path.join(dir, ".specify"), { recursive: true });
+    server = await startServe(dir);
+    return { dir, url: server.url };
+  };
+  await checkHitTargets(page, { serve: (fixture) => serve(fixture), serveRepo, stop: () => server?.stop() });
 });

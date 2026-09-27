@@ -64,7 +64,7 @@ parameters, so unit tests can run the whole flow with fakes.
 | | `site.js` | Model → site map; decides which pages and assets exist |
 | `src/serve/` | `handler.js` | Pure `(req, res)` handler: route lookup, headers, CSP, 404s, `/__events` dispatch |
 | | `server.js` | Thin listener: binds to `127.0.0.1`, falls back to another port when 4747 is busy |
-| | `watcher.js` | Watches `specs/` and `.specify/` with `fs.watch` and calls `onChange` after a short debounce |
+| | `watcher.js` | Watches `specs/` and `.specify/` with `fs.watch` and calls `onChange` after a short debounce. On Linux, where Node's recursive watch follows files by inode and misses writes after a rename-save, it watches each folder separately instead, re-creating a watch whose folder was replaced |
 | | `events.js` | Server-Sent Events hub: `hello`, `change`, keep-alive pings |
 | `src/build/` | `build.js` | Writes the site map to `--out`; checks and replaces the build marker |
 | `src/client/` | `live.js` | Browser script (serve mode only): swaps in new content and keeps the viewer's state on each change |

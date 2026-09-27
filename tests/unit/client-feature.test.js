@@ -295,7 +295,8 @@ describe("client/feature.js: save and init restore state across a live swap", ()
     p.typeText("list");
     p.row("T012").querySelector("summary").click();
     const state = save(p.document);
-    assert.deepEqual(state, { chips: ["open"], text: "list", selected: "002-beta/T012" });
+    // The phases open before filtering (the active phase 3) and the open row.
+    assert.deepEqual(state, { chips: ["open"], text: "list", selected: "002-beta/T012", open: ["002-beta/p3", "002-beta/T012"], expanded: false });
 
     const q = await page({ state });
     assert.equal(q.chip("open").getAttribute("aria-pressed"), "true");
@@ -303,6 +304,47 @@ describe("client/feature.js: save and init restore state across a live swap", ()
     assert.deepEqual(q.visibleRows(), ["T011", "T012"]);
     assert.equal(q.row("T012").hasAttribute("data-selected"), true);
     assert.equal(q.panel().querySelector('[data-part="id"]').textContent, "T012");
+    assert.equal(q.row("T012").open, true);
+    assert.equal(q.row("T011").open, false);
+    // Clearing the filters returns to the phases open before filtering.
+    q.chip("all").click();
+    q.typeText("");
+    assert.equal(q.phase(3).open, true);
+    assert.equal(q.phase(4).open, false);
+  });
+
+  test("a phase and row opened by the address come back, not the phase the page opens by default", async () => {
+    const p = await page({ hash: "#task-002-beta-T018" });
+    assert.equal(p.phase(4).open, true);
+    const state = save(p.document);
+    assert.deepEqual(state, { chips: [], text: "", selected: "002-beta/T018", open: ["002-beta/p4", "002-beta/T018"], expanded: false });
+
+    const q = await page({ state });
+    assert.equal(q.phase(4).open, true);
+    assert.equal(q.phase(3).open, false);
+    assert.equal(q.row("T018").open, true);
+    assert.equal(q.row("T018").hasAttribute("data-selected"), true);
+  });
+
+  test("a deleted selected task clears the selection and keeps the open phase", async () => {
+    const p = await page({ hash: "#task-002-beta-T018" });
+    const state = { ...save(p.document), selected: "002-beta/T404", open: ["002-beta/p4", "002-beta/T404"] };
+    const q = await page({ state });
+    assert.equal(q.$$("[data-selected]").length, 0);
+    assert.equal(q.panel().hidden, true);
+    assert.equal(q.phase(4).open, true);
+    assert.equal(q.phase(3).open, false);
+  });
+
+  test("Expand all is kept: every phase and row stays open with the accordion off", async () => {
+    const p = await page();
+    p.$('button[data-part="expand-all"]').click();
+    const state = save(p.document);
+    assert.equal(state.expanded, true);
+    const q = await page({ state });
+    assert.equal(q.$('[data-region="tasks"]').getAttribute("data-accordion"), "off");
+    assert.ok(q.$$('details[data-part="phase"]').every((d) => d.open));
+    assert.ok(q.$$('details[data-part="task"]').every((d) => d.open));
   });
 
   test("a page without a Tasks section is left alone", () => {
@@ -310,6 +352,6 @@ describe("client/feature.js: save and init restore state across a live swap", ()
     windows.push(window);
     window.document.body.innerHTML = "<main><p>x</p></main>";
     init(window.document, { document: window.document, window });
-    assert.deepEqual(save(window.document), { chips: [], text: "", selected: null });
+    assert.deepEqual(save(window.document), { chips: [], text: "", selected: null, open: [], expanded: false });
   });
 });

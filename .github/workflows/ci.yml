@@ -80,4 +80,4 @@ jobs:
           npm install -g pnpm@11
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
-          pnpm run test:e2e tests/e2e/us2-live.spec.js --project chromium
+          pnpm run test:e2e tests/e2e/live-state.spec.js --project chromium
