@@ -142,6 +142,17 @@ describe("order (FR-012)", () => {
     assert.equal(document.querySelector('li[data-feature="002-beta"]'), beta);
   });
 
+  test("rows already in the chosen order are not moved (no work before load, SC-007)", async () => {
+    const { document, deps } = await page();
+    const list = document.querySelector('ul[data-part="features"]');
+    const moved = [];
+    const append = list.appendChild.bind(list);
+    list.appendChild = (node) => (moved.push(node), append(node));
+    init(document, deps);
+    assert.deepEqual(moved, []);
+    assert.deepEqual(order(document), ["002-beta", "003-gamma", "004-delta", "001-alpha"]);
+  });
+
   test("init is idempotent: one click advances one step", async () => {
     const { window, document, deps } = await page();
     init(document, deps);

@@ -176,6 +176,36 @@ test("US2 SC-006 hover growth within 150 ms and tooltip at 500 ± 100 ms with 2,
   expect(t.hidden - t.left).toBeLessThanOrEqual(100);
 });
 
+test("US2 FR-024 a grown square at a group's edge keeps both rings inside its group", async ({ page }) => {
+  const { url } = await serveLarge();
+  await page.goto(url);
+  await expect(map(page)).toHaveAttribute("data-layout", "grouped");
+  const group = map(page).locator('[data-part="group"]').nth(24);
+  await group.scrollIntoViewIfNeeded();
+  // The first square of each row and every square of the last row sit at the group's edges.
+  const edgeKeys = await group.evaluate((g) => {
+    const squares = [...g.querySelectorAll("a[data-state]")];
+    const tops = squares.map((a) => a.getBoundingClientRect().top);
+    const lastTop = Math.max(...tops);
+    return squares.filter((a, i) => i === 0 || tops[i] !== tops[i - 1] || tops[i] === lastTop).map((a) => a.dataset.key);
+  });
+  expect(edgeKeys.length).toBeGreaterThan(2);
+  for (const key of edgeKeys) {
+    const sq = map(page).locator(`a[data-key="${key}"]`);
+    await sq.hover();
+    await expect(sq).toHaveCSS("transform", /^matrix\(1\.6,/);
+    const fits = await sq.evaluate((el) => {
+      const g = el.closest('[data-part="group"]');
+      const box = g.getBoundingClientRect();
+      const r = el.getBoundingClientRect(); // includes the 1.6 scale
+      // The outer ring (3 px box-shadow spread) is scaled with the square.
+      const ring = 3 * 1.6;
+      return r.left - ring >= box.left - 0.5 && r.right + ring <= box.right + 0.5 && r.top - ring >= box.top - 0.5 && r.bottom + ring <= box.bottom + 0.5;
+    });
+    expect(fits, key).toBe(true);
+  }
+});
+
 test("US1 FR-011 with 50 features, segments too narrow for a label show none but stay visible", async ({ page }) => {
   const { url } = await serveLarge();
   await page.goto(url);

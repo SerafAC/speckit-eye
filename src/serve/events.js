@@ -8,10 +8,19 @@
 
 export const PING_MS = 25_000;
 
+/**
+ * `Connection: close`: a stream never ends, so its connection can never be
+ * reused for another request. Saying so up front makes the browser drop the
+ * socket when the page closes the stream (on leaving the page), instead of
+ * keeping it in its per-host pool (six connections per host) waiting for a
+ * body that never finishes, where it would hold up the next page's requests
+ * (WebKit navigation stalls in CI).
+ */
 const EVENT_HEADERS = Object.freeze({
   "Content-Type": "text/event-stream",
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
+  Connection: "close",
 });
 
 /**
