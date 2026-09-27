@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { createHandler, routeKey, contentTypeFor, CSP } from "../../src/serve/handler.js";
+import { createHandler, routeKey, contentTypeFor, stampVersion, CSP } from "../../src/serve/handler.js";
 
 const SITE = new Map([
   ["index.html", { type: "text/html", body: "<!doctype html><p>hi ✓</p>" }],
@@ -252,5 +252,43 @@ describe("createHandler: GET /__events (US2)", () => {
       assert.equal(res.status, 404, url);
     }
     assert.equal(added.length, 0);
+  });
+});
+
+describe("createHandler: model version stamp (live updates)", () => {
+  const site = new Map([
+    ["index.html", { type: "text/html", body: '<!doctype html>\n<html><body data-mode="serve" data-page="overview"><main>x</main></body></html>' }],
+    ["assets/app.js", { type: "text/javascript", body: 'document.body; "<body "' }],
+  ]);
+
+  test("stampVersion adds data-model-version to the first <body> only", () => {
+    assert.equal(stampVersion('<body data-a="1"><p>&lt;body </p>', 3), '<body data-model-version="3" data-a="1"><p>&lt;body </p>');
+    assert.equal(stampVersion("<p>no body</p>", 3), "<p>no body</p>");
+  });
+
+  test("HTML pages carry the version of the site they were served from", () => {
+    let version = 0;
+    const h = createHandler({ getSite: () => site, getVersion: () => version });
+    let res = fakeRes();
+    h({ method: "GET", url: "/" }, res);
+    let body = text(res);
+    assert.match(body, /<body data-model-version="0" data-mode="serve"/);
+    assert.equal(res.headers["Content-Length"], Buffer.byteLength(body));
+
+    version = 7;
+    res = fakeRes();
+    h({ method: "GET", url: "/index.html" }, res);
+    assert.match(text(res), /<body data-model-version="7" /);
+  });
+
+  test("other types and handlers without getVersion are unchanged", () => {
+    const h = createHandler({ getSite: () => site, getVersion: () => 5 });
+    const res = fakeRes();
+    h({ method: "GET", url: "/assets/app.js" }, res);
+    assert.equal(text(res), 'document.body; "<body "');
+    const plain = createHandler({ getSite: () => site });
+    const res2 = fakeRes();
+    plain({ method: "GET", url: "/" }, res2);
+    assert.doesNotMatch(text(res2), /data-model-version/);
   });
 });

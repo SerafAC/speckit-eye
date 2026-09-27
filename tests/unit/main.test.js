@@ -221,7 +221,7 @@ describe("run: serve mode", () => {
     const { handler } = f.calls.startServer[0];
     const page = get(handler, "/");
     assert.equal(page.status, 200);
-    assert.match(page.body, /<body data-mode="serve" data-version="/);
+    assert.match(page.body, /<body data-model-version="0" data-mode="serve" data-version="/);
     assert.match(page.body, /<title>proj · speckit-eye<\/title>/);
     assert.match(page.body, /50 %<\/span><span data-part="detail">1 of 2 tasks</);
     assert.equal(get(handler, "/assets/styles.css").body, "/* styles.css */");
@@ -550,8 +550,11 @@ describe("run: live updates (US2)", () => {
     assert.match(get(t.handler(), "/").body, /50 %<\/span><span data-part="detail">1 of 2 tasks</);
     t.state.files = { ...MIXED, "specs/001-a/tasks.md": "## Phase 1: Setup\n- [x] T001 one\n- [x] T002 two" };
     await t.change();
-    assert.match(get(t.handler(), "/").body, /100 %<\/span><span data-part="detail">2 of 2 tasks</);
+    const updated = get(t.handler(), "/").body;
+    assert.match(updated, /100 %<\/span><span data-part="detail">2 of 2 tasks</);
     assert.deepEqual(t.hub().broadcasts, [1]);
+    // Pages are stamped with the version they were rendered at.
+    assert.match(updated, /<body data-model-version="1" /);
     assert.match(t.f.deps.stdout.text, /updated \(1 features, 2\/2 tasks\)\n$/);
 
     t.state.files = { ...MIXED, "specs/001-a/tasks.md": "## Phase 1: Setup\n- [ ] T001 one\n- [x] T002 two" };
@@ -653,6 +656,45 @@ describe("run: live updates (US2)", () => {
     assert.doesNotMatch(t.f.deps.stdout.text, /updated/);
   });
 
+  test("a failed rescan is retried without a new watch event and recovers", async (tt) => {
+    tt.mock.timers.enable({ apis: ["setTimeout"] });
+    const t = await live();
+    t.state.files = null; // e.g. the file is still locked by its writer
+    await t.change();
+    assert.equal(t.f.deps.stderr.text.match(/rescan failed/g)?.length, 1);
+    t.state.files = { ...MIXED, "specs/001-a/tasks.md": "## Phase 1: Setup\n- [x] T001 one\n- [x] T002 two" };
+    tt.mock.timers.tick(250);
+    await settle();
+    assert.deepEqual(t.hub().broadcasts, [1]);
+    assert.match(t.f.deps.stdout.text, /updated/);
+    t.f.calls.signalHandler();
+    await t.pending;
+  });
+
+  test("retries of a failing rescan stop after four attempts and on stop", async (tt) => {
+    tt.mock.timers.enable({ apis: ["setTimeout"] });
+    const t = await live();
+    t.state.files = null;
+    await t.change();
+    for (const ms of [250, 500, 750, 1000, 5000]) {
+      tt.mock.timers.tick(ms);
+      await settle();
+    }
+    assert.equal(t.f.deps.stderr.text.match(/rescan failed/g)?.length, 5, "first failure plus four retries");
+    // A new change gets a fresh set of retries...
+    await t.change();
+    assert.equal(t.f.deps.stderr.text.match(/rescan failed/g)?.length, 6);
+    tt.mock.timers.tick(250);
+    await settle();
+    assert.equal(t.f.deps.stderr.text.match(/rescan failed/g)?.length, 7, "retried after the new change");
+    // ...and a stop cancels the pending one.
+    t.f.calls.signalHandler();
+    assert.equal(await t.pending, 0);
+    tt.mock.timers.tick(10000);
+    await settle();
+    assert.equal(t.f.deps.stderr.text.match(/rescan failed/g)?.length, 7);
+  });
+
   test("non-Error rescan and watch failures are printed as text", async () => {
     const t = await live();
     t.state.files = new Proxy(
@@ -680,11 +722,29 @@ describe("run: live updates (US2)", () => {
     assert.equal(t.f.calls.closed, 1);
   });
 
-  test("the hub is closed when the server cannot start", async () => {
+  test("the hub and the watcher are closed when the server cannot start", async () => {
     const f = fakes({ listenError: Object.assign(new Error("listen EACCES"), { code: "EACCES" }) });
     assert.equal(await run(["--serve", "proj"], f.deps), 1);
     assert.equal(f.calls.hubs[0].closed, true);
-    assert.equal(f.calls.watchers.length, 0);
+    assert.equal(f.calls.watchers.length, 1);
+    assert.equal(f.calls.watchers[0].closed, true);
+  });
+
+  test("the project is watched before the address is announced (a change right after it is never missed)", async () => {
+    const f = fakes();
+    /** @type {string[]} */
+    const order = [];
+    const createWatcher = f.deps.createWatcher;
+    f.deps.createWatcher = (opts) => {
+      order.push(`watch (stdout: ${JSON.stringify(f.deps.stdout.text)})`);
+      return createWatcher(opts);
+    };
+    const pending = startServe(["--serve", "proj"], f);
+    await new Promise((r) => setImmediate(r));
+    assert.deepEqual(order, ['watch (stdout: "")']);
+    assert.match(f.deps.stdout.text, /Local: /);
+    f.calls.signalHandler();
+    assert.equal(await pending, 0);
   });
 });
 

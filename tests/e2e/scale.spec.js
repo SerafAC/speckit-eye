@@ -6,7 +6,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { generateLarge, featureDir, FEATURES } from "../fixtures/generate-large.js";
-import { featurePagePath, runBuild, startServe } from "./helpers.js";
+import { featurePagePath, pressSearchShortcut, runBuild, startServe } from "./helpers.js";
 
 const LOAD_MS = 2_000;
 const LIVE_MS = 2_000;
@@ -193,7 +193,7 @@ test("US6 SC-014 results update within 200 ms per keystroke with 2,000 tasks and
   const { url } = await serveLarge();
   await page.goto(url);
   const dialog = page.locator('dialog[data-region="search"]');
-  await page.keyboard.press("ControlOrMeta+k");
+  await pressSearchShortcut(page);
   await expect(dialog).toHaveJSProperty("open", true);
   // Load the index once, then start from an empty box.
   const box = dialog.locator('input[data-part="query"]');

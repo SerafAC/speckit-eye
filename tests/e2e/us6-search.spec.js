@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { copyFixture, featurePagePath, runBuild, serveStatic, startServe } from "./helpers.js";
+import { copyFixture, featurePagePath, pressSearchShortcut, runBuild, serveStatic, startServe } from "./helpers.js";
 
 /** Live updates must show within this time (FR-001, SC-008). */
 const LIVE_MS = 2_000;
@@ -38,7 +38,7 @@ const entry = (page) => page.locator('[data-region="sidebar"] [data-part="search
 
 /** Opens search with the shortcut (⌘K on macOS, Ctrl+K elsewhere). */
 async function openByKey(page) {
-  await page.keyboard.press("ControlOrMeta+k");
+  await pressSearchShortcut(page);
   await expect(dialog(page)).toHaveJSProperty("open", true);
 }
 

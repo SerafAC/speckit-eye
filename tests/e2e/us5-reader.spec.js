@@ -9,7 +9,7 @@ import { test, expect } from "@playwright/test";
 import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { FIXTURES, REPO_ROOT, copyFixture, featurePagePath, navLink, rail, sidebar, startServe } from "./helpers.js";
+import { FIXTURES, REPO_ROOT, asInPage, copyFixture, featurePagePath, navLink, rail, sidebar, startServe } from "./helpers.js";
 import { lineParts, missingLines } from "../unit/spec-samples.js";
 import { parseSpecStructure } from "../../src/parse/spec-structure.js";
 
@@ -274,7 +274,8 @@ test("US5 FR-040 Raw markdown shows the exact source and toggles back", async ({
   await raw.locator("summary").click();
   await expect(raw.locator("pre")).toBeVisible();
   await expect(formatted(page)).toBeHidden();
-  expect(await raw.locator("pre").evaluate((p) => p.textContent)).toBe(source);
+  // Exactly the file, line endings as the HTML parser keeps them (helpers.js asInPage).
+  expect(await raw.locator("pre").evaluate((p) => p.textContent)).toBe(asInPage(source));
   await raw.locator("summary").click();
   await expect(raw.locator("pre")).toBeHidden();
   await expect(formatted(page)).toBeVisible();
@@ -287,7 +288,7 @@ test("US5 FR-040 Raw markdown shows the exact source and toggles back", async ({
   const plan = await readFile(path.join(FIXTURES, "artifacts", "specs", "001-full", "plan.md"), "utf8");
   await page.goto(`${fixture}features/001-full/plan.html`);
   await article(page).locator('details[data-part="raw"] summary').click();
-  expect(await article(page).locator('details[data-part="raw"] pre').evaluate((p) => p.textContent)).toBe(plan);
+  expect(await article(page).locator('details[data-part="raw"] pre').evaluate((p) => p.textContent)).toBe(asInPage(plan));
 });
 
 test("US5 FR-040 Expand all opens every collapsed part", async ({ page }) => {

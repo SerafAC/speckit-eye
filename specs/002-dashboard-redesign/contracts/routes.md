@@ -40,7 +40,7 @@ Replaces the "Page paths" and "Page structure" parts of [001 routes.md](../../00
          <link rel="stylesheet" href="{base}assets/styles.css">
          <script type="module" src="{base}assets/app.js"></script>
          [serve] <script type="module" src="{base}assets/live.js"></script>
-<body data-mode="serve|static" data-version="<n>" data-page="overview|feature|document" data-base="{base}">
+<body [serve] data-model-version="<n>" data-mode="serve|static" data-version="<n>" data-page="overview|feature|document" data-base="{base}">
   <details data-region="mobile-menu">                        narrow screens only (CSS), works without JS
   <aside data-region="sidebar">                              overview and feature pages
      brand · project name
@@ -144,7 +144,7 @@ Each module exports `init(root, deps)` (idempotent, called on load and after eve
 | `feature.js` | feature | Rail ↔ list sync, choose-again-to-close, filters and text filter, expand/collapse all, selection and detail panel, copy, address fragment |
 | `reader.js` | document | Contents highlighting and progress, expand all, raw view toggle, "show more" answers, requirement area chips |
 | `search.js` | all | Dialog, shortcut, index loading, matching (search-index.md), keyboard navigation |
-| `live.js` | all (serve) | 001 protocol; before the swap collects `save()` results and scroll positions (`window`, `[data-keep-scroll]`), after the swap calls `reinit` and restores them |
+| `live.js` | all (serve) | 001 protocol; before the swap collects `save()` results and scroll positions (`window`, `[data-keep-scroll]`), after the swap calls `reinit` and restores them. Serve mode stamps each page's `<body>` with `data-model-version` (the version it was rendered at); a `hello` whose version differs means a `change` was sent before the stream opened, so the client fetches once |
 
 ## View state kept across live updates (FR-051)
 

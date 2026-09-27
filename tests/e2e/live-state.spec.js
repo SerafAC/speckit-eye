@@ -265,7 +265,8 @@ test("US3 FR-051 deleting the selected task clears the selection", async ({ page
 
   const file = tasksFile(dir, "002-beta");
   const text = await readFile(file, "utf8");
-  const without = text.replace(/^- \[ \] T018\b.*\n/m, "");
+  // The whole line with its line ending (LF, or CR LF in a Windows checkout).
+  const without = text.replace(/^- \[ \] T018\b.*\r?\n/m, "");
   expect(without).not.toBe(text);
   await writeFile(file, without);
 

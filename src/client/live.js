@@ -4,7 +4,9 @@
  * fetches the current page, swaps `<main>`, keeps the viewer's own
  * expand/collapse choices and scroll position, highlights items whose
  * `data-sig` changed, and animates `<progress>` bars to their new values.
- * While the connection is lost it shows the `live-status` banner.
+ * While the connection is lost it shows the `live-status` banner. A `hello`
+ * whose version differs from the page's `data-model-version` (a change sent
+ * before the stream opened) also fetches once.
  *
  * Around each swap it keeps the page modules' own state (research D2,
  * FR-051): `app.save(root)` before, `app.reinit(root, state)` after, plus the
@@ -110,6 +112,30 @@ export function restoreScroll(root, positions) {
 const NO_APP = { save: () => ({}), reinit: () => {} };
 
 /**
+ * @param {Element | null | undefined} body
+ * @returns {number | null} the page's `data-model-version`, or null
+ */
+function versionAttr(body) {
+  const raw = body?.getAttribute?.("data-model-version");
+  if (raw === null || raw === undefined || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * @param {Event} event an SSE `hello` or `change` event
+ * @returns {number | null} the model version it carries, or null
+ */
+export function versionOf(event) {
+  try {
+    const version = JSON.parse(/** @type {MessageEvent} */ (event)?.data ?? "null")?.version;
+    return typeof version === "number" && Number.isFinite(version) ? version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {object} deps
  * @param {Document} deps.document
  * @param {Window} deps.window
@@ -136,6 +162,12 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   let disconnected = false;
   let busy = false;
   let again = false;
+  /**
+   * The model version this page shows: stamped on `<body>` by the server
+   * (src/serve/handler.js), then the version of the last event.
+   * @type {number | null}
+   */
+  let seen = null;
 
   const main = () => document.querySelector("main");
   /** @param {Document} doc */
@@ -293,14 +325,25 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   function connect() {
     const es = new EventSource(EVENTS_URL);
     source = es;
-    es.addEventListener("hello", () => {
-      if (!disconnected) return;
-      disconnected = false;
-      const b = banner();
-      if (b) b.hidden = true;
+    es.addEventListener("hello", (event) => {
+      const version = versionOf(event);
+      // A change broadcast between this page's response and the stream's
+      // opening reached nobody: the greeting's version tells.
+      const missed = seen !== null && version !== null && version !== seen;
+      if (version !== null) seen = version;
+      if (!disconnected && !missed) return;
+      if (disconnected) {
+        disconnected = false;
+        const b = banner();
+        if (b) b.hidden = true;
+      }
       void update();
     });
-    es.addEventListener("change", () => void update());
+    es.addEventListener("change", (event) => {
+      const version = versionOf(event);
+      if (version !== null) seen = version;
+      void update();
+    });
     es.addEventListener("error", () => {
       disconnected = true;
       const b = banner();
@@ -318,6 +361,7 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   return {
     /** Starts listening. */
     start() {
+      seen = versionAttr(document.body);
       remember(document.querySelector("main"));
       document.addEventListener("toggle", onToggle, true);
       connect();

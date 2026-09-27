@@ -34,6 +34,9 @@ export const CLIENT_MODULES = Object.freeze(["app.js", "prefs.js", "live.js", "t
 
 /** The serve-mode-only browser module (live updates). */
 const LIVE_MODULE = "live.js";
+/** Retries after a failed rescan, and the base delay between them (ms). */
+const RESCAN_RETRIES = 4;
+const RESCAN_RETRY_MS = 250;
 
 const CLIENT_DIR = new URL("../client/", import.meta.url);
 const STYLES_FILE = new URL("../../dist/styles.css", import.meta.url);
@@ -257,21 +260,10 @@ export async function run(argv, deps = {}) {
     let site = renderSite(project, renderOptions);
     let modelVersion = 0;
     const events = createEventHub({ version: modelVersion });
-    const handler = createHandler({ getSite: () => site, events });
+    const handler = createHandler({ getSite: () => site, events, getVersion: () => modelVersion });
 
-    let server;
-    try {
-      server = await startServer({ handler });
-    } catch (err) {
-      events.close();
-      throw err;
-    }
-    stdout.write(`speckit-eye ${VERSION} — serving ${root}\n`);
-    stdout.write(`  Local: ${server.url}\n`);
-    stdout.write("  Watching specs/ and .specify/ for changes (Ctrl+C to stop)\n");
     /** Formatted warnings printed so far for the current model (printed once each). */
     let printed = new Set(allWarnings(project).map(formatWarning));
-    for (const line of printed) stderr.write(`${line}\n`);
 
     let stopped = false;
     let rescanning = false;
@@ -302,25 +294,43 @@ export async function run(argv, deps = {}) {
       }
     };
 
-    /** Runs rescans one at a time; a change during a rescan runs one more. */
+    let failedRescans = 0;
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    let retryTimer;
+
+    /**
+     * Runs rescans one at a time; a change during a rescan runs one more. A
+     * failed rescan (for example a file still locked by the writer on Windows)
+     * is retried a few times, because no further watch event may follow.
+     */
     const onChange = async () => {
+      clearTimeout(retryTimer);
       if (rescanning) {
         rescanAgain = true;
         return;
       }
       rescanning = true;
+      let failed = false;
       try {
         do {
           rescanAgain = false;
+          failed = false;
           try {
             await rescan();
+            failedRescans = 0;
           } catch (err) {
             // Keep serving the last good site.
+            failed = true;
             stderr.write(`speckit-eye: rescan failed: ${/** @type {Error} */ (err)?.message ?? String(err)}\n`);
           }
         } while (rescanAgain && !stopped);
       } finally {
         rescanning = false;
+      }
+      if (failed && !stopped && failedRescans < RESCAN_RETRIES) {
+        failedRescans += 1;
+        retryTimer = setTimeout(() => void onChange(), RESCAN_RETRY_MS * failedRescans);
+        retryTimer.unref?.();
       }
     };
 
@@ -328,13 +338,34 @@ export async function run(argv, deps = {}) {
       createWatcher({
         root,
         gitDir,
-        onChange: () => void onChange(),
+        onChange: () => {
+          failedRescans = 0; // a new change gets a fresh set of retries
+          void onChange();
+        },
         onError: (err) => stderr.write(`speckit-eye: watch error: ${err?.message ?? String(err)}\n`),
       });
+    // Watch before the address is announced: a change saved right after the
+    // "Local:" line must never be missed.
     let watcher = watch();
+
+    let server;
+    try {
+      server = await startServer({ handler });
+    } catch (err) {
+      stopped = true;
+      clearTimeout(retryTimer);
+      watcher.close();
+      events.close();
+      throw err;
+    }
+    stdout.write(`speckit-eye ${VERSION} — serving ${root}\n`);
+    stdout.write(`  Local: ${server.url}\n`);
+    stdout.write("  Watching specs/ and .specify/ for changes (Ctrl+C to stop)\n");
+    for (const line of allWarnings(project).map(formatWarning)) stderr.write(`${line}\n`);
 
     await new Promise((resolve) => onSignal(() => resolve(undefined)));
     stopped = true;
+    clearTimeout(retryTimer);
     watcher.close();
     events.close();
     await server.close();

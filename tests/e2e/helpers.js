@@ -52,6 +52,32 @@ export const sidebarFeature = (page, dir) => sidebar(page).locator(`a[data-key="
 export const featurePagePath = (dir) => `features/${dir}/index.html`;
 
 /**
+ * A file's text as the browser holds it once it is inside an HTML page: the
+ * HTML parser turns every CR LF pair and every lone CR into LF, so a file
+ * checked out with Windows line endings reads back with LF from the DOM
+ * (for example the raw markdown `<pre>`).
+ * @param {string} text
+ * @returns {string}
+ */
+export const asInPage = (text) => text.replace(/\r\n?/g, "\n");
+
+/**
+ * Presses the search shortcut the page itself advertises: its search entry
+ * shows "⌘K" when the page runs on macOS and "Ctrl K" elsewhere
+ * (src/client/search.js decides from the browser's platform, which the
+ * emulated device sets; it is not always the platform of the machine running
+ * the tests, so Playwright's `ControlOrMeta` can pick the other key).
+ * Waits until the search script has wired the entry.
+ * @param {Page} page
+ */
+export async function pressSearchShortcut(page) {
+  const entry = page.locator('button[data-part="search"]:not([hidden])').first();
+  await expect(entry).toBeAttached();
+  const hint = await entry.evaluate((el) => `${el.querySelector("kbd")?.textContent ?? ""} ${el.getAttribute("title") ?? ""}`);
+  await page.keyboard.press(hint.includes("⌘") ? "Meta+k" : "Control+k");
+}
+
+/**
  * Copies `tests/fixtures/projects/<name>` into a fresh temporary folder.
  * @param {string} name
  * @returns {Promise<string>} the absolute path of the copy

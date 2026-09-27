@@ -75,7 +75,9 @@ function parentsOf(feature, phase, task) {
 }
 
 /**
- * One square: a link to the task row in the tree.
+ * One square: a link to the task row in the tree. `tabindex="0"` makes it a
+ * Tab stop in every engine: WebKit leaves plain links out of the Tab order
+ * unless the viewer turned on Option+Tab (FR-050).
  * @param {Task} task
  * @param {Feature} feature
  * @param {Phase} phase
@@ -83,7 +85,7 @@ function parentsOf(feature, phase, task) {
  */
 function renderSquare(task, feature, phase) {
   const title = squareTitle(task, feature);
-  return html`<a data-key="${task.key}" data-sig="${task.sig ?? ""}" data-state="${displayOf(task)}" data-parents="${parentsOf(feature, phase, task)}" href="#${anchorOf(task)}" title="${title}" aria-label="${title}"></a>`;
+  return html`<a data-key="${task.key}" data-sig="${task.sig ?? ""}" data-state="${displayOf(task)}" data-parents="${parentsOf(feature, phase, task)}" href="#${anchorOf(task)}" tabindex="0" title="${title}" aria-label="${title}"></a>`;
 }
 
 /**

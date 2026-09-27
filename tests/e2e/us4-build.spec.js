@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 import { mkdtemp, readdir, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { BIN, REPO_ROOT, copyFixture, featurePagePath, hashTree, navLink, runBuild, serveStatic, sidebar, startServe } from "./helpers.js";
+import { BIN, REPO_ROOT, copyFixture, featurePagePath, hashTree, navLink, pressSearchShortcut, runBuild, serveStatic, sidebar, startServe } from "./helpers.js";
 import { spawn } from "node:child_process";
 
 const BASE = "/my-repo/";
@@ -419,7 +419,7 @@ test("FR-052 theme, map mode, filters, reader and search work in the static buil
   await expect(page.locator('[data-region="toc"] [data-part="progress"]')).toBeVisible();
 
   // Search opens a result under the base.
-  await page.keyboard.press("ControlOrMeta+k");
+  await pressSearchShortcut(page);
   const dialog = page.locator('dialog[data-region="search"]');
   await expect(dialog).toHaveJSProperty("open", true);
   // 001-alpha has a T018 too; its text tells them apart.
