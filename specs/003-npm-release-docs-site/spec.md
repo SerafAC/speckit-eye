@@ -15,6 +15,7 @@
 - Q: Which version number should the first npm release be? → A: `1.0.0`, a stable first release matching `package.json`.
 - Q: After the version-bump change is merged, how should the release get from there to npm? → A: Merging the reviewed bump change automatically creates the `vX.Y.Z` tag and starts publishing, which waits for maintainer approval; no one types a tag by hand.
 - Q: Where on the GitHub Pages site should the project's own speckit-eye dashboard live, next to the docmd documentation? → A: Documentation at the site root, dashboard at `/status/`.
+- Q: Who should be allowed to approve a release before it's published to npm? → A: Only the repository owner (the maintainer), who may approve their own releases.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -73,7 +74,7 @@ section) each stop the release before anything is published.
 4. **Given** any of those checks fails, **When** the publishing automation runs, **Then** nothing is published to npm, no GitHub release is created, and the failure names the check that failed.
 5. **Given** the version to publish already exists on npm, **When** the publishing automation runs, **Then** it stops without publishing and says so.
 6. **Given** a successful publish, **When** a user inspects the package, **Then** it carries verifiable provenance linking it to the exact source commit and automation run that built it, and a GitHub release exists whose notes are that version's changelog section.
-7. **Given** someone without release rights pushes a tag or triggers the workflow, **When** the publishing automation runs, **Then** it does not publish until an authorized maintainer approves it.
+7. **Given** someone without release rights pushes a tag or triggers the workflow, **When** the publishing automation runs, **Then** it does not publish until the repository owner approves it.
 
 ---
 
@@ -195,7 +196,7 @@ templates.
 - **FR-009**: Merging a version-bump change into the default branch MUST automatically create the matching `vX.Y.Z` tag on the merge commit and start publishing; no manual tagging is part of the normal process. Publishing MUST start only from a version tag on a commit that belongs to the default branch.
 - **FR-010**: Before publishing, the automation MUST verify that the tag, the package version and the changelog's latest section name the same version, and that the version does not already exist on npm.
 - **FR-011**: Before publishing, the automation MUST run the full unit and end-to-end test suites and the package-contents check on the tagged commit; any failure MUST stop the release with nothing published.
-- **FR-012**: Publishing MUST require approval by an authorized maintainer through a protected release environment.
+- **FR-012**: Publishing MUST require approval through a protected release environment whose only approver is the repository owner; the owner MAY approve releases they started themselves. Adding approvers later MUST NOT require changing the release process.
 - **FR-013**: Publishing MUST NOT depend on a long-lived publish credential stored in the repository when a short-lived, identity-based alternative is available, and the published package MUST carry verifiable build provenance.
 - **FR-014**: Automation MUST run with the least permissions it needs, and third-party automation steps MUST be pinned to immutable versions.
 - **FR-015**: After a successful publish, a GitHub release MUST be created for the tag whose notes are that version's changelog section.
