@@ -90,11 +90,33 @@ describe("start", () => {
     assert.deepEqual(log.map(([n]) => n), ["a"]);
   });
 
+  test("the default table runs search.js on every page (T070): entry shown, Ctrl+K opens the dialog, the index is fetched under the base", async () => {
+    assert.deepEqual(MODULES.all.map((m) => m.name), ["search"]);
+    for (const kind of ["overview", "feature", "document"]) {
+      const w = page(kind, { rail: kind === "document" });
+      const doc = w.document;
+      doc.body.dataset.base = "/eye/";
+      doc.body.insertAdjacentHTML("afterbegin", '<button type="button" data-part="search" hidden><kbd>⌘K</kbd></button>');
+      doc.body.insertAdjacentHTML("beforeend", '<dialog data-region="search" aria-label="Search"></dialog>');
+      const fetched = [];
+      w.fetch = async (url) => {
+        fetched.push(url);
+        return { ok: true, json: async () => ({ version: 1, entries: [] }) };
+      };
+      start({ document: doc, window: w, storage: memoryStorage() });
+      assert.equal(doc.querySelector('[data-part="search"]').hidden, false, kind);
+      doc.dispatchEvent(new w.KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true, cancelable: true }));
+      assert.equal(doc.querySelector('dialog[data-region="search"]').open, true, kind);
+      await new Promise((r) => setTimeout(r, 0));
+      assert.deepEqual(fetched, ["/eye/assets/search-index.json"], kind);
+      assert.ok(!("search" in save(doc)), "search has no state to save");
+    }
+  });
+
   test("the default table runs tree.js and taskmap.js on the overview, feature.js on the feature page and reader.js on document pages", () => {
     assert.deepEqual(MODULES.overview.map((m) => m.name), ["tree", "taskmap"]);
     assert.deepEqual(MODULES.feature.map((m) => m.name), ["feature"]);
     assert.deepEqual(MODULES.document.map((m) => m.name), ["reader"]);
-    assert.deepEqual(MODULES.all, []);
     const w = page("overview");
     w.document.querySelector("main").innerHTML = `${TREE}<section data-region="taskmap" data-layout="stacked"><header><button type="button" data-part="map-mode" aria-pressed="false" hidden><span data-part="mode-label">By feature</span></button></header><div data-part="card"><div data-part="grid"><a data-key="002-b/T1" data-state="next" data-parents="002-b 002-b/p1" href="#b-t1" title="T1 · Next — t — B"></a></div></div></section>`;
     const storage = memoryStorage({ "sk-map": "grouped" });

@@ -1,4 +1,4 @@
-// Scale checks (SC-006, SC-010, FR-027): 50 features × 40 tasks from
+// Scale checks (SC-006, SC-010, SC-014, FR-027): 50 features × 40 tasks from
 // tests/fixtures/generate-large.js (1,000 / 2,000 tasks done).
 
 import { test, expect } from "@playwright/test";
@@ -174,4 +174,42 @@ test("US1 FR-011 with 50 features, segments too narrow for a label show none but
   const labels = await page.locator('[data-region="stats"] [data-part="labels"] > span').allTextContents();
   expect(labels).toHaveLength(FEATURES);
   expect(labels.every((text) => text.trim() === "")).toBe(true);
+});
+
+test("US6 SC-014 results update within 200 ms per keystroke with 2,000 tasks and a full ID is first", async ({ page }) => {
+  const { url } = await serveLarge();
+  await page.goto(url);
+  const dialog = page.locator('dialog[data-region="search"]');
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(dialog).toHaveJSProperty("open", true);
+  // Load the index once, then start from an empty box.
+  const box = dialog.locator('input[data-part="query"]');
+  await box.fill("feature");
+  await expect(dialog.locator('[data-part="result"]').first()).toBeVisible();
+  await box.fill("");
+  // Measured in the page: each keydown to the moment the results list has
+  // been replaced for that keystroke.
+  await page.evaluate(() => {
+    const w = /** @type {any} */ (window);
+    const results = document.querySelector('dialog[data-region="search"] [data-part="results"]');
+    const status = document.querySelector('dialog[data-region="search"] [data-part="status"]');
+    w.__keys = [];
+    document.addEventListener("keydown", () => w.__keys.push({ down: performance.now() }), true);
+    const done = () => {
+      const last = w.__keys[w.__keys.length - 1];
+      if (last && last.shown === undefined) last.shown = performance.now();
+    };
+    new MutationObserver(done).observe(results, { childList: true });
+    new MutationObserver(done).observe(status, { childList: true, characterData: true, subtree: true });
+  });
+  await page.keyboard.type("T020", { delay: 50 });
+  const tasks = dialog.locator('[data-group="Tasks"] [data-part="result"]');
+  await expect(tasks.first().locator('[data-part="id"]')).toHaveText("T020");
+  const keys = await page.evaluate(() => /** @type {any} */ (window).__keys);
+  expect(keys).toHaveLength(4);
+  for (const k of keys) expect(k.shown - k.down).toBeLessThanOrEqual(200);
+  // Every feature has a T020: the full ID ranks all of them first, ahead of
+  // anything else, eight shown and the rest counted.
+  await expect(tasks.locator('[data-part="id"]')).toHaveText(Array(8).fill("T020"));
+  await expect(dialog.locator('[data-group="Tasks"] [data-part="more"]')).toHaveText("42 more");
 });

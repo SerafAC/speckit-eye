@@ -14,6 +14,7 @@ import * as tree from "./tree.js";
 import * as taskmap from "./taskmap.js";
 import * as feature from "./feature.js";
 import * as reader from "./reader.js";
+import * as search from "./search.js";
 
 /**
  * @typedef {object} Deps
@@ -68,11 +69,19 @@ const featureModule = { name: "feature", init: feature.init, save: feature.save 
 const readerModule = { name: "reader", init: reader.init, save: reader.save };
 
 /**
+ * Search on every page: the ⌘K / Ctrl+K dialog, the index and keyboard
+ * navigation (src/client/search.js). Its loaded index lives outside `<main>`
+ * and survives live swaps by itself, so it has no state to save.
+ * @type {PageModule}
+ */
+const searchModule = { name: "search", init: search.init };
+
+/**
  * The modules run on each page type; `all` runs on every page first.
  * @type {Record<"overview" | "feature" | "document" | "all", PageModule[]>}
  */
 export const MODULES = {
-  all: [],
+  all: [searchModule],
   overview: [treeModule, taskmapModule],
   feature: [featureModule],
   document: [readerModule],

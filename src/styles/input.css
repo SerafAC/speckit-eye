@@ -1281,6 +1281,87 @@ nav[data-part="features"] a[data-status="done"] [data-part="count"] {
   display: none;
 }
 
+/* ---- Search dialog (FR-049–FR-049b; filled by assets/search.js) ---- */
+
+dialog[data-region="search"] {
+  @apply mx-auto mt-[12vh] mb-auto w-[min(40rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-(--border) p-0 text-(--text) shadow-2xl;
+  max-height: 70vh;
+  background-color: var(--surface);
+}
+
+dialog[data-region="search"][open] {
+  @apply flex flex-col;
+}
+
+dialog[data-region="search"]::backdrop {
+  background-color: rgb(0 0 0 / 0.4);
+}
+
+dialog[data-region="search"] [data-part="box"] {
+  @apply flex items-center gap-2 border-b border-(--border) px-4;
+}
+
+dialog[data-region="search"] input[data-part="query"] {
+  @apply flex-1 border-0 bg-transparent py-3 text-base text-(--text) outline-none placeholder:text-(--muted);
+  min-height: var(--hit);
+}
+
+dialog[data-region="search"] [data-part="esc"] {
+  @apply rounded border border-(--border) px-1 font-mono text-xs text-(--muted);
+}
+
+dialog[data-region="search"] [data-part="results"] {
+  @apply overflow-y-auto px-2 py-1;
+}
+
+dialog[data-region="search"] [data-part="results"]:empty {
+  @apply hidden;
+}
+
+dialog[data-region="search"] [data-part="group"] {
+  @apply py-1;
+}
+
+dialog[data-region="search"] [data-part="group-name"] {
+  @apply m-0 px-2 py-1 text-xs font-medium tracking-wide text-(--muted) uppercase;
+}
+
+dialog[data-region="search"] [role="option"] {
+  @apply flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-(--text-2) no-underline;
+  min-height: var(--hit);
+}
+
+dialog[data-region="search"] [role="option"][aria-selected="true"],
+dialog[data-region="search"] [role="option"]:hover {
+  @apply text-(--text);
+  background-color: var(--subtle);
+}
+
+dialog[data-region="search"] [data-part="id"] {
+  @apply shrink-0 font-mono text-xs text-(--muted);
+}
+
+dialog[data-region="search"] [data-part="text"],
+dialog[data-region="search"] [data-part="title"] {
+  @apply min-w-0 flex-1 truncate;
+}
+
+dialog[data-region="search"] [data-part="context"] {
+  @apply max-w-[40%] shrink-0 truncate text-xs text-(--muted);
+}
+
+dialog[data-region="search"] [data-part="more"] {
+  @apply text-xs font-medium text-(--blue-text);
+}
+
+dialog[data-region="search"] [data-part="status"] {
+  @apply m-0 px-4 py-3 text-sm text-(--muted);
+}
+
+dialog[data-region="search"] [data-part="status"][hidden] {
+  display: none;
+}
+
 /* The page's source file was deleted (live.js got a 404). */
 [data-region="not-found"] {
   @apply mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900;
