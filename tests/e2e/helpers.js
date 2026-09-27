@@ -4,6 +4,7 @@
  * shell selectors of spec 002 (contracts/routes.md "Page shell").
  */
 
+import { expect } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cp, mkdtemp, readdir, readFile, stat } from "node:fs/promises";
@@ -272,4 +273,65 @@ export async function serveStatic(rootDir, mountPath = "/") {
         server.close(() => resolve());
       }),
   };
+}
+
+/** Pages of every type in the `mixed` fixture, for page-wide checks. */
+const HIT_MIXED_PAGES = [
+  "",
+  featurePagePath("002-beta"),
+  featurePagePath("004-delta"),
+  "features/002-beta/spec.html",
+  "features/002-beta/plan.html",
+  "features/002-beta/tasks.html",
+  "constitution.html",
+  "assessments/speckit-dashboard/intake.html",
+];
+
+/** Pages of this repository with long tables, code, links in text and many documents. */
+const HIT_REPO_PAGES = [
+  featurePagePath("002-dashboard-redesign"),
+  "features/002-dashboard-redesign/spec.html",
+  "features/002-dashboard-redesign/plan.html",
+  "features/002-dashboard-redesign/tasks.html",
+  "features/002-dashboard-redesign/contracts/routes.html",
+];
+
+/**
+ * FR-050: on every page type, every visible link, button, summary and input
+ * (links in running document text included) has a hit target at least 36 px
+ * tall; only task map squares are excepted. Every `<details>` is opened first
+ * so hidden parts are checked too.
+ * @param {import("@playwright/test").Page} page
+ * @param {{ serve: (fixture: string) => Promise<{url: string}>, serveRepo: () => Promise<{url: string}>, stop: () => Promise<void> | undefined }} servers
+ */
+export async function checkHitTargets(page, { serve, serveRepo, stop }) {
+  const small = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("a, button, summary, input:not([type='checkbox'])")]
+        .filter((el) => {
+          const box = el.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) return false;
+          if (el.closest('[data-region="taskmap"] [data-part="grid"]')) return false;
+          // Layout rounding: 35.5 px or more counts as 36.
+          return box.height < 35.5;
+        })
+        .map((el) => `${el.tagName.toLowerCase()} ${Math.round(el.getBoundingClientRect().height)} px "${el.textContent?.trim().slice(0, 30)}"`),
+    );
+  const openAll = () =>
+    page.evaluate(() => {
+      for (const d of document.querySelectorAll("details")) if (d.getAttribute("data-part") !== "raw") d.open = true;
+    });
+  const check = async (url, pages, label) => {
+    for (const p of pages) {
+      await page.goto(`${url}${p}`);
+      await openAll();
+      expect(await small(), `${label} ${p || "overview"}`).toEqual([]);
+    }
+  };
+
+  await check((await serve("mixed")).url, HIT_MIXED_PAGES, "mixed");
+  await stop();
+  await check((await serve("nonstandard")).url, ["", featurePagePath("001-odd")], "nonstandard");
+  await stop();
+  await check((await serveRepo()).url, HIT_REPO_PAGES, "repo");
 }

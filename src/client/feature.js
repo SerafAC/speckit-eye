@@ -37,6 +37,9 @@ const wired = new WeakSet();
  * @property {string[]} chips pressed filter chips (All left out)
  * @property {string} text the text filter
  * @property {string | null} selected `data-key` of the selected task row
+ * @property {string[]} open `data-key`s of the open phases (those open
+ *   before filtering, while filters are active) and open task rows
+ * @property {boolean} expanded "Expand all" turned the accordion off
  */
 
 /**
@@ -584,6 +587,13 @@ export function init(root, deps) {
   }
 
   // --- state after a live swap, then the address ---
+  // Open phases and rows come back as they were, also those opened by the
+  // page itself (address, rail, Expand all), not only the viewer's toggles.
+  if (saved && Array.isArray(saved.open)) {
+    if (saved.expanded) setAccordion(section, false);
+    const open = new Set(saved.open);
+    for (const d of [...phasesOf(section), ...rowsOf(section)]) d.open = open.has(d.getAttribute("data-key") ?? "");
+  }
   if (saved && (saved.chips?.length || saved.text)) {
     writeFilters(section, saved.chips ?? [], saved.text ?? "");
     applyFilters(section);
@@ -619,9 +629,26 @@ export function init(root, deps) {
  */
 export function save(root) {
   const section = sectionOf(root);
-  if (!section) return { chips: [], text: "", selected: null };
+  if (!section) return { chips: [], text: "", selected: null, open: [], expanded: false };
   const { chips } = readFilters(section);
   const input = /** @type {HTMLInputElement | null} */ (section.querySelector('input[data-part="text-filter"]'));
   const selected = section.querySelector('details[data-part="task"][data-selected]')?.getAttribute("data-key") ?? null;
-  return { chips, text: input?.value ?? "", selected };
+  const filtering = section.hasAttribute("data-filtering");
+  /** @param {HTMLDetailsElement[]} list */
+  const openKeys = (list) => list.filter((d) => d.open).map((d) => /** @type {string} */ (d.getAttribute("data-key")));
+  let phases = openKeys(phasesOf(section));
+  if (filtering) {
+    try {
+      phases = JSON.parse(section.getAttribute("data-open-before") ?? "[]");
+    } catch {
+      phases = [];
+    }
+  }
+  return {
+    chips,
+    text: input?.value ?? "",
+    selected,
+    open: [...phases, ...openKeys(rowsOf(section))],
+    expanded: !filtering && !accordionOn(section),
+  };
 }

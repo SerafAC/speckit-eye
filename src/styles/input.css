@@ -2549,7 +2549,9 @@ mark[data-kw] {
 }
 
 [data-region="toc"] a {
-  @apply flex items-baseline gap-2 rounded px-2 py-1 text-(--text-4) no-underline hover:text-(--text);
+  @apply flex items-baseline gap-2 rounded px-2 text-(--text-4) no-underline hover:text-(--text);
+  /* One line is 36 px tall (FR-050). */
+  padding-block: calc((var(--hit) - 1lh) / 2);
 }
 
 [data-region="toc"] a [data-part="num"] {
@@ -2573,4 +2575,42 @@ mark[data-kw] {
 [data-region="toc"] [data-part="progress-bar"] {
   @apply block h-full rounded-full;
   background-color: var(--blue);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Hit targets: every link and button is at least 36 px tall (FR-050)       */
+/* ------------------------------------------------------------------------ */
+
+/* On every pointer, mouse included (task map squares excepted). Where the
+   design draws a thinner control, the padding around it is clickable and the
+   look stays the same. */
+
+/* The segments keep their 12 px look; the padding around it is clickable. */
+[data-region="stats"] [data-part="segments"] > a {
+  box-sizing: content-box;
+  padding-block: 12px;
+  margin-block: -12px;
+  background-clip: content-box;
+}
+
+[data-region="tree"] li[data-state] {
+  min-height: var(--hit);
+}
+
+[data-region="tree"] li[data-state] a[data-part="id"],
+[data-region="feature-head"] [data-part="breadcrumb"] a {
+  @apply inline-flex items-center;
+  min-height: var(--hit);
+}
+
+[data-region="tree"] [data-part="open-feature"] {
+  min-width: var(--hit);
+  min-height: var(--hit);
+}
+
+/* Links in running document text: vertical padding on an inline box does not
+   move the lines, so each link gets a 36 px hit area and the text keeps its
+   rhythm. */
+.prose a {
+  padding-block: max(0px, calc((var(--hit) - 1em) / 2));
 }

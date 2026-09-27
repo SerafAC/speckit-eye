@@ -1,5 +1,6 @@
-// SC-005: the counts speckit-eye shows for this repository's own features
-// equal the checkboxes in their tasks.md files. The expected counts are
+// SC-004 (spec 002; 001 SC-005): every count speckit-eye shows for this
+// repository's own features (stats card, segments, sidebar, tree, map legend,
+// feature pages) equals the checkboxes in their tasks.md files. The expected counts are
 // computed here, independently of src/parse, with the task-line regex from
 // contracts/tasks-md-format.md, skipping fenced code blocks and HTML comments.
 
@@ -50,7 +51,7 @@ test.afterEach(async () => {
   cleanup = [];
 });
 
-test("SC-005 this repository's own features show open / total equal to their checkbox counts", async ({ page }) => {
+test("SC-004 counts on stats card, segments, sidebar, tree, map legend and feature pages match this repository's checkboxes", async ({ page }) => {
   const specsDir = path.join(REPO_ROOT, "specs");
   const features = (await readdir(specsDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
   /** @type {{ dir: string, done: number, total: number }[]} */
@@ -87,7 +88,41 @@ test("SC-005 this repository's own features show open / total equal to their che
     else await expect(count, dir).toHaveText(total - done > 0 ? String(total - done) : "");
   }
   const sum = expected.reduce((acc, e) => ({ done: acc.done + e.done, total: acc.total + e.total }), { done: 0, total: 0 });
-  await expect(page.locator('[data-stat="percent"] [data-part="detail"]')).toHaveText(`${sum.done} of ${sum.total} tasks`);
+  const stats = page.locator('[data-region="stats"]');
+  await expect(stats.locator('[data-stat="percent"] [data-part="detail"]')).toHaveText(`${sum.done} of ${sum.total} tasks`);
+  await expect(stats.locator('[data-stat="percent"] [data-part="value"]')).toHaveText(
+    // Rounded, but never 100 % while a task is open.
+    `${Math.min(Math.round((sum.done * 100) / sum.total), sum.done < sum.total ? 99 : 100)} %`,
+  );
+  await expect(stats.locator('[data-stat="open"] [data-part="value"]')).toHaveText(String(sum.total - sum.done));
+  const withOpen = expected.filter((e) => e.done < e.total).length;
+  await expect(stats.locator('[data-stat="open"] [data-part="detail"]')).toHaveText(`across ${withOpen} ${withOpen === 1 ? "feature" : "features"}`);
+  const complete = expected.filter((e) => e.total > 0 && e.done === e.total).length;
+  await expect(stats.locator('[data-stat="features"] [data-part="value"]')).toHaveText(`${complete} / ${features.length}`);
+
+  // One segment per feature with tasks; its title states done, open and next.
+  const segments = stats.locator('[data-part="segments"] > a');
+  const withTasks = expected.filter((e) => e.total > 0);
+  await expect(segments).toHaveCount(withTasks.length);
+  for (const { dir, done, total } of withTasks) {
+    const title = await stats.locator(`[data-part="segments"] > a[data-key="seg:${dir}"]`).getAttribute("title");
+    const m = /— (\d+) done, (\d+) open, (\d+) next$/.exec(title ?? "");
+    expect(m, `${dir}: ${title}`).not.toBeNull();
+    expect(Number(m[1]), dir).toBe(done);
+    expect(Number(m[2]) + Number(m[3]), dir).toBe(total - done);
+  }
+
+  // The task map has one square per checkbox; its legend adds up.
+  const map = page.locator('[data-region="taskmap"]');
+  await expect(map.locator("a[data-state]")).toHaveCount(sum.total);
+  const legend = Object.fromEntries(
+    (await map.locator('[data-part="legend"] li[data-state]').allTextContents()).map((t) => {
+      const m = /^(\D+?)\s+(\d+)$/.exec(t.trim());
+      return [m?.[1] ?? t, Number(m?.[2])];
+    }),
+  );
+  expect(legend.Done).toBe(sum.done);
+  expect(legend.Open + legend.Blocked + legend.Next).toBe(sum.total - sum.done);
 
   // Each feature page states the same done / total.
   for (const { dir, done, total } of expected) {

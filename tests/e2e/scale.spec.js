@@ -1,5 +1,5 @@
-// Scale checks (SC-006, SC-010, SC-014, FR-027): 50 features × 40 tasks from
-// tests/fixtures/generate-large.js (1,000 / 2,000 tasks done).
+// Scale checks (spec 002 SC-006, SC-007, SC-008, SC-014, FR-027): 50 features
+// × 40 tasks from tests/fixtures/generate-large.js (1,000 / 2,000 tasks done).
 
 import { test, expect } from "@playwright/test";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -39,7 +39,7 @@ const bar = (page) => page.locator('[data-stat="percent"] [data-part="detail"]')
 const map = (page) => page.locator('[data-region="taskmap"]');
 const tooltip = (page) => page.locator('[data-region="tooltip"]');
 
-test("SC-010 the overview of 50 features / 2,000 tasks fires load within 2 s", async ({ page }) => {
+test("SC-007 the overview of 50 features / 2,000 tasks fires load within 2 s", async ({ page }) => {
   const { url } = await serveLarge();
   const started = Date.now();
   await page.goto(url, { waitUntil: "load" });
@@ -54,7 +54,7 @@ test("SC-010 the overview of 50 features / 2,000 tasks fires load within 2 s", a
   await expect(page.locator('[data-region="taskmap"] a[data-key][data-state]')).toHaveCount(2000);
 });
 
-test("SC-010 SC-002 a checkbox change in a large project shows within 2 s", async ({ page }) => {
+test("SC-008 a checkbox change in a large project shows within 2 s", async ({ page }) => {
   const { dir, url } = await serveLarge();
   const connected = page.waitForResponse((r) => r.url().endsWith("/__events"));
   await page.goto(url);
@@ -68,7 +68,7 @@ test("SC-010 SC-002 a checkbox change in a large project shows within 2 s", asyn
   await expect(bar(page)).toHaveText("1001 of 2000 tasks", { timeout: LIVE_MS });
 });
 
-test("SC-010 --build of 50 features / 2,000 tasks finishes within 30 s", async () => {
+test("SC-007 --build of 50 features / 2,000 tasks finishes within 30 s", async () => {
   test.setTimeout(BUILD_MS + 30_000);
   const dir = await tempDir("speckit-eye-large-");
   await generateLarge(dir);
@@ -83,12 +83,25 @@ test("SC-010 --build of 50 features / 2,000 tasks finishes within 30 s", async (
   for (let i = 0; i < 50; i++) await access(path.join(out, ...featurePagePath(featureDir(i)).split("/")));
 });
 
-test("SC-010 a feature page of a large project fires load within 2 s", async ({ page }) => {
+test("SC-007 each sampled feature page of a large project fires load within 2 s", async ({ page }) => {
   const { url } = await serveLarge();
-  const started = Date.now();
-  await page.goto(`${url}${featurePagePath(featureDir(10))}`, { waitUntil: "load" });
-  expect(Date.now() - started).toBeLessThanOrEqual(LOAD_MS);
-  await expect(page.locator(`[data-region="sidebar"] a[data-key="side:${featureDir(10)}"]`)).toHaveAttribute("aria-current", "page");
+  // First, middle and last feature, plus one more.
+  for (const i of [0, 10, 24, 49]) {
+    const dir = featureDir(i);
+    const started = Date.now();
+    await page.goto(`${url}${featurePagePath(dir)}`, { waitUntil: "load" });
+    const elapsed = Date.now() - started;
+    const navigation = await page.evaluate(() => {
+      const [nav] = /** @type {PerformanceNavigationTiming[]} */ (performance.getEntriesByType("navigation"));
+      return nav.loadEventStart - nav.startTime;
+    });
+    expect(navigation, dir).toBeLessThanOrEqual(LOAD_MS);
+    expect(elapsed, dir).toBeLessThanOrEqual(LOAD_MS);
+    await expect(page.locator(`[data-region="sidebar"] a[data-key="side:${dir}"]`)).toHaveAttribute("aria-current", "page");
+    await expect(page.locator('[data-region="tasks"] details[data-part="task"]')).toHaveCount(40);
+    // The page's own module has run (the filter bar is shown).
+    await expect(page.locator('[data-region="tasks"] [data-part="filters"]')).toBeVisible();
+  }
   await expect(page.locator('[data-region="sidebar"] nav[aria-label="Features"] li')).toHaveCount(50);
 });
 
