@@ -14,6 +14,7 @@
 
 - Q: Which version number should the first npm release be? → A: `1.0.0`, a stable first release matching `package.json`.
 - Q: After the version-bump change is merged, how should the release get from there to npm? → A: Merging the reviewed bump change automatically creates the `vX.Y.Z` tag and starts publishing, which waits for maintainer approval; no one types a tag by hand.
+- Q: Where on the GitHub Pages site should the project's own speckit-eye dashboard live, next to the docmd documentation? → A: Documentation at the site root, dashboard at `/status/`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -124,7 +125,7 @@ folder on the default branch.
 
 1. **Given** the published site, **When** a visitor follows the dashboard link from the README or from the documentation home page, **Then** they land on the speckit-eye overview of this repository, with working feature pages, document pages, search, theme switch and task map.
 2. **Given** a task is checked off in a `tasks.md` on the default branch, **When** the site is redeployed, **Then** the dashboard's counts reflect the change.
-3. **Given** the dashboard is served under a sub-path of the documentation site, **When** a visitor navigates inside it, **Then** all links, styles, fonts and scripts load from that sub-path with no broken links, and navigating back to the documentation is one click away.
+3. **Given** the dashboard is served under `/status/` of the documentation site, **When** a visitor navigates inside it, **Then** all links, styles, fonts and scripts load from that sub-path with no broken links, and navigating back to the documentation is one click away.
 4. **Given** the dashboard build uses the speckit-eye code on the default branch, **When** the tool's rendering changes, **Then** the demo shows the latest unreleased behavior (and says so via its generated-at footer and version).
 
 ---
@@ -216,7 +217,7 @@ templates.
 
 **Project dashboard (status and demo)**
 
-- **FR-025**: The deployed site MUST include a speckit-eye static build of this repository, served under a sub-path of the documentation site, generated with the tool's code from the same commit.
+- **FR-025**: The deployed site MUST serve the documentation at its root and include a speckit-eye static build of this repository under `/status/` (i.e. `<site>/status/`), generated with the tool's code from the same commit.
 - **FR-026**: The README and the documentation home page MUST both link to the dashboard, labeled as the project's status and live demo.
 - **FR-027**: The dashboard MUST work fully under its sub-path (links, styles, fonts, scripts, search) and MUST offer a way back to the documentation site.
 
@@ -255,7 +256,7 @@ templates.
 - The first published version is `1.0.0`, already in `package.json`, whose entries are currently collected under "Unreleased" in the changelog. Because `package.json` already says `1.0.0`, the first release sets that version as-is rather than bumping from it.
 - The npm name `speckit-eye` is available (or owned by the maintainer); securing it and configuring npm trusted publishing for this repository are one-time manual steps performed by the maintainer and documented in the guide — they cannot be done from inside the repository.
 - The actual first publish is triggered and approved by the maintainer after this feature is merged; this feature delivers everything needed so that the publish is a guided, approved run.
-- The documentation site and the dashboard are hosted together on this repository's GitHub Pages project site (a sub-path per repository name), with the dashboard under its own sub-path (for example `/status/`); no custom domain.
+- The documentation site and the dashboard are hosted together on this repository's GitHub Pages project site (a sub-path per repository name), with the documentation at the site root and the dashboard under `/status/`; no custom domain.
 - docmd is used as-is with its default theme and minimal configuration; it is a development-only dependency and is never part of the published package.
 - The dashboard in the site is built from the current commit's code, not from the published npm version, so it doubles as a preview of unreleased behavior.
 - Existing docs (`usage.md`, `hosting.md`, `architecture.md`) keep their content; they may gain front-matter or small navigation adjustments needed by the site. The sample GitHub Pages workflow in `hosting.md` stays as guidance for other projects.
