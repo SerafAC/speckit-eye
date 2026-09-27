@@ -11,6 +11,7 @@ import { renderDocument } from "./reader.js";
 import { renderFeaturePage } from "./feature.js";
 import { createMarkdown } from "./markdown.js";
 import { themeScript } from "./theme-script.js";
+import { buildSearchIndex } from "./search-index.js";
 
 /** @typedef {import("../model/build-model.js").Project} Project */
 /** @typedef {import("../project/artifacts.js").Artifact} Artifact */
@@ -158,6 +159,8 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
   site.set("assets/styles.css", { type: CSS_TYPE, body: assets.styles });
   // Generated in memory from src/client/prefs.js (research D3), never read from disk.
   site.set("assets/theme.js", { type: JS_TYPE, body: themeScript() });
+  // The same index in both modes (FR-049c, contracts/search-index.md).
+  site.set("assets/search-index.json", { type: JSON_TYPE, body: JSON.stringify(buildSearchIndex(project)) });
   const modules = assets.modules ?? {};
   if (mode === "serve" && typeof modules[LIVE_MODULE] !== "string") {
     throw new Error(`renderSite: serve mode needs assets.modules["${LIVE_MODULE}"]`);

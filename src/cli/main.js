@@ -30,7 +30,7 @@ export const VERSION = pkg.version;
  * §III): later tasks add their module here. `live.js` is read and published
  * in serve mode only.
  */
-export const CLIENT_MODULES = Object.freeze(["app.js", "prefs.js", "live.js", "tree.js", "taskmap.js", "feature.js", "reader.js"]);
+export const CLIENT_MODULES = Object.freeze(["app.js", "prefs.js", "live.js", "tree.js", "taskmap.js", "feature.js", "reader.js", "search.js"]);
 
 /** The serve-mode-only browser module (live updates). */
 const LIVE_MODULE = "live.js";

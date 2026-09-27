@@ -5,6 +5,7 @@ import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
 import { themeScript } from "../../src/render/theme-script.js";
+import { buildSearchIndex } from "../../src/render/search-index.js";
 
 async function model(files) {
   return buildModel(await scan(createFakeReader(files), "proj"));
@@ -34,6 +35,7 @@ const ASSET_KEYS = [
   "assets/fonts/OFL-geist.txt",
   "assets/fonts/geist-latin-wght-normal.woff2",
   "assets/prefs.js",
+  "assets/search-index.json",
   "assets/styles.css",
   "assets/taskmap.js",
   "assets/theme.js",
@@ -109,6 +111,21 @@ describe("renderSite", () => {
     const m = await model(FILES);
     const bare = renderSite(m, { base: "/", mode: "static", version: "1", assets: { styles: "", modules: {}, fonts: {} } });
     assert.equal(bare.get("assets/theme.js").body, themeScript());
+  });
+
+  test("assets/search-index.json is the model's search index, the same in both modes and under any base (FR-049c)", async () => {
+    const m = await model(FILES);
+    const expected = JSON.stringify(buildSearchIndex(m));
+    for (const [mode, base] of [["serve", "/"], ["static", "/"], ["static", "/eye/"]]) {
+      const s = await site({ mode, base });
+      const entry = s.get("assets/search-index.json");
+      assert.equal(entry.type, JSON_TYPE);
+      assert.equal(entry.body, expected, `${mode} ${base}`);
+      const parsed = JSON.parse(entry.body);
+      assert.equal(parsed.version, 1);
+      assert.ok(parsed.entries.some((e) => e.type === "task" && e.label === "T002"));
+      assert.ok(!entry.body.includes("/eye/"), "URLs carry no base");
+    }
   });
 
   test("font files are published under assets/fonts/ with their types; bytes stay a Uint8Array (research D12)", async () => {

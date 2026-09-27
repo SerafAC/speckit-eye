@@ -112,3 +112,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   chips and MUST, MUST NOT, SHOULD, SHOULD NOT and MAY highlighted, and key
   entities as a grid of cards. Everything else is shown as ordinary formatted
   text; no line of the document is left out and no wording is changed.
+- Added: search on every page. ⌘K (Ctrl+K on Windows and Linux) or the
+  "Search tasks, specs…" entry in the sidebar or icon rail opens a search box
+  over the page. It finds tasks by ID and text, features by number and name,
+  and documents by title and section headings (not their body text); every
+  typed word must match, case is ignored, and a task ID typed in full comes
+  first. Results are grouped as Tasks (state mark, ID, text, feature),
+  Features (name and status) and Documents, each showing its first 8 and
+  "N more". Arrow keys and Enter or a click open a result: a task opens
+  selected on its feature page, a heading opens the reader at that heading.
+  Escape closes the box. Search works the same in static builds under a
+  sub-path, contacts no other server, and finds changes after a live update
+  without a reload. Without JavaScript the search entry is not shown.

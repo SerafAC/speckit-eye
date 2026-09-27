@@ -18,7 +18,7 @@ the main US1 fixture (spec US1 AC1, AC2, AC5, AC8).
 | `.specify/memory/constitution.md` | Constitution |
 | `.specify/assessments/speckit-dashboard/intake.md`, `decision.md` | Assessment `speckit-dashboard` |
 | `specs/001-alpha/` | `spec.md` (US1, US2), `plan.md`, `tasks.md` |
-| `specs/002-beta/` | `spec.md` (US1–US3), `plan.md`, `tasks.md` |
+| `specs/002-beta/` | `spec.md` (US1–US3), `plan.md` (headings Summary and Technical Context; the body word "lighthouse" appears in no title or heading, for US6 search), `tasks.md` |
 | `specs/003-gamma/` | `spec.md` (US1), `plan.md`, `tasks.md` |
 | `specs/004-delta/` | `spec.md` only |
 

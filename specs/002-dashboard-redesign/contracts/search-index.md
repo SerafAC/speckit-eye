@@ -24,7 +24,7 @@
 | `context` | The feature (`number · title`), `Project`, or `Assessment: <slug>`; omitted for features |
 | `state` | Tasks only: `done`, `next`, `blocked`, `open` (for the state mark) |
 | `url` | Page path without base; the client prefixes `base` |
-| `terms` | Lower-cased `label + " " + detail` (tasks and headings), whitespace collapsed; the text that is searched |
+| `terms` | Lower-cased, whitespace collapsed; the text that is searched. Tasks and documents: `label + " " + detail`. Features and headings: `label` only, so a feature's status and counts and a heading's document title are not searched (decisions.md, 2026-09-27) |
 
 Entries are in page order: features in folder order, each followed by its tasks in file order and its documents in 001 artifact order with their headings; then project documents.
 
