@@ -2,18 +2,13 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   renderOverview,
-  phaseHeading,
-  groupHeading,
   phaseItems,
-  featureStatus,
-  elementIds,
-  gridLayout,
-  GRID_ROWS_THRESHOLD,
-  GRID_BARS_THRESHOLD,
+  ORDER_LABELS,
 } from "../../src/render/overview.js";
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
+import { renderFeaturePage } from "../../src/render/feature.js";
 
 async function model(files, options) {
   return buildModel(await scan(createFakeReader(files, options), "proj"));
@@ -88,32 +83,119 @@ function tagOf(doc, region, key) {
   return m ? m[0] : null;
 }
 
-/** The HTML of a region (progress section or tree/grid div). */
+/** The HTML of a region. */
 function regionHtml(doc, region) {
   const start = doc.indexOf(`data-region="${region}"`);
   assert.ok(start >= 0, `region ${region} present`);
   const rest = doc.slice(start);
-  if (region === "tree") return rest.slice(0, rest.indexOf('data-region="grid"'));
-  if (region === "progress") return rest.slice(0, rest.indexOf("</section>"));
+  if (region === "tree") return rest.slice(0, rest.indexOf('data-region="taskmap"'));
+  if (region === "stats" || region === "up-next") return rest.slice(0, rest.indexOf("</section>"));
+  if (region === "page-head") return rest.slice(0, rest.indexOf("</header>"));
   return rest;
 }
 
-/** The `<summary>` text of the details element with `key`. */
+/** The text of the `<summary>` of the details element with `key`. */
 function summaryOf(doc, key) {
   const i = doc.indexOf(`data-key="${key}"`);
   const rest = doc.slice(i);
   const m = /<summary>([\s\S]*?)<\/summary>/.exec(rest);
-  return m ? m[1].replace(/<[^>]+>/g, "") : null;
+  return m ? m[1].replace(/<svg[\s\S]*?<\/svg>/g, "").replace(/<[^>]+>/g, "|").replace(/\|+/g, "|").replace(/^\||\|$/g, "") : null;
 }
+
+const text = (h) => h.replace(/<svg[\s\S]*?<\/svg>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 const openKeys = (doc) => [...regionHtml(doc, "tree").matchAll(/<details data-key="([^"]+)"[^>]*\sopen>/g)].map((m) => m[1]);
 
-describe("renderOverview: progress section (T022)", () => {
-  test("starts with the progress section and draws the bar with <progress>", async () => {
+/** The value and detail text of a stats counter. */
+function stat(doc, name) {
+  const m = new RegExp(`<div data-stat="${name}"[^>]*>([\\s\\S]*?)</div>`).exec(regionHtml(doc, "stats"));
+  assert.ok(m, `stat ${name}`);
+  const part = (p) => (new RegExp(`<span data-part="${p}">([^<]*)</span>`).exec(m[1]) ?? [])[1];
+  return { value: part("value"), detail: part("detail"), label: part("label") };
+}
+
+describe("renderOverview: page head (T027, FR-010)", () => {
+  test("project name, title and the hidden view filter", async () => {
     const doc = render(await model(MIXED));
-    assert.match(doc, /^<section data-region="progress">/);
-    assert.match(doc, /<progress data-key="project" data-sig="[^"]+" value="40" max="65">/);
-    assert.match(regionHtml(doc, "progress"), /40 \/ 65 tasks \(62 %\)/);
+    assert.match(doc, /^<header data-region="page-head">/);
+    const head = regionHtml(doc, "page-head");
+    assert.match(head, /<p data-part="project-name">proj<\/p>/);
+    assert.match(head, /<h1>Project overview<\/h1>/);
+    assert.match(head, /<div role="group" aria-label="Show" data-part="view-filter" hidden>/);
+    assert.match(head, /data-filter="all" aria-pressed="true">All features</);
+    assert.match(head, /data-filter="open" aria-pressed="false">Open tasks only</);
+  });
+
+  test("regions in order: page head, stats, up next, then tree left of the task map", async () => {
+    const doc = render(await model(MIXED));
+    const at = (r) => doc.indexOf(`data-region="${r}"`);
+    const order = ["page-head", "stats", "up-next", "columns", "features", "tree", "taskmap"].map(at);
+    assert.ok(order.every((v) => v >= 0));
+    assert.deepEqual([...order].sort((a, b) => a - b), order);
+  });
+});
+
+describe("renderOverview: stats card (T027, FR-011)", () => {
+  test("mixed shape: 62 %, 40 of 65 tasks, features, phases, open tasks", async () => {
+    const doc = render(await model(MIXED));
+    assert.deepEqual(stat(doc, "percent"), { value: "62 %", detail: "40 of 65 tasks", label: undefined });
+    assert.deepEqual(stat(doc, "features"), { value: "1 / 4", detail: "1 in progress", label: "Features" });
+    assert.deepEqual(stat(doc, "phases"), { value: "4 / 8", detail: "4 remaining", label: "Phases" });
+    assert.deepEqual(stat(doc, "open"), { value: "25", detail: "across 2 features", label: "Open tasks" });
+    for (const name of ["percent", "features", "phases", "open"]) {
+      assert.match(regionHtml(doc, "stats"), new RegExp(`data-stat="${name}" data-key="stat:${name}" data-sig="[^"]+"`));
+    }
+  });
+
+  test("the spec example: 96 %, 233 of 242, 2 / 4 with 2 in progress, 9 across 2 features", async () => {
+    const f = (done, total) => ["## Phase 1: Work", ...lines(total, done)].join("\n");
+    const doc = render(
+      await model({
+        "specs/001-a/tasks.md": f(123, 123),
+        "specs/002-b/tasks.md": f(24, 32),
+        "specs/003-c/tasks.md": f(72, 72),
+        "specs/004-d/tasks.md": f(14, 15),
+      }),
+    );
+    assert.equal(stat(doc, "percent").value, "96 %");
+    assert.equal(stat(doc, "percent").detail, "233 of 242 tasks");
+    assert.deepEqual([stat(doc, "features").value, stat(doc, "features").detail], ["2 / 4", "2 in progress"]);
+    assert.deepEqual([stat(doc, "open").value, stat(doc, "open").detail], ["9", "across 2 features"]);
+    const segs = [...regionHtml(doc, "stats").matchAll(/<a data-key="seg:([^"]+)"[^>]*class="w-pct-(\d+) min-w-\[3px\]"/g)].map((m) => [m[1], Number(m[2])]);
+    assert.deepEqual(segs, [
+      ["001-a", 51],
+      ["002-b", 13],
+      ["003-c", 30],
+      ["004-d", 6],
+    ]);
+  });
+
+  test("segments: widths and parts as classes, hover title, labels and legend", async () => {
+    const doc = render(await model(MIXED));
+    const stats = regionHtml(doc, "stats");
+    const segs = [...stats.matchAll(/<a data-key="seg:([^"]+)" data-sig="[^"]*" href="#([^"]+)" class="w-pct-(\d+) min-w-\[3px\]" title="([^"]+)"/g)].map((m) => m.slice(1));
+    assert.deepEqual(segs, [
+      ["001-alpha", "feature-001-alpha", "46", "001 · Alpha — 30 done, 0 open, 0 next"],
+      ["002-beta", "feature-002-beta", "31", "002 · Beta — 10 done, 9 open, 1 next"],
+      ["003-gamma", "feature-003-gamma", "23", "003 · Gamma — 0 done, 15 open, 0 next"],
+    ]);
+    assert.match(stats, /data-key="seg:002-beta"[^>]*><span data-part="done" class="w-pct-50"><\/span><span data-part="open" class="w-pct-45"><\/span><span data-part="next" class="w-pct-5"><\/span><\/a>/);
+    assert.deepEqual([...stats.matchAll(/<span class="w-pct-\d+ min-w-\[3px\]">([^<]*)<\/span>/g)].map((m) => m[1]), ["001", "002", "003"]);
+    assert.match(stats, /<ul data-part="legend"><li data-state="done">Done<\/li><li data-state="open">Open<\/li><li data-state="next">Next up<\/li><\/ul>/);
+  });
+
+  test("a segment too narrow for a label keeps its width but shows no number", async () => {
+    const doc = render(
+      await model({
+        "specs/001-big/tasks.md": ["## Phase 1: W", ...lines(300, 0)].join("\n"),
+        "specs/002-small/tasks.md": ["## Phase 1: W", ...lines(5, 0)].join("\n"),
+      }),
+    );
+    const labels = [...regionHtml(doc, "stats").matchAll(/<span class="w-pct-(\d+) min-w-\[3px\]">([^<]*)<\/span>/g)].map((m) => [m[1], m[2]]);
+    assert.deepEqual(labels, [
+      ["98", "001"],
+      ["2", ""],
+    ]);
   });
 
   test("never emits an inline style attribute (CSP)", async () => {
@@ -122,78 +204,126 @@ describe("renderOverview: progress section (T022)", () => {
     }
   });
 
-  test("counters show completed / total for specs, phases and tasks", async () => {
-    const doc = render(await model(MIXED));
-    const counter = (name) => new RegExp(`data-counter="${name}"[^>]*>[\\s\\S]*?<span data-part="value">([^<]*)</span>`).exec(doc)[1];
-    assert.equal(counter("specs"), "1 / 4");
-    assert.equal(counter("phases"), "4 / 8");
-    assert.equal(counter("tasks"), "40 / 65");
-  });
-
-  test("shows the next task with ID and description (FR-017)", async () => {
-    const doc = render(await model(MIXED));
-    assert.match(regionHtml(doc, "progress"), /Next: <strong>T011<\/strong> · List paging/);
-    assert.doesNotMatch(doc, /All tasks are complete/);
-  });
-
-  test("all complete without an active feature: message, no next line (FR-018)", async () => {
-    const doc = render(await model(COMPLETE));
-    assert.match(doc, /value="6" max="6"/);
-    assert.match(regionHtml(doc, "progress"), /All tasks are complete/);
-    assert.doesNotMatch(doc, /Next:/);
-  });
-
-  test("all complete with feature.json: message still shown, no next line", async () => {
-    const files = { ...COMPLETE, ".specify/feature.json": JSON.stringify({ feature_directory: "specs/002-second" }) };
-    const doc = render(await model(files));
-    assert.match(regionHtml(doc, "progress"), /All tasks are complete/);
-    assert.doesNotMatch(doc, /Next:/);
-  });
-
-  test("no complete message when there are no tasks at all", async () => {
-    const doc = render(await model({ "specs/001-x/spec.md": spec("X", []) }));
-    assert.doesNotMatch(doc, /All tasks are complete/);
-  });
-
-  test("empty project explains itself instead of rendering nothing", async () => {
+  test("empty project: 0 %, an explanation and no bar", async () => {
     const doc = render(await model({ "specs/.gitkeep": "" }));
-    assert.match(doc, /value="0" max="0"/);
-    assert.match(doc, /0 \/ 0 tasks \(0 %\)/);
-    assert.match(doc, /data-part="empty"[^>]*>This project has no features yet/);
+    assert.equal(stat(doc, "percent").value, "0 %");
+    assert.equal(stat(doc, "percent").detail, "0 of 0 tasks");
+    assert.match(regionHtml(doc, "stats"), /data-part="empty">This project has no features yet/);
+    assert.doesNotMatch(doc, /data-part="segments"/);
   });
 
-  test("escapes task descriptions", async () => {
-    const files = { "specs/001-x/tasks.md": "## Phase 1: P\n- [ ] T001 <script>alert(1)</script>" };
-    const doc = render(await model(files));
-    assert.doesNotMatch(doc, /<script>/);
-    assert.match(doc, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  test("features without tasks: 0 % and an explanation", async () => {
+    const doc = render(await model({ "specs/001-x/spec.md": spec("X", []) }));
+    assert.match(regionHtml(doc, "stats"), /data-part="empty">No feature has tasks yet/);
+    assert.doesNotMatch(doc, /data-part="segments"/);
+  });
+
+  test("all complete: 100 %", async () => {
+    const doc = render(await model(COMPLETE));
+    assert.equal(stat(doc, "percent").value, "100 %");
+    assert.equal(stat(doc, "open").value, "0");
   });
 });
 
-describe("renderOverview: feature tree (T023)", () => {
-  test("one details per feature in folder order with title · stage · open/total", async () => {
+describe("renderOverview: Up next bar (T027, FR-013)", () => {
+  test("next task: ID chip, full text with title, feature › phase, View task link", async () => {
+    const doc = render(await model(MIXED));
+    const bar = regionHtml(doc, "up-next");
+    assert.match(bar, /^data-region="up-next" class="always-dark" aria-label="Up next" data-key="up-next" data-sig="002-beta\/T011">/);
+    assert.match(bar, /<span data-part="id" class="chip">T011<\/span>/);
+    assert.match(bar, /<span data-part="text" title="List paging">List paging<\/span>/);
+    assert.match(bar, /<span data-part="where" title="Beta › Phase 3 · User Story 1">Beta › Phase 3 · User Story 1<\/span>/);
+    assert.match(bar, /<a data-part="view-task" class="btn" href="\/features\/002-beta\/index.html#task-002-beta-T011">View task/);
+    assert.doesNotMatch(bar, /Open quickstart/);
+  });
+
+  test("Open quickstart only when the active feature has a quickstart", async () => {
+    const doc = render(await model({ ...MIXED, "specs/002-beta/quickstart.md": "# Quickstart" }));
+    assert.match(regionHtml(doc, "up-next"), /<a data-part="quickstart" class="btn" href="\/features\/002-beta\/quickstart.html">Open quickstart<\/a>/);
+    const other = render(await model({ ...MIXED, "specs/003-gamma/quickstart.md": "# Quickstart" }));
+    assert.doesNotMatch(regionHtml(other, "up-next"), /quickstart/);
+  });
+
+  test("text is escaped and kept exactly as written", async () => {
+    const files = { "specs/001-x/tasks.md": "## Phase 1: P\n- [ ] T001 <script>alert(1)</script> `code` **b**" };
+    const doc = render(await model(files));
+    assert.doesNotMatch(doc, /<script>/);
+    assert.match(regionHtml(doc, "up-next"), /<span data-part="text" title="&lt;script&gt;alert\(1\)&lt;\/script&gt; `code` \*\*b\*\*">/);
+  });
+
+  test("all complete: says so, no task", async () => {
+    const doc = render(await model(COMPLETE));
+    const bar = regionHtml(doc, "up-next");
+    assert.match(bar, /data-empty="complete"/);
+    assert.match(bar, /Every task is complete/);
+    assert.doesNotMatch(bar, /View task/);
+  });
+
+  test("no tasks: says so", async () => {
+    for (const files of [{ "specs/.gitkeep": "" }, { "specs/001-x/spec.md": spec("X", []) }]) {
+      const bar = regionHtml(render(await model(files)), "up-next");
+      assert.match(bar, /data-empty="no-tasks"/);
+      assert.match(bar, /No tasks yet/);
+    }
+  });
+
+  test("an unknown next-task key shows the empty state", async () => {
+    const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a" });
+    p.active = { ...p.active, nextTaskKey: "001-x/T999" };
+    assert.match(regionHtml(render(p), "up-next"), /data-empty=/);
+  });
+});
+
+describe("renderOverview: feature tree (T028)", () => {
+  test("features in progress-first order with rank attributes", async () => {
     const doc = render(await model(MIXED));
     const tree = regionHtml(doc, "tree");
-    const features = [...tree.matchAll(/<details data-key="(\d{3}-[a-z]+)"/g)].map((m) => m[1]);
-    assert.deepEqual(features, ["001-alpha", "002-beta", "003-gamma", "004-delta"]);
-    assert.equal(summaryOf(tree, "001-alpha"), "Alpha · Complete · 0 open / 30");
-    assert.equal(summaryOf(tree, "002-beta"), "Beta · In progress · 10 open / 20");
-    assert.equal(summaryOf(tree, "003-gamma"), "Gamma · Ready · 15 open / 15");
-    assert.equal(summaryOf(tree, "004-delta"), "Delta · Specified · 0 open / 0");
+    const rows = [...tree.matchAll(/<li data-feature="([^"]+)" data-rank-progress="(\d+)" data-rank-number="(\d+)" data-rank-least="(\d+)" data-rank-name="(\d+)"( data-complete)?>/g)].map((m) => [m[1], ...m.slice(2, 6).map(Number), Boolean(m[6])]);
+    assert.deepEqual(rows, [
+      ["002-beta", 0, 1, 1, 1, false],
+      ["003-gamma", 1, 2, 0, 3, false],
+      ["004-delta", 2, 3, 3, 2, false],
+      ["001-alpha", 3, 0, 2, 0, true],
+    ]);
   });
 
-  test("status per feature and data-active only on the active one", async () => {
+  test("header controls are hidden until the script runs", async () => {
+    const doc = render(await model(MIXED));
+    assert.match(doc, /<button type="button" class="btn" data-part="order" data-order="progress" hidden><svg[\s\S]*?<\/svg><span data-part="order-label">In progress first<\/span><\/button>/);
+    assert.match(doc, /<div role="group" aria-label="Depth" data-part="depth" hidden><button type="button" class="btn" data-depth="features" aria-pressed="false">Features<\/button><button [^>]*data-depth="phases"[^>]*>Phases<\/button><button [^>]*data-depth="tasks"[^>]*>Tasks<\/button><\/div>/);
+    assert.match(doc, /<div data-region="tree" data-keep-scroll="tree" data-filter="all">/);
+    assert.deepEqual(ORDER_LABELS, { progress: "In progress first", number: "Number", least: "Least complete", name: "Name A–Z" });
+  });
+
+  test("feature rows: dot, number chip, title, pill, mini bar, done/total, feature page link", async () => {
+    const doc = render(await model(MIXED));
+    assert.equal(summaryOf(doc, "002-beta"), "002|Beta|10 open|10/20");
+    assert.equal(summaryOf(doc, "001-alpha"), "001|Alpha|Complete|30/30");
+    assert.equal(summaryOf(doc, "003-gamma"), "003|Gamma|Ready|0/15");
+    assert.equal(summaryOf(doc, "004-delta"), "004|Delta|Specified");
+    const beta = doc.slice(doc.indexOf('<details data-key="002-beta"'));
+    const sum = beta.slice(0, beta.indexOf("</summary>"));
+    assert.match(sum, /<span data-part="dot" data-status="in-progress"><\/span><span data-part="number" class="chip">002<\/span><span data-part="title" title="Beta">Beta<\/span>/);
+    assert.match(sum, /<span data-part="pill" class="pill" data-status="in-progress">10 open<\/span><span data-part="bar"><span class="w-pct-50"><\/span><\/span><span data-part="count">10\/20<\/span>/);
+    assert.match(sum, /<a data-part="open-feature" href="\/features\/002-beta\/index.html" aria-label="Open feature page: Beta"/);
+    const delta = doc.slice(doc.indexOf('<details data-key="004-delta"'));
+    assert.doesNotMatch(delta.slice(0, delta.indexOf("</summary>")), /data-part="bar"/);
+  });
+
+  test("no number chip for a folder without a numeric prefix", async () => {
+    const doc = render(await model({ "specs/misc/tasks.md": "## Phase 1: P\n- [ ] T001 a" }));
+    assert.doesNotMatch(regionHtml(doc, "tree"), /data-part="number"/);
+  });
+
+  test("status and data-active: only the active chain is open (001 FR-016)", async () => {
     const doc = render(await model(MIXED));
     assert.match(tagOf(doc, "tree", "001-alpha"), /data-status="done"/);
-    assert.match(tagOf(doc, "tree", "002-beta"), /data-status="started"/);
+    assert.match(tagOf(doc, "tree", "002-beta"), /data-status="in-progress"/);
     assert.match(tagOf(doc, "tree", "003-gamma"), /data-status="not-started"/);
-    assert.match(tagOf(doc, "tree", "004-delta"), /data-status="not-started"/);
+    assert.match(tagOf(doc, "tree", "004-delta"), /data-status="no-tasks"/);
+    assert.deepEqual(openKeys(doc), ["002-beta", "002-beta/p3"]);
     const active = [...regionHtml(doc, "tree").matchAll(/data-key="([^"]+)"[^>]*data-active/g)].map((m) => m[1]);
     assert.deepEqual(active, ["002-beta", "002-beta/p3"]);
-  });
-
-  test("only the active feature and phase are open (FR-016)", async () => {
-    assert.deepEqual(openKeys(render(await model(MIXED))), ["002-beta", "002-beta/p3"]);
   });
 
   test("active story group is open when the active phase has groups", async () => {
@@ -203,17 +333,45 @@ describe("renderOverview: feature tree (T023)", () => {
     };
     const doc = render(await model(files));
     assert.deepEqual(openKeys(doc), ["001-x", "001-x/p1", "001-x/p1/US1"]);
-    assert.match(tagOf(doc, "tree", "001-x/p1/US1"), /data-active/);
-    assert.doesNotMatch(tagOf(doc, "tree", "001-x/p1/US2"), /data-active/);
-    assert.match(tagOf(doc, "tree", "001-x/p1/US1"), /data-status="started"/);
-    assert.equal(summaryOf(doc, "001-x/p1/US2"), "US2 – Two (P2) · 1 open / 1");
+    assert.equal(summaryOf(doc, "001-x/p1/US2"), "US2|Two|P2|0/1");
   });
 
-  test("merged phase title vs plain phase title (FR-015a)", async () => {
+  test("phase rows: Phase N, title, priority badge only for one-story phases, done/total and check", async () => {
     const doc = render(await model(MIXED));
-    assert.equal(summaryOf(doc, "002-beta/p3"), "Phase 3 · US1 – Beta listing (P1) · 3 open / 6");
-    assert.equal(summaryOf(doc, "002-beta/p1"), "Phase 1: Setup · 0 open / 7");
-    assert.equal(summaryOf(doc, "002-beta/p4"), "Phase 4: Mixed · 7 open / 7");
+    assert.equal(summaryOf(doc, "002-beta/p3"), "Phase 3|User Story 1|P1|3/6");
+    assert.equal(summaryOf(doc, "002-beta/p4"), "Phase 4|Mixed|0/7");
+    assert.equal(summaryOf(doc, "001-alpha/p2"), "Phase 2|User Story 1|P1|15/15");
+    assert.match(tagOf(doc, "tree", "001-alpha/p2"), /data-complete/);
+    const p2 = doc.slice(doc.indexOf('data-key="001-alpha/p2"'));
+    assert.match(p2.slice(0, p2.indexOf("</summary>")), /<span data-part="count">15\/15<\/span><span data-part="done-mark"><svg[^>]*aria-label="Complete"/);
+    assert.match(doc, /<span data-part="priority" data-priority="P1">P1<\/span>/);
+  });
+
+  test("an empty phase shows — and no chevron", async () => {
+    const files = { "specs/001-x/tasks.md": ["- [ ] T001 early", "## Phase 1: Empty", "## Phase 2: Later", "- [ ] T002 x"].join("\n") };
+    const doc = render(await model(files));
+    const row = /<div data-key="001-x\/p1"[^>]*data-empty>([\s\S]*?)<\/div>/.exec(doc);
+    assert.ok(row);
+    assert.match(row[1], /<span data-part="count">—<\/span>/);
+    assert.doesNotMatch(row[1], /<svg/);
+    assert.equal(summaryOf(doc, "001-x/pu"), "Unphased|0/1");
+  });
+
+  test("task rows: mark, ID link to the feature page, raw text with title, NEXT badge, display states", async () => {
+    const doc = render(await model(MIXED));
+    assert.match(tagOf(doc, "tree", "002-beta/T011"), /^<li data-key="002-beta\/T011" id="task-002-beta-T011" data-state="next" data-sig="[^"]*" data-next>/);
+    assert.match(tagOf(doc, "tree", "002-beta/T018"), /data-state="blocked"/);
+    assert.match(tagOf(doc, "tree", "002-beta/T010"), /data-state="done"/);
+    assert.match(tagOf(doc, "tree", "002-beta/T012"), /data-state="open"/);
+    assert.match(doc, /id="task-002-beta-T018" data-state="blocked" data-sig="[^"]*"><span data-part="mark" data-state="blocked" role="img" aria-label="Blocked"><\/span><a data-part="id" href="\/features\/002-beta\/index.html#task-002-beta-T018">T018<\/a><span data-part="text" title="Search box, depends on T011">Search box, depends on T011<\/span><\/li>/);
+    assert.equal([...doc.matchAll(/<span data-part="next">NEXT<\/span>/g)].length, 1);
+    assert.match(doc, /data-key="002-beta\/T011"[^\n]*?<span data-part="next">NEXT<\/span><\/li>/);
+    assert.match(doc, /Shared docs &lt;update&gt;/);
+  });
+
+  test("a task without an ID shows No ID as plain text", async () => {
+    const doc = render(await model({ "specs/001-x/tasks.md": "## Phase 1: P\n- [x] no id\n- [ ] T002 b" }));
+    assert.match(doc, /id="task-001-x-L2" data-state="done"[^>]*><span data-part="mark"[^>]*><\/span><span data-part="id">No ID<\/span>/);
   });
 
   test("mixed phase: a group per story, unlabeled tasks directly under the phase", async () => {
@@ -222,22 +380,33 @@ describe("renderOverview: feature tree (T023)", () => {
     const p4 = tree.slice(tree.indexOf('data-key="002-beta/p4"'), tree.indexOf('data-key="003-gamma"'));
     assert.match(p4, /<details data-key="002-beta\/p4\/US2"/);
     assert.match(p4, /<details data-key="002-beta\/p4\/US3"/);
-    assert.equal(summaryOf(doc, "002-beta/p4/US3"), "US3 – Beta search (P3) · 3 open / 3");
-    // T019 (unlabeled) sits after the US3 group closes, directly in the phase list.
-    assert.match(p4, /<\/details><\/li><li data-key="002-beta\/T019"/);
+    assert.equal(summaryOf(doc, "002-beta/p4/US3"), "US3|Beta search|P3|0/3");
     assert.ok(p4.indexOf('data-key="002-beta/T019"') > p4.indexOf('data-key="002-beta/p4/US3"'));
-    assert.match(p4, /Shared docs &lt;update&gt;/);
   });
 
-  test("tasks carry data-key, data-state and a next mark on the current task", async () => {
-    const doc = render(await model(MIXED));
-    assert.match(tagOf(doc, "tree", "002-beta/T011"), /^<li [^>]*data-state="current"/);
-    assert.match(tagOf(doc, "tree", "002-beta/T018"), /data-state="blocked"/);
-    assert.match(tagOf(doc, "tree", "002-beta/T010"), /data-state="completed"/);
-    assert.match(tagOf(doc, "tree", "002-beta/T012"), /data-state="future"/);
-    const nextMarks = [...doc.matchAll(/<span data-part="next">next<\/span>/g)];
-    assert.equal(nextMarks.length, 1);
-    assert.match(doc, /data-key="002-beta\/T011"[^>]*>[^\n]*?<span data-part="next">next<\/span><\/li>/);
+  test("warning rows: one amber row per group with title, note, line chips and Details; badge on the feature", async () => {
+    const tasks = ["## Phase 1: Work"];
+    for (let line = 2; line <= 258; line++) {
+      const noId = line === 23 || (line >= 254 && line <= 258);
+      tasks.push(noId ? "- [ ] no id here" : `- [ ] T${String(line).padStart(3, "0")} task`);
+    }
+    const doc = render(await model({ "specs/001-odd/tasks.md": tasks.join("\n"), "specs/002-ok/tasks.md": "## Phase 1: P\n- [ ] T001 fine" }));
+    const odd = doc.slice(doc.indexOf('<details data-key="001-odd"'));
+    const head = odd.slice(0, odd.indexOf('<ul data-part="phases">'));
+    assert.match(head, /<span data-part="warnings-badge" class="pill" data-status="warning">6 warnings<\/span>/);
+    const rows = [...head.matchAll(/<a data-part="warning" data-code="(W\d+)" href="([^"]+)">([\s\S]*?)<\/a>/g)];
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0][1], "W1");
+    assert.equal(rows[0][2], "/features/001-odd/index.html#warnings");
+    assert.equal(text(rows[0][3]), "6 checkboxes without a task ID in tasks.md — counted, not linkable L23 L254–258 Details");
+    assert.deepEqual([...rows[0][3].matchAll(/<span class="chip" data-part="line">([^<]+)<\/span>/g)].map((m) => m[1]), ["L23", "L254–258"]);
+    const ok = doc.slice(doc.indexOf('<details data-key="002-ok"'));
+    assert.doesNotMatch(ok.slice(0, ok.indexOf("</details>")), /data-part="warning"/);
+  });
+
+  test("the warnings badge is singular for one warning", async () => {
+    const doc = render(await model({ "specs/001-x/tasks.md": "## Phase 1: P\n- [ ] no id\n- [ ] T002 b" }));
+    assert.match(doc, />1 warning<\/span>/);
   });
 
   test("feature without tasks.md says so", async () => {
@@ -246,170 +415,54 @@ describe("renderOverview: feature tree (T023)", () => {
     assert.match(delta, /No tasks\.md yet/);
   });
 
-  test("warnings are listed on their feature as file:line message (FR-019)", async () => {
-    const files = {
-      "specs/001-odd/tasks.md": ["## Phase 1: P", "- [ ] no id here", "- [ ] T002 [US9] x"].join("\n"),
-      "specs/002-ok/tasks.md": "## Phase 1: P\n- [ ] T001 fine",
-    };
-    const doc = render(await model(files));
-    const odd = doc.slice(doc.indexOf('data-key="001-odd"'), doc.indexOf('data-key="002-ok"'));
-    assert.match(odd, /<ul data-part="warnings"><li>specs\/001-odd\/tasks\.md:2 checkbox without a task ID \(counted\)<\/li>/);
-    assert.match(odd, /specs\/001-odd\/tasks\.md:3 story label US9 has no matching user story in spec\.md/);
-    assert.match(summaryOf(doc, "001-odd"), /2 warnings$/);
-    const ok = doc.slice(doc.indexOf('data-key="002-ok"'));
-    assert.doesNotMatch(ok.slice(0, ok.indexOf("</details>")), /data-part="warnings"/);
-  });
-
-  test("warning without a line shows only the file", async () => {
-    const doc = render(await model({ "specs/001-x/tasks.md": "# nothing" }));
-    assert.match(doc, /<li>specs\/001-x\/tasks\.md tasks\.md contains no tasks<\/li>/);
-  });
-
   test("project-level warnings are shown in the tree region", async () => {
     const files = { ...COMPLETE, ".specify/feature.json": JSON.stringify({ feature_directory: "specs/999-missing" }) };
     const doc = render(await model(files));
     assert.match(regionHtml(doc, "tree"), /\.specify\/feature\.json does not name an existing feature/);
   });
 
-  test("completed items are never open when nothing is active", async () => {
-    assert.deepEqual(openKeys(render(await model(COMPLETE))), []);
-    assert.doesNotMatch(render(await model(COMPLETE)), /data-active/);
+  test("completed items are never open when nothing is active; complete features are marked", async () => {
+    const doc = render(await model(COMPLETE));
+    assert.deepEqual(openKeys(doc), []);
+    assert.doesNotMatch(doc, /data-active/);
+    assert.equal([...doc.matchAll(/<li data-feature="[^"]+"[^>]* data-complete>/g)].length, 2);
   });
 
-  test("completed active feature: done, data-active, open, no open phase, no next mark (FR-018)", async () => {
+  test("completed active feature: done, data-active, open, no open phase, no NEXT (001 FR-018)", async () => {
     const files = { ...COMPLETE, ".specify/feature.json": JSON.stringify({ feature_directory: "specs/002-second" }) };
     const doc = render(await model(files));
     const tag = tagOf(doc, "tree", "002-second");
     assert.match(tag, /data-status="done"/);
-    assert.match(tag, /data-active/);
-    assert.match(tag, /\sopen>$/);
+    assert.match(tag, /data-active open>$/);
     assert.deepEqual(openKeys(doc), ["002-second"]);
-    assert.doesNotMatch(doc, /data-part="next"/);
-    assert.doesNotMatch(tagOf(doc, "tree", "001-first"), /data-active|\sopen/);
+    assert.doesNotMatch(doc, /NEXT/);
   });
 
-  test("unphased phase and phases without tasks", async () => {
-    const files = { "specs/001-x/tasks.md": ["- [ ] T001 early", "## Phase 1: Empty", "## Phase 2: Later", "- [ ] T002 x"].join("\n") };
-    const doc = render(await model(files));
-    assert.equal(summaryOf(doc, "001-x/pu"), "Unphased · 1 open / 1");
-    assert.match(doc.slice(doc.indexOf('data-key="001-x/p1"')), /^[^]*?No tasks in this phase\./);
-  });
-});
-
-/** The HTML inside the feature `<details>` with `dir`, up to its phases list. */
-function featureHead(doc, dir) {
-  const start = doc.indexOf(`<details data-key="${dir}"`);
-  assert.ok(start >= 0, `feature ${dir} present`);
-  const rest = doc.slice(start);
-  const end = rest.search(/<ul data-part="phases">|<p data-part="no-tasks">/);
-  return rest.slice(0, end);
-}
-
-const hrefs = (part) => [...part.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
-
-const FULL = {
-  "specs/001-full/tasks.md": "## Phase 1: Setup\n- [ ] T001 one",
-  "specs/001-full/checklists/requirements.md": "# Requirements\n- [x] CHK001 x",
-  "specs/001-full/run-log.md": "# Run Log",
-  "specs/001-full/quickstart.md": "# Quickstart",
-  "specs/001-full/contracts/cli.md": "# CLI <Contract>",
-  "specs/001-full/spec.md": "# Feature Specification: Full",
-  "specs/001-full/data-model.md": "# Data Model",
-  "specs/001-full/decisions.md": "# Decisions",
-  "specs/001-full/plan.md": "# Plan",
-  "specs/001-full/research.md": "# Research",
-  "specs/002-partial/spec.md": "# Feature Specification: Partial",
-  "specs/002-partial/plan.md": "# Partial plan",
-};
-
-describe("renderOverview: artifact links (T049, US3)", () => {
-  test("every present artifact is linked inside its feature, in data-model order, above the phases (AC1)", async () => {
-    const doc = render(await model(FULL));
-    const head = featureHead(doc, "001-full");
-    assert.match(head, /<\/summary>\n<ul data-part="artifacts">/);
-    assert.deepEqual(hrefs(head), [
-      "/features/001-full/spec.html",
-      "/features/001-full/plan.html",
-      "/features/001-full/research.html",
-      "/features/001-full/data-model.html",
-      "/features/001-full/quickstart.html",
-      "/features/001-full/tasks.html",
-      "/features/001-full/contracts/cli.html",
-      "/features/001-full/checklists/requirements.html",
-      "/features/001-full/decisions.html",
-      "/features/001-full/run-log.html",
-    ]);
-    assert.match(head, /<a href="\/features\/001-full\/contracts\/cli.html" data-kind="contract">CLI &lt;Contract&gt;<\/a>/);
-    assert.ok(doc.indexOf('data-part="artifacts"') < doc.indexOf('data-part="phases"'));
-  });
-
-  test("no link for missing artifacts (AC5)", async () => {
-    const head = featureHead(render(await model(FULL)), "002-partial");
-    assert.deepEqual(hrefs(head), ["/features/002-partial/spec.html", "/features/002-partial/plan.html"]);
-    assert.doesNotMatch(head, /research|tasks\.html/);
-  });
-
-  test("a feature with no Markdown files has no artifact list", async () => {
-    const doc = render(await model({ "specs/001-x/notes.txt": "x" }));
-    assert.doesNotMatch(featureHead(doc, "001-x"), /data-part="artifacts"/);
+  test("empty project: no feature rows", async () => {
+    const doc = render(await model({ "specs/.gitkeep": "" }));
+    assert.doesNotMatch(regionHtml(doc, "tree"), /data-feature=/);
   });
 
   test("links use the base path", async () => {
-    const doc = renderOverview(await model(FULL), { base: "/repo/" }).value;
-    for (const h of hrefs(featureHead(doc, "001-full"))) assert.ok(h.startsWith("/repo/features/001-full/"), h);
-  });
-
-  test("checklist checkboxes do not count as tasks", async () => {
-    const doc = render(await model(FULL));
-    assert.match(regionHtml(doc, "progress"), /0 \/ 1 tasks/);
+    const doc = renderOverview(await model(MIXED), { base: "/repo/" }).value;
+    const hrefs = [...regionHtml(doc, "tree").matchAll(/href="([^"#][^"]*)"/g)].map((m) => m[1]);
+    assert.ok(hrefs.length > 0);
+    for (const h of hrefs) assert.ok(h.startsWith("/repo/features/"), h);
+    assert.match(regionHtml(doc, "up-next"), /href="\/repo\/features\/002-beta\/index.html#task-002-beta-T011"/);
   });
 });
 
-describe("renderOverview: task grid (T024)", () => {
-  test("one square per task in tree order with state, parents and title", async () => {
+describe("renderOverview: task map (T036)", () => {
+  test("the tree and the task map sit side by side in one columns wrapper", async () => {
     const doc = render(await model(MIXED));
-    const grid = regionHtml(doc, "grid");
-    const cells = [...grid.matchAll(/<a href="[^"]*" data-key="([^"]+)"[^>]*>/g)];
-    assert.equal(cells.length, 65);
-    const beta = cells.map((m) => m[1]).filter((k) => k.startsWith("002-beta/T0")).slice(13);
-    // Phase 4: US2 group, then US3 group (T017, T018, T020), then the unlabeled T019.
-    assert.deepEqual(beta, ["002-beta/T014", "002-beta/T015", "002-beta/T016", "002-beta/T017", "002-beta/T018", "002-beta/T020", "002-beta/T019"]);
-  });
-
-  test("cell attributes", async () => {
-    const doc = render(await model(MIXED));
-    const cell = tagOf(doc, "grid", "002-beta/T018");
-    assert.match(cell, /data-state="blocked"/);
-    assert.match(cell, /data-parents="002-beta 002-beta\/p4 002-beta\/p4\/US3"/);
-    assert.match(cell, /title="T018 · Search box, depends on T011 — Beta › Phase 4: Mixed"/);
-    const current = tagOf(doc, "grid", "002-beta/T011");
-    assert.match(current, /data-state="current"/);
-    assert.match(current, /data-parents="002-beta 002-beta\/p3"/);
-    assert.match(current, /title="T011 · List paging — Beta › Phase 3 · US1 – Beta listing \(P1\)"/);
-    assert.match(tagOf(doc, "grid", "001-alpha/T001"), /data-state="completed"/);
-    assert.match(tagOf(doc, "grid", "003-gamma/T001"), /data-state="future"/);
-    assert.match(tagOf(doc, "grid", "002-beta/T019"), /data-parents="002-beta 002-beta\/p4"/);
-  });
-
-  test("escapes the title", async () => {
-    const doc = render(await model(MIXED));
-    assert.match(tagOf(doc, "grid", "002-beta/T019"), /title="T019 · Shared docs &lt;update&gt; — /);
-  });
-
-  test("empty grid for an empty project", async () => {
-    const doc = render(await model({ "specs/.gitkeep": "" }));
-    assert.match(doc, /<div data-region="grid"><\/div>/);
-  });
-
-  test("the tree and the grid sit side by side in one columns wrapper", async () => {
-    const doc = render(await model(MIXED));
-    assert.match(doc, /<div data-region="columns">\s*<div data-region="tree">[\s\S]*<div data-region="grid">[\s\S]*<\/div>\s*<\/div>$/);
+    assert.match(doc, /<div data-region="columns">\s*<section data-region="features"[\s\S]*<div data-region="tree"[\s\S]*<section data-region="taskmap" data-layout="stacked"[\s\S]*<\/section>\s*<\/div>$/);
+    assert.doesNotMatch(doc, /data-region="grid"|data-region="map-column"/);
   });
 });
 
-describe("renderOverview: grid click targets (T071)", () => {
-  const treeIds = (doc) => [...regionHtml(doc, "tree").matchAll(/<li data-key="[^"]+"[^>]* id="([^"]+)"/g)].map((m) => m[1]);
-  const hrefs = (doc) => [...regionHtml(doc, "grid").matchAll(/<a href="#([^"]+)" data-key/g)].map((m) => m[1]);
+describe("renderOverview: map click targets (T071)", () => {
+  const treeIds = (doc) => [...regionHtml(doc, "tree").matchAll(/<li data-key="[^"]+" id="([^"]+)"/g)].map((m) => m[1]);
+  const hrefs = (doc) => [...regionHtml(doc, "taskmap").matchAll(/<a data-key="[^"]+"[^>]* href="#([^"]+)"/g)].map((m) => m[1]);
 
   test("every square's href matches exactly one tree task id", async () => {
     const doc = render(await model(MIXED));
@@ -418,7 +471,7 @@ describe("renderOverview: grid click targets (T071)", () => {
     assert.equal(targets.length, 65);
     for (const target of targets) assert.equal(ids.filter((id) => id === target).length, 1, target);
     assert.match(tagOf(doc, "tree", "002-beta/T018"), /id="task-002-beta-T018"/);
-    assert.match(tagOf(doc, "grid", "002-beta/T018"), /href="#task-002-beta-T018"/);
+    assert.match(tagOf(doc, "taskmap", "002-beta/T018"), /href="#task-002-beta-T018"/);
   });
 
   test("ids are unique for repeated task IDs", async () => {
@@ -431,82 +484,45 @@ describe("renderOverview: grid click targets (T071)", () => {
     for (const id of ids) assert.match(id, /^task-[A-Za-z0-9_-]+$/);
   });
 
-  test("features get an id for links from the bar layout", async () => {
+  test("features get an id for links from the map's bar layout", async () => {
     const doc = render(await model(MIXED));
     assert.match(tagOf(doc, "tree", "002-beta"), /id="feature-002-beta"/);
   });
 
-  test("elementIds replaces unsafe characters and suffixes collisions", () => {
-    const ids = elementIds(["a/b@L3", "a-b-L3", "a b.L3", "a/b@L3", "ok_1"], "task-");
-    assert.deepEqual(
-      [...ids],
-      [
-        ["a/b@L3", "task-a-b-L3"],
-        ["a-b-L3", "task-a-b-L3-2"],
-        ["a b.L3", "task-a-b-L3-3"],
-        ["ok_1", "task-ok_1"],
-      ],
-    );
-  });
 });
 
-describe("renderOverview: large grids (T073)", () => {
-  /** A project with `n` tasks spread over features of at most 400 tasks. */
-  async function big(n) {
-    const files = {};
-    let left = n;
-    for (let f = 1; left > 0; f++) {
-      const count = Math.min(400, left);
-      left -= count;
-      files[`specs/${String(f).padStart(3, "0")}-f/tasks.md`] = ["## Phase 1: Work", ...lines(count, Math.floor(count / 2))].join("\n");
+describe("renderOverview: links into feature pages (T051)", () => {
+  /** Every `features/<dir>/index.html#<anchor>` link of a region. */
+  const links = (doc, region) =>
+    [...regionHtml(doc, region).matchAll(/href="\/features\/([^/"]+)\/index\.html#(task-[^"]+)"/g)].map((m) => [m[1], m[2]]);
+
+  async function check(files, { region, min }) {
+    const m = await model(files);
+    const doc = render(m);
+    const found = links(doc, region);
+    assert.ok(found.length >= min, `${region}: ${found.length} links`);
+    const pages = new Map(m.features.map((f) => [f.dir, renderFeaturePage(f, m, { base: "/" }).value]));
+    for (const [dir, anchor] of found) {
+      const page = pages.get(dir);
+      assert.ok(page, dir);
+      const rows = [...page.matchAll(new RegExp(`<details[^>]* data-part="task"[^>]* id="${anchor}"`, "g"))];
+      assert.equal(rows.length, 1, `${dir}#${anchor} is one task row of the feature page`);
     }
-    files["specs/999-empty/spec.md"] = spec("Empty", [[1, "Nothing", "P1"]]);
-    return render(await model(files));
+    return found;
   }
-  const gridOpen = (doc) => /<div data-region="grid"[^>]*>/.exec(doc)[0];
 
-  test("thresholds and gridLayout", () => {
-    assert.equal(GRID_ROWS_THRESHOLD, 1000);
-    assert.equal(GRID_BARS_THRESHOLD, 5000);
-    assert.equal(gridLayout(0), "single");
-    assert.equal(gridLayout(1000), "single");
-    assert.equal(gridLayout(1001), "rows");
-    assert.equal(gridLayout(5000), "rows");
-    assert.equal(gridLayout(5001), "bars");
+  test("Up next View task opens the next task's row on its feature page", async () => {
+    const found = await check(MIXED, { region: "up-next", min: 1 });
+    assert.deepEqual(found, [["002-beta", "task-002-beta-T011"]]);
   });
 
-  test("1,000 tasks keep the single grid", async () => {
-    const doc = await big(1000);
-    assert.equal(gridOpen(doc), '<div data-region="grid">');
-    assert.equal([...regionHtml(doc, "grid").matchAll(/<a href=/g)].length, 1000);
-    assert.doesNotMatch(regionHtml(doc, "grid"), /data-part="row"/);
+  test("every tree task ID links to its own row on its feature page", async () => {
+    await check(MIXED, { region: "tree", min: 65 });
   });
 
-  test("1,001 tasks give one row per feature with its squares", async () => {
-    const doc = await big(1001);
-    assert.equal(gridOpen(doc), '<div data-region="grid" data-layout="rows">');
-    const grid = regionHtml(doc, "grid");
-    const rows = grid.split('<div data-part="row">').slice(1);
-    assert.equal(rows.length, 3); // 400 + 400 + 201; the feature without tasks has no row
-    assert.match(rows[0], /^<span data-part="label">001-f<\/span><div data-part="cells">/);
-    assert.equal([...rows[2].matchAll(/<a href="#task-003-f-T\d+" data-key="003-f\/T\d+" data-sig="[^"]*" data-state="\w+" data-parents="003-f 003-f\/p1" title="[^"]+"><\/a>/g)].length, 201);
-    assert.equal([...grid.matchAll(/<a href=/g)].length, 1001);
-  });
-
-  test("5,001 tasks give one progress bar per feature linking to its tree item", async () => {
-    const doc = await big(5001);
-    assert.equal(gridOpen(doc), '<div data-region="grid" data-layout="bars">');
-    const grid = regionHtml(doc, "grid");
-    assert.doesNotMatch(grid, /data-state=/);
-    const bars = [...grid.matchAll(/<a data-part="bar" href="#([^"]+)"><span data-part="label">([^<]+)<\/span><progress data-key="([^"]+)" value="(\d+)" max="(\d+)">/g)];
-    assert.equal(bars.length, 13);
-    assert.deepEqual(bars[0].slice(1), ["feature-001-f", "001-f · 200 / 400", "001-f", "200", "400"]);
-    assert.deepEqual(bars[12].slice(1), ["feature-013-f", "013-f · 100 / 201", "013-f", "100", "201"]);
-    assert.match(tagOf(doc, "tree", "001-f"), /id="feature-001-f"/);
-  });
-
-  test("no layout uses an inline style attribute (CSP)", async () => {
-    for (const n of [10, 1001, 5001]) assert.doesNotMatch(await big(n), /\sstyle=/);
+  test("repeated task IDs link to distinct rows", async () => {
+    const found = await check({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a\n- [ ] T001 again\n- [ ] T001 third" }, { region: "tree", min: 3 });
+    assert.equal(new Set(found.map(([, a]) => a)).size, 3);
   });
 });
 
@@ -528,11 +544,9 @@ describe("renderOverview: partial models", () => {
       }
     }
     const out = render(p);
-    assert.match(out, /<progress data-key="project" data-sig=""/);
     assert.match(out, /<details data-key="001-x" data-sig=""/);
-    assert.match(out, /<li data-key="001-x\/T001" data-sig="" data-state="future"/);
-    assert.match(out, /<a href="#task-001-x-T001" data-key="001-x\/T001" data-sig="" data-state="future"/);
-    assert.doesNotMatch(out, /data-part="artifacts"/);
+    assert.match(out, /<li data-key="001-x\/T001" id="task-001-x-T001" data-state="done" data-sig=""/);
+    assert.match(out, /<a data-key="001-x\/T001" data-sig="" data-state="done" data-parents="001-x 001-x\/p1" href="#task-001-x-T001"/);
   });
 
   test("project warnings with a line show file:line", async () => {
@@ -540,29 +554,10 @@ describe("renderOverview: partial models", () => {
     p.warnings = [{ code: "W10", file: ".specify/feature.json", line: 3, message: "odd" }];
     assert.match(render(p), /<li>\.specify\/feature\.json:3 odd<\/li>/);
   });
-
-  test("a next-task key that matches no task shows no next line", async () => {
-    const p = await model({ "specs/001-x/tasks.md": "## Phase 1: A\n- [ ] T001 a" });
-    const before = render(p);
-    assert.match(before, /data-part="next"/);
-    p.active = { ...p.active, nextTaskKey: "001-x/T999" };
-    assert.doesNotMatch(render(p), /data-part="next"/);
-  });
 });
 
 describe("helpers", () => {
   const phase = (over) => ({ number: 2, title: "Core", tasks: [], groups: [], mergedStory: null, ...over });
-  test("phaseHeading", () => {
-    assert.equal(phaseHeading(phase()), "Phase 2: Core");
-    assert.equal(phaseHeading(phase({ number: null, title: "Unphased" })), "Unphased");
-    assert.equal(phaseHeading(phase({ mergedStory: { label: "US1", title: "See it", priority: "P1" } })), "Phase 2 · US1 – See it (P1)");
-    assert.equal(phaseHeading(phase({ mergedStory: { label: "US9", title: null, priority: null } })), "Phase 2 · US9 – Core");
-  });
-  test("groupHeading", () => {
-    assert.equal(groupHeading({ label: "US9", story: null }), "US9");
-    assert.equal(groupHeading({ label: "US1", story: { label: "US1", title: "A", priority: "P2" } }), "US1 – A (P2)");
-    assert.equal(groupHeading({ label: "US1", story: { label: "US1", title: "A", priority: null } }), "US1 – A");
-  });
   test("phaseItems places each group at its first task", () => {
     const t = (id, story) => ({ id, story });
     const tasks = [t("T1", null), t("T2", "US2"), t("T3", "US1"), t("T4", null), t("T5", "US2")];
@@ -573,10 +568,5 @@ describe("helpers", () => {
     const items = phaseItems(phase({ tasks, groups }));
     assert.deepEqual(items.map((i) => (i.task ? i.task.id : i.group.label)), ["T1", "US2", "US1", "T4"]);
     assert.deepEqual(phaseItems(phase({ tasks })).map((i) => i.task.id), ["T1", "T2", "T3", "T4", "T5"]);
-  });
-  test("featureStatus", () => {
-    assert.equal(featureStatus({ stage: "complete" }), "done");
-    assert.equal(featureStatus({ stage: "in-progress" }), "started");
-    for (const stage of ["empty", "specified", "planned", "ready"]) assert.equal(featureStatus({ stage }), "not-started");
   });
 });

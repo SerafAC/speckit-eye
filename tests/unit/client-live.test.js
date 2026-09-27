@@ -9,6 +9,10 @@ import {
   ANIMATE_MS,
   RECONNECT_MS,
   EVENTS_URL,
+  CHANGE_EVENT,
+  collectScroll,
+  restoreScroll,
+  versionOf,
 } from "../../src/client/live.js";
 
 // ---------------------------------------------------------------------------
@@ -130,23 +134,29 @@ class FakeEventSource {
 }
 
 /** Builds a page, a server with a queue of responses and the client. */
-function setup({ main = overviewMain(), reduced = false } = {}) {
+function setup({ main = overviewMain(), reduced = false, shell = [], app = undefined } = {}) {
   FakeEventSource.instances = [];
   const body = el("body", {}, [
+    ...shell,
     main,
     el("div", { "data-region": "live-status", hidden: "" }),
   ]);
   const docListeners = new Map();
+  const dispatched = [];
   const document = {
     body,
     querySelector: (s) => body.querySelector(s),
+    querySelectorAll: (s) => body.querySelectorAll(s),
+    dispatchEvent: (event) => dispatched.push(event),
     addEventListener: (type, fn, capture) => docListeners.set(type, { fn, capture }),
     createElement: (tag) => el(tag),
     createTextNode: (text) => ({ nodeType: 3, textContent: text }),
   };
+  const winListeners = new Map();
   const window = {
     scrollX: 0,
     scrollY: 0,
+    addEventListener: (type, fn) => winListeners.set(type, [...(winListeners.get(type) ?? []), fn]),
     location: { pathname: "/index.html" },
     scrollTo(x, y) {
       window.scrolledTo = [x, y];
@@ -165,8 +175,8 @@ function setup({ main = overviewMain(), reduced = false } = {}) {
   const pages = new Map();
   class DOMParser {
     parseFromString(text) {
-      const m = pages.get(text);
-      return { querySelector: (s) => (s === "main" ? m ?? null : null) };
+      const page = pages.get(text);
+      return { querySelector: (s) => page?.querySelector(s) ?? null };
     }
   }
   const frames = [];
@@ -183,11 +193,12 @@ function setup({ main = overviewMain(), reduced = false } = {}) {
     DOMParser,
     setTimeout: (fn, ms) => globalThis.setTimeout(fn, ms),
     requestAnimationFrame,
+    ...(app ? { app } : {}),
   });
-  /** Queues a 200 response whose body parses to `nextMain`. */
-  const respond = (nextMain) => {
+  /** Queues a 200 response whose body holds `nextMain` and the given shell parts. */
+  const respond = (nextMain, parts = []) => {
     const id = `page-${pages.size}`;
-    pages.set(id, nextMain);
+    pages.set(id, el("body", {}, [...parts, nextMain].filter(Boolean)));
     server.next.push({ status: 200, id });
   };
   const toggle = (details) => docListeners.get("toggle").fn({ type: "toggle", target: details });
@@ -195,7 +206,11 @@ function setup({ main = overviewMain(), reduced = false } = {}) {
   const flush = async () => {
     for (let i = 0; i < 10; i++) await Promise.resolve();
   };
-  return { document, window, server, client, respond, toggle, es, flush, frames, runFrames, docListeners, body };
+  /** Fires a window event (pagehide / pageshow) at the client. */
+  const fire = (type, init = {}) => {
+    for (const fn of winListeners.get(type) ?? []) fn({ type, ...init });
+  };
+  return { document, window, server, client, respond, toggle, es, flush, frames, runFrames, docListeners, body, dispatched, fire };
 }
 
 describe("collectSigs / changedKeys / applyToggles", () => {
@@ -427,6 +442,57 @@ describe("createLiveClient", () => {
     assert.equal(t.server.requests.length, 1, "only once per reconnect");
   });
 
+  test("a hello whose version differs from the page's stamp fetches once (a change sent before the stream opened)", async () => {
+    const t = setup();
+    t.body.setAttribute("data-model-version", "0");
+    t.client.start();
+    const banner = t.body.querySelector('[data-region="live-status"]');
+    const next = overviewMain({ done: 2 });
+    t.respond(next);
+    t.es().emit("hello", { version: 1 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 1);
+    assert.equal(t.body.querySelector("main"), next);
+    assert.equal(banner.hidden, true, "no outage banner");
+
+    // The browser reconnects on its own (no error in between): same version, nothing to do.
+    t.es().emit("hello", { version: 1 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 1);
+
+    // After a change event, a hello with that version is not a missed change.
+    t.respond(overviewMain({ done: 3 }));
+    t.es().emit("change", { version: 2 });
+    await t.flush();
+    t.es().emit("hello", { version: 2 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 2);
+  });
+
+  test("a hello with the page's own version, or a page without a stamp, does not fetch", async () => {
+    const stamped = setup();
+    stamped.body.setAttribute("data-model-version", "4");
+    stamped.client.start();
+    stamped.es().emit("hello", { version: 4 });
+    await stamped.flush();
+    assert.equal(stamped.server.requests.length, 0);
+
+    const unstamped = setup();
+    unstamped.client.start();
+    unstamped.es().emit("hello", { version: 9 });
+    await unstamped.flush();
+    assert.equal(unstamped.server.requests.length, 0);
+  });
+
+  test("versionOf reads the version from an event and tolerates bad data", () => {
+    assert.equal(versionOf({ data: '{"version":3}' }), 3);
+    assert.equal(versionOf({ data: "{}" }), null);
+    assert.equal(versionOf({ data: "not json" }), null);
+    assert.equal(versionOf({ data: '{"version":"3"}' }), null);
+    assert.equal(versionOf({}), null);
+    assert.equal(versionOf(undefined), null);
+  });
+
   test("a stream closed for good is reopened after a delay", () => {
     const t = setup();
     t.client.start();
@@ -437,6 +503,46 @@ describe("createLiveClient", () => {
     mock.timers.tick(RECONNECT_MS);
     assert.equal(FakeEventSource.instances.length, 2);
     assert.equal(first.closed, true);
+  });
+
+  test("pagehide closes the stream, so a page in the back/forward cache holds no connection", () => {
+    const t = setup();
+    t.client.start();
+    const first = t.es();
+    t.fire("pagehide", { persisted: true });
+    assert.equal(first.closed, true);
+    assert.equal(FakeEventSource.instances.length, 1, "nothing reopens while hidden");
+    t.fire("pageshow", { persisted: false });
+    assert.equal(FakeEventSource.instances.length, 1, "a fresh load starts its own client");
+  });
+
+  test("pageshow from the back/forward cache reopens the stream and its hello catches up", async () => {
+    const t = setup();
+    t.body.setAttribute("data-model-version", "1");
+    t.client.start();
+    t.es().emit("hello", { version: 1 });
+    t.fire("pagehide", { persisted: true });
+    t.fire("pageshow", { persisted: true });
+    assert.equal(FakeEventSource.instances.length, 2);
+    assert.equal(t.es().closed, false);
+    t.fire("pageshow", { persisted: true });
+    assert.equal(FakeEventSource.instances.length, 2, "one stream at a time");
+    // A change landed while the page was cached: the greeting's version differs.
+    t.respond(overviewMain({ done: 2 }));
+    t.es().emit("hello", { version: 2 });
+    await t.flush();
+    assert.equal(t.server.requests.length, 1);
+  });
+
+  test("pagehide cancels a pending reconnect", () => {
+    const t = setup();
+    t.client.start();
+    const first = t.es();
+    first.readyState = 2;
+    first.emit("error");
+    t.fire("pagehide", { persisted: true });
+    mock.timers.tick(RECONNECT_MS);
+    assert.equal(FakeEventSource.instances.length, 1);
   });
 
   test("changes during a refresh lead to exactly one more refresh", async () => {
@@ -452,5 +558,160 @@ describe("createLiveClient", () => {
     await t.flush();
     assert.equal(t.server.requests.length, 2);
     assert.equal(t.body.querySelector("main"), last);
+  });
+});
+
+/** The sidebar Features list and footer, as layout.js renders them. */
+function sidebarParts({ betaSig = "10/20:in-progress", count = "1/4", version = "1" } = {}) {
+  return [
+    el("nav", { "data-live": "sidebar-features", "data-key": "side:features", "data-sig": count }, [
+      el("ul", { "data-keep-scroll": "sidebar" }, [
+        el("a", { "data-key": "side:001-alpha", "data-sig": "30/30:complete" }),
+        el("a", { "data-key": "side:002-beta", "data-sig": betaSig }),
+      ]),
+    ]),
+    el("footer", { "data-live": "footer", "data-key": "footer", "data-sig": version }),
+  ];
+}
+
+describe("collectScroll / restoreScroll", () => {
+  test("record scrollTop by data-keep-scroll name and set it back on new elements", () => {
+    const old = el("div", {}, [el("div", { "data-keep-scroll": "tree" }), el("div", { "data-keep-scroll": "docs" })]);
+    old.children[0].scrollTop = 120;
+    const positions = collectScroll(old);
+    assert.deepEqual([...positions], [["tree", 120], ["docs", 0]]);
+    const next = el("div", {}, [el("div", { "data-keep-scroll": "tree" }), el("div", { "data-keep-scroll": "other" })]);
+    restoreScroll(next, positions);
+    assert.equal(next.children[0].scrollTop, 120);
+    assert.equal(next.children[1].scrollTop, undefined);
+  });
+});
+
+describe("createLiveClient with page modules (T021)", () => {
+  beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
+  afterEach(() => mock.timers.reset());
+
+  function recordingApp(log, state = { feature: { selected: "T018" } }) {
+    return {
+      save: (root) => {
+        log.push(["save", root.querySelector("main")]);
+        return state;
+      },
+      reinit: (root, s) => log.push(["reinit", root.querySelector("main"), s]),
+    };
+  }
+
+  test("app.save runs before the swap and app.reinit after it with the saved state", async () => {
+    const log = [];
+    const t = setup({ app: recordingApp(log) });
+    t.client.start();
+    const before = t.body.querySelector("main");
+    const next = overviewMain({ done: 2 });
+    t.respond(next);
+    t.es().emit("change");
+    await t.flush();
+    assert.deepEqual(log, [
+      ["save", before],
+      ["reinit", next, { feature: { selected: "T018" } }],
+    ]);
+  });
+
+  test("nothing is saved or re-initialised when the response has no <main>", async () => {
+    const log = [];
+    const t = setup({ app: recordingApp(log) });
+    t.client.start();
+    t.respond(null);
+    t.es().emit("change");
+    await t.flush();
+    assert.deepEqual(log, []);
+    assert.equal(t.dispatched.length, 0);
+  });
+
+  test("scroll positions of the tree, task list, document list and sidebar are restored by name", async () => {
+    const withScroll = (m) => {
+      m.append(el("div", { "data-keep-scroll": "tree" }), el("div", { "data-keep-scroll": "tasks" }), el("div", { "data-keep-scroll": "docs" }));
+      return m;
+    };
+    const shell = sidebarParts();
+    const t = setup({ main: withScroll(overviewMain()), shell });
+    t.client.start();
+    const [tree, tasks, docs] = t.body.querySelector("main").querySelectorAll("[data-keep-scroll]");
+    tree.scrollTop = 300;
+    tasks.scrollTop = 40;
+    docs.scrollTop = 7;
+    shell[0].querySelector("[data-keep-scroll]").scrollTop = 55;
+    t.window.scrollY = 90;
+
+    const next = withScroll(overviewMain({ done: 2 }));
+    const nextShell = sidebarParts();
+    t.respond(next, nextShell);
+    t.es().emit("change");
+    await t.flush();
+    assert.deepEqual(
+      next.querySelectorAll("[data-keep-scroll]").map((e) => [e.getAttribute("data-keep-scroll"), e.scrollTop]),
+      [["tree", 300], ["tasks", 40], ["docs", 7]],
+    );
+    assert.equal(nextShell[0].querySelector("[data-keep-scroll]").scrollTop, 55);
+    assert.deepEqual(t.window.scrolledTo, [0, 90]);
+  });
+
+  test("scroll is restored after reinit, so a module re-render cannot reset it", async () => {
+    const order = [];
+    const app = { save: () => ({}), reinit: () => order.push("reinit") };
+    const t = setup({ app });
+    const scrollTo = t.window.scrollTo;
+    t.window.scrollTo = (x, y) => {
+      order.push("scroll");
+      scrollTo(x, y);
+    };
+    t.client.start();
+    t.respond(overviewMain({ done: 2 }));
+    t.es().emit("change");
+    await t.flush();
+    assert.deepEqual(order, ["reinit", "scroll"]);
+  });
+
+  test("the sidebar Features list and footer are replaced and a changed sidebar entry is flashed", async () => {
+    const shell = sidebarParts();
+    const t = setup({ shell });
+    t.client.start();
+    const nextShell = sidebarParts({ betaSig: "11/20:in-progress", count: "1/4" });
+    t.respond(overviewMain(), nextShell);
+    t.es().emit("change");
+    await t.flush();
+    assert.equal(t.body.querySelector('[data-live="sidebar-features"]'), nextShell[0]);
+    assert.equal(t.body.querySelector('[data-live="footer"]'), nextShell[1]);
+    const flagged = t.body.querySelectorAll("[data-changed]").map((e) => e.getAttribute("data-key"));
+    assert.deepEqual(flagged, ["side:002-beta"]);
+    mock.timers.tick(CHANGED_MS);
+    assert.equal(t.body.querySelectorAll("[data-changed]").length, 0);
+  });
+
+  test("a shell part missing from the new page is kept", async () => {
+    const shell = sidebarParts();
+    const t = setup({ shell });
+    t.client.start();
+    t.respond(overviewMain(), [sidebarParts()[0]]);
+    t.es().emit("change");
+    await t.flush();
+    assert.equal(t.body.querySelector('[data-live="footer"]'), shell[1]);
+  });
+
+  test("sk:change is dispatched on document once after each swap", async () => {
+    const t = setup();
+    t.client.start();
+    t.respond(overviewMain({ done: 2 }));
+    t.es().emit("change");
+    await t.flush();
+    assert.deepEqual(t.dispatched.map((e) => e.type), [CHANGE_EVENT]);
+    assert.equal(CHANGE_EVENT, "sk:change");
+    t.respond(overviewMain({ done: 3 }));
+    t.es().emit("change");
+    await t.flush();
+    assert.equal(t.dispatched.length, 2);
+    t.server.next.push({ status: 500 });
+    t.es().emit("change");
+    await t.flush();
+    assert.equal(t.dispatched.length, 2, "no event without a swap");
   });
 });

@@ -16,17 +16,17 @@
 ## Phase 3: User Story 1 - Beta listing (Priority: P1)
 
 - [x] T008 [US1] List view model
-- [x] T009 [P] [US1] List renderer
-- [x] T010 [US1] List tests
-- [ ] T011 [US1] List paging
-- [ ] T012 [US1] List sorting
+- [x] T009 [P] [US1] List renderer in `web/List.vue`
+- [x] T010 [US1] List tests in `src/list_test.go`
+- [ ] T011 [US1] List paging in `src/list.go`
+- [ ] T012 [US1] List sorting in `src/list.go` and `src/list_test.go`
 - [ ] T013 [US1] List empty state
 
 ## Phase 4: User Stories 2 and 3
 
 - [ ] T014 [US2] Detail view model
 - [ ] T015 [US2] Detail renderer
-- [ ] T016 [US2] Detail tests
+- [ ] T016 [US2] Detail tests in `src/detail_test.go`
 - [ ] T017 [US3] Search index
 - [ ] T018 [US3] Search box, depends on T011
 - [ ] T019 Shared docs update

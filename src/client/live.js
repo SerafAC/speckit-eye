@@ -4,16 +4,35 @@
  * fetches the current page, swaps `<main>`, keeps the viewer's own
  * expand/collapse choices and scroll position, highlights items whose
  * `data-sig` changed, and animates `<progress>` bars to their new values.
- * While the connection is lost it shows the `live-status` banner.
+ * While the connection is lost it shows the `live-status` banner. A `hello`
+ * whose version differs from the page's `data-model-version` (a change sent
+ * before the stream opened) also fetches once.
+ *
+ * Around each swap it keeps the page modules' own state (research D2,
+ * FR-051): `app.save(root)` before, `app.reinit(root, state)` after, plus the
+ * window scroll and the scroll of every `[data-keep-scroll]` element by name.
+ * Shell parts marked `data-live` (sidebar Features list, mobile menu list,
+ * footer) are replaced too, so sidebar counts follow the files. After each
+ * swap an `sk:change` event is dispatched on `document`.
+ *
+ * The stream is closed on `pagehide` and opened again on a `pageshow` from
+ * the back/forward cache (whose `hello` then catches up on missed changes).
+ * A page kept in that cache would otherwise hold its stream open: browsers
+ * allow 6 HTTP/1.1 connections per host, so a few cached pages use them all
+ * up and the next navigation stalls (seen in WebKit).
  *
  * Every browser API is injected so the logic is unit tested with fakes
  * (constitution §IV); only the last line passes the real globals.
  */
 
+import * as app from "./app.js";
+
 export const EVENTS_URL = "/__events";
 export const CHANGED_MS = 1500;
 export const ANIMATE_MS = 600;
 export const RECONNECT_MS = 2000;
+/** Event dispatched on `document` after every swap (search reloads its index). */
+export const CHANGE_EVENT = "sk:change";
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
 /**
@@ -63,6 +82,66 @@ export function applyToggles(detailsList, toggles) {
 }
 
 /**
+ * `scrollTop` of every `[data-keep-scroll]` element, by its name.
+ * @param {ParentNode} root
+ * @returns {Map<string, number>}
+ */
+export function collectScroll(root) {
+  /** @type {Map<string, number>} */
+  const out = new Map();
+  for (const el of root.querySelectorAll("[data-keep-scroll]")) {
+    const name = el.getAttribute("data-keep-scroll");
+    if (name !== null && !out.has(name)) out.set(name, Number(/** @type {Element} */ (el).scrollTop ?? 0));
+  }
+  return out;
+}
+
+/**
+ * Sets `scrollTop` of the `[data-keep-scroll]` elements back by name.
+ * @param {ParentNode} root
+ * @param {Map<string, number>} positions
+ */
+export function restoreScroll(root, positions) {
+  for (const el of root.querySelectorAll("[data-keep-scroll]")) {
+    const name = el.getAttribute("data-keep-scroll");
+    if (name !== null && positions.has(name)) /** @type {Element} */ (el).scrollTop = /** @type {number} */ (positions.get(name));
+  }
+}
+
+/**
+ * @typedef {object} PageApp
+ * @property {(root: any) => Record<string, unknown>} save
+ * @property {(root: any, state: Record<string, unknown>) => void} reinit
+ */
+
+/** Used when no app is injected (tests of the 001 behavior). */
+const NO_APP = { save: () => ({}), reinit: () => {} };
+
+/**
+ * @param {Element | null | undefined} body
+ * @returns {number | null} the page's `data-model-version`, or null
+ */
+function versionAttr(body) {
+  const raw = body?.getAttribute?.("data-model-version");
+  if (raw === null || raw === undefined || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * @param {Event} event an SSE `hello` or `change` event
+ * @returns {number | null} the model version it carries, or null
+ */
+export function versionOf(event) {
+  try {
+    const version = JSON.parse(/** @type {MessageEvent} */ (event)?.data ?? "null")?.version;
+    return typeof version === "number" && Number.isFinite(version) ? version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {object} deps
  * @param {Document} deps.document
  * @param {Window} deps.window
@@ -71,8 +150,9 @@ export function applyToggles(detailsList, toggles) {
  * @param {typeof DOMParser} deps.DOMParser
  * @param {(fn: () => void, ms: number) => any} deps.setTimeout
  * @param {(cb: (time: number) => void) => any} deps.requestAnimationFrame
+ * @param {PageApp} [deps.app] `assets/app.js` (save / reinit of the page modules)
  */
-export function createLiveClient({ document, window, EventSource, fetch, DOMParser, setTimeout, requestAnimationFrame }) {
+export function createLiveClient({ document, window, EventSource, fetch, DOMParser, setTimeout, requestAnimationFrame, app = NO_APP }) {
   /** The viewer's own open/closed choices, by `data-key`. */
   /** @type {Map<string, boolean>} */
   const toggles = new Map();
@@ -88,8 +168,25 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   let disconnected = false;
   let busy = false;
   let again = false;
+  /**
+   * The model version this page shows: stamped on `<body>` by the server
+   * (src/serve/handler.js), then the version of the last event.
+   * @type {number | null}
+   */
+  let seen = null;
 
   const main = () => document.querySelector("main");
+  /** @param {Document} doc */
+  const liveParts = (doc) => [...doc.querySelectorAll("[data-live]")];
+  /**
+   * The elements with a signature in `<main>` and the given shell parts.
+   * @param {Element} root
+   * @param {Element[]} parts
+   */
+  const sigElements = (root, parts) => [
+    ...root.querySelectorAll("[data-sig]"),
+    ...parts.flatMap((p) => [p, ...p.querySelectorAll("[data-sig]")]),
+  ];
   const banner = () => document.querySelector('[data-region="live-status"]');
   const reducedMotion = () => Boolean(window.matchMedia?.(REDUCED_MOTION)?.matches);
 
@@ -149,14 +246,12 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   async function refresh() {
     const oldMain = main();
     if (!oldMain) return;
-    const oldSigs = collectSigs(oldMain.querySelectorAll("[data-sig]"));
+    const oldSigs = collectSigs(sigElements(oldMain, liveParts(document)));
     /** @type {Map<string, number>} */
     const oldValues = new Map();
     for (const bar of oldMain.querySelectorAll("progress[data-key]")) {
       oldValues.set(/** @type {string} */ (bar.getAttribute("data-key")), Number(/** @type {HTMLProgressElement} */ (bar).value));
     }
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
 
     let response;
     try {
@@ -175,24 +270,45 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
     const target = main();
     if (!nextMain || !target) return;
 
+    const state = app.save(document);
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const scrolled = collectScroll(document);
+
     target.replaceWith(nextMain);
+    /** @type {Element[]} */
+    const nextParts = [];
+    for (const part of liveParts(document)) {
+      const name = part.getAttribute("data-live");
+      const replacement = parsed.querySelector(`[data-live="${name}"]`);
+      if (!replacement) continue;
+      part.replaceWith(replacement);
+      nextParts.push(replacement);
+    }
     const details = [...nextMain.querySelectorAll("details[data-key]")];
     applyToggles(/** @type {HTMLDetailsElement[]} */ (details), toggles);
     remember(nextMain);
-    window.scrollTo(scrollX, scrollY);
 
-    const changed = changedKeys(oldSigs, collectSigs(nextMain.querySelectorAll("[data-sig]")));
-    for (const el of nextMain.querySelectorAll("[data-sig]")) {
+    const fresh = sigElements(nextMain, nextParts);
+    const changed = changedKeys(oldSigs, collectSigs(fresh));
+    for (const el of fresh) {
       const key = el.getAttribute("data-key");
       if (key === null || !changed.has(key)) continue;
       el.setAttribute("data-changed", "");
       setTimeout(() => el.removeAttribute("data-changed"), CHANGED_MS);
     }
 
+    app.reinit(document, state);
+    window.scrollTo(scrollX, scrollY);
+    restoreScroll(document, scrolled);
+
     for (const bar of nextMain.querySelectorAll("progress[data-key]")) {
       const from = oldValues.get(/** @type {string} */ (bar.getAttribute("data-key")));
       if (from !== undefined) animate(/** @type {HTMLProgressElement} */ (bar), from);
     }
+
+    const Custom = /** @type {any} */ (window).CustomEvent ?? globalThis.CustomEvent;
+    document.dispatchEvent(new Custom(CHANGE_EVENT));
   }
 
   /** Runs `refresh`, one at a time; a change during a refresh runs one more. */
@@ -213,16 +329,28 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   }
 
   function connect() {
+    if (source) source.close();
     const es = new EventSource(EVENTS_URL);
     source = es;
-    es.addEventListener("hello", () => {
-      if (!disconnected) return;
-      disconnected = false;
-      const b = banner();
-      if (b) b.hidden = true;
+    es.addEventListener("hello", (event) => {
+      const version = versionOf(event);
+      // A change broadcast between this page's response and the stream's
+      // opening reached nobody: the greeting's version tells.
+      const missed = seen !== null && version !== null && version !== seen;
+      if (version !== null) seen = version;
+      if (!disconnected && !missed) return;
+      if (disconnected) {
+        disconnected = false;
+        const b = banner();
+        if (b) b.hidden = true;
+      }
       void update();
     });
-    es.addEventListener("change", () => void update());
+    es.addEventListener("change", (event) => {
+      const version = versionOf(event);
+      if (version !== null) seen = version;
+      void update();
+    });
     es.addEventListener("error", () => {
       disconnected = true;
       const b = banner();
@@ -237,11 +365,27 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
     });
   }
 
+  /** Leaving the page (or entering the back/forward cache): let the stream go. */
+  const onPageHide = () => {
+    const es = source;
+    source = null; // also cancels a pending reconnect
+    es?.close();
+  };
+
+  /** @param {Event} event back from the back/forward cache: listen again */
+  const onPageShow = (event) => {
+    if (!(/** @type {PageTransitionEvent} */ (event).persisted) || source) return;
+    connect();
+  };
+
   return {
     /** Starts listening. */
     start() {
+      seen = versionAttr(document.body);
       remember(document.querySelector("main"));
       document.addEventListener("toggle", onToggle, true);
+      window.addEventListener?.("pagehide", onPageHide);
+      window.addEventListener?.("pageshow", onPageShow);
       connect();
     },
     /** Exposed for tests: runs one update now. */
@@ -251,4 +395,6 @@ export function createLiveClient({ document, window, EventSource, fetch, DOMPars
   };
 }
 
-if (typeof document !== "undefined") createLiveClient({ document, window, EventSource, fetch, DOMParser, setTimeout, requestAnimationFrame }).start();
+if (typeof document !== "undefined") {
+  createLiveClient({ document, window, EventSource, fetch, DOMParser, setTimeout, requestAnimationFrame, app }).start();
+}

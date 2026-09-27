@@ -7,8 +7,11 @@
 
 import { renderPage } from "./layout.js";
 import { renderOverview } from "./overview.js";
-import { renderArtifact } from "./artifact.js";
+import { renderDocument } from "./reader.js";
+import { renderFeaturePage } from "./feature.js";
 import { createMarkdown } from "./markdown.js";
+import { themeScript } from "./theme-script.js";
+import { buildSearchIndex } from "./search-index.js";
 
 /** @typedef {import("../model/build-model.js").Project} Project */
 /** @typedef {import("../project/artifacts.js").Artifact} Artifact */
@@ -17,7 +20,7 @@ import { createMarkdown } from "./markdown.js";
  * Every artifact of the project with the feature or assessment it belongs to:
  * the constitution, each feature's artifacts, each assessment's artifacts.
  * @param {Project} project
- * @returns {{artifact: Artifact, feature: {title: string} | null, assessment: {slug: string} | null}[]}
+ * @returns {{artifact: Artifact, feature: import("../model/build-model.js").Feature | null, assessment: {slug: string} | null}[]}
  */
 export function allArtifacts(project) {
   const out = [];
@@ -32,16 +35,55 @@ export function allArtifacts(project) {
 }
 
 /**
+ * The rail destination a document page belongs to, for `aria-current`.
+ * @param {Artifact} artifact
+ * @param {{slug: string} | null} assessment
+ * @returns {string | null}
+ */
+function documentDestination(artifact, assessment) {
+  if (assessment) return `assessment:${assessment.slug}`;
+  if (artifact.kind === "constitution") return "constitution";
+  return null;
+}
+
+/**
  * @typedef {object} SiteEntry
  * @property {string} type MIME type of the body
- * @property {string} body
+ * @property {string | Uint8Array} body text, or bytes for binary assets
+ *   (fonts, research D12); bytes are served and written unchanged
  */
 
 /** @typedef {Map<string, SiteEntry>} Site */
 
+/**
+ * @typedef {object} SiteAssets
+ * @property {string} styles the compiled stylesheet (`dist/styles.css`)
+ * @property {Record<string, string>} modules browser module sources by file
+ *   name (`app.js`, `prefs.js`, …); `live.js` is required in serve mode and
+ *   never published in static mode
+ * @property {Record<string, Uint8Array | string>} fonts the files of
+ *   `dist/fonts/` by name: `.woff2` bytes and `OFL-*.txt` licence texts
+ */
+
 export const HTML_TYPE = "text/html; charset=utf-8";
 export const CSS_TYPE = "text/css; charset=utf-8";
 export const JS_TYPE = "text/javascript; charset=utf-8";
+export const FONT_TYPE = "font/woff2";
+export const JSON_TYPE = "application/json; charset=utf-8";
+export const TEXT_TYPE = "text/plain; charset=utf-8";
+
+/** The browser module that exists in serve mode only (live updates). */
+const LIVE_MODULE = "live.js";
+
+/**
+ * @param {string} file a file name from `dist/fonts/`
+ * @returns {string} its content type
+ */
+function fontFileType(file) {
+  if (file.endsWith(".woff2")) return FONT_TYPE;
+  if (file.endsWith(".txt")) return TEXT_TYPE;
+  throw new Error(`renderSite: unexpected font file ${file}`);
+}
 
 /**
  * @param {Project} project
@@ -50,9 +92,7 @@ export const JS_TYPE = "text/javascript; charset=utf-8";
  * @param {"serve" | "static"} options.mode
  * @param {string} options.version
  * @param {string | null} [options.generatedAt] ISO time, static mode only
- * @param {{styles: string, overview: string, live?: string}} options.assets
- *   contents of the compiled stylesheet and the client scripts (`live` is
- *   needed in serve mode only)
+ * @param {SiteAssets} options.assets contents of the packaged assets
  * @returns {Site}
  */
 export function renderSite(project, { base, mode, version, generatedAt = null, assets }) {
@@ -72,14 +112,34 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
     }),
   });
 
-  // One page per artifact (US3, FR-021), keyed by its url.
+  // One Markdown renderer for documents and task texts (links resolve alike).
   const entries = allArtifacts(project).filter(({ artifact }) => artifact.url);
   const renderMarkdown = createMarkdown({
     artifactsBySource: new Map(entries.map(({ artifact }) => [artifact.source, artifact])),
     base,
   });
+
+  // One feature page per feature (FR-029, contracts/routes.md "Page paths").
+  for (const feature of project.features) {
+    site.set(`features/${feature.dir}/index.html`, {
+      type: HTML_TYPE,
+      body: renderPage({
+        title: `${feature.title} · ${project.name} · speckit-eye`,
+        base,
+        mode,
+        project,
+        page: "feature",
+        current: feature.dir,
+        main: renderFeaturePage(feature, project, { base, markdown: renderMarkdown }),
+        version,
+        generatedAt,
+      }),
+    });
+  }
+
+  // One document page per artifact (US3, FR-021), keyed by its url, in the
+  // reader layout (FR-038).
   for (const { artifact, feature, assessment } of entries) {
-    const body = renderMarkdown(artifact.source, artifact.content ?? "");
     site.set(artifact.url, {
       type: HTML_TYPE,
       body: renderPage({
@@ -87,7 +147,9 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
         base,
         mode,
         project,
-        main: renderArtifact(artifact, body, { base, feature, assessment }),
+        page: "document",
+        current: documentDestination(artifact, assessment),
+        main: renderDocument(artifact, { base, project, feature, assessment, md: renderMarkdown }),
         version,
         generatedAt,
       }),
@@ -95,10 +157,20 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
   }
 
   site.set("assets/styles.css", { type: CSS_TYPE, body: assets.styles });
-  site.set("assets/overview.js", { type: JS_TYPE, body: assets.overview });
-  if (mode === "serve") {
-    if (typeof assets.live !== "string") throw new Error("renderSite: serve mode needs assets.live");
-    site.set("assets/live.js", { type: JS_TYPE, body: assets.live });
+  // Generated in memory from src/client/prefs.js (research D3), never read from disk.
+  site.set("assets/theme.js", { type: JS_TYPE, body: themeScript() });
+  // The same index in both modes (FR-049c, contracts/search-index.md).
+  site.set("assets/search-index.json", { type: JSON_TYPE, body: JSON.stringify(buildSearchIndex(project)) });
+  const modules = assets.modules ?? {};
+  if (mode === "serve" && typeof modules[LIVE_MODULE] !== "string") {
+    throw new Error(`renderSite: serve mode needs assets.modules["${LIVE_MODULE}"]`);
+  }
+  for (const [name, source] of Object.entries(modules)) {
+    if (name === LIVE_MODULE && mode !== "serve") continue;
+    site.set(`assets/${name}`, { type: JS_TYPE, body: source });
+  }
+  for (const [file, body] of Object.entries(assets.fonts ?? {})) {
+    site.set(`assets/fonts/${file}`, { type: fontFileType(file), body });
   }
 
   return site;

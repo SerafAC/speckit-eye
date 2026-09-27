@@ -1,7 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { buildModel } from "../../src/model/build-model.js";
-import { applyTaskStates, statusOf } from "../../src/model/task-state.js";
+import { applyTaskStates, statusOf, DISPLAY_LABEL } from "../../src/model/task-state.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
 import { makeCounts } from "../../src/model/build-model.js";
@@ -153,5 +153,108 @@ describe("change signatures", () => {
     assert.notEqual(before.features[0].sig, after.features[0].sig);
     assert.equal(before.features[0].phases[0].sig, after.features[0].phases[0].sig);
     assert.notEqual(before.features[0].phases[1].groups[1].sig, after.features[0].phases[1].groups[1].sig);
+  });
+});
+
+describe("display names and waitingOn (002 data-model Task)", () => {
+  const view = (feature) => feature.phases.flatMap((p) => p.tasks.map((t) => [t.id, t.display, t.waitingOn]));
+
+  test("display maps completed → done, current → next, blocked → blocked, future → open", async () => {
+    const p = await model({
+      "specs/001-x/tasks.md": [
+        "## Phase 1: A",
+        "- [x] T001 done",
+        "- [ ] T002 next",
+        "- [ ] T003 waits, depends on T002",
+        "- [ ] T004 free",
+      ].join("\n"),
+    });
+    const tasks = p.features[0].phases[0].tasks;
+    assert.deepEqual(tasks.map((t) => [t.state, t.display]), [
+      ["completed", "done"],
+      ["current", "next"],
+      ["blocked", "blocked"],
+      ["future", "open"],
+    ]);
+    assert.deepEqual(view(p.features[0]), [
+      ["T001", "done", []],
+      ["T002", "next", []],
+      ["T003", "blocked", ["T002"]],
+      ["T004", "open", []],
+    ]);
+  });
+
+  test("T020 depends on T012 + T013 with only T012 open → waitingOn [T012]", async () => {
+    const p = await model({
+      "specs/001-x/tasks.md": [
+        "## Phase 1: A",
+        "- [ ] T011 first open task",
+        "- [ ] T012 open",
+        "- [x] T013 done",
+        "- [ ] T020 needs both (depends on T012, T013)",
+      ].join("\n"),
+    });
+    const t020 = p.features[0].phases[0].tasks.find((t) => t.id === "T020");
+    assert.deepEqual(t020.dependsOn, ["T012", "T013"]);
+    assert.equal(t020.display, "blocked");
+    assert.deepEqual(t020.waitingOn, ["T012"]);
+  });
+
+  test("waitingOn keeps the written order of the open dependencies", async () => {
+    const p = await model({
+      "specs/001-x/tasks.md": [
+        "## Phase 1: A",
+        "- [ ] T001 first",
+        "- [ ] T002 a",
+        "- [ ] T003 b",
+        "- [ ] T004 depends on T003, T002",
+      ].join("\n"),
+    });
+    const t004 = p.features[0].phases[0].tasks.find((t) => t.id === "T004");
+    assert.deepEqual(t004.waitingOn, ["T003", "T002"]);
+  });
+
+  test("next beats blocked: the next task has an empty waitingOn even with open dependencies", async () => {
+    const p = await model({
+      "specs/001-x/tasks.md": ["## Phase 1: A", "- [ ] T001 depends on T002", "- [ ] T002 later"].join("\n"),
+    });
+    const [t001, t002] = p.features[0].phases[0].tasks;
+    assert.equal(t001.display, "next");
+    assert.deepEqual(t001.waitingOn, []);
+    assert.equal(t002.display, "open");
+    assert.ok(p.features[0].warnings.some((w) => w.code === "W7"));
+  });
+
+  test("a dependency on a missing ID is ignored", async () => {
+    const p = await model({
+      "specs/001-x/tasks.md": ["## Phase 1: A", "- [ ] T001 first", "- [ ] T002 x", "- [ ] T003 y"].join("\n"),
+    });
+    const [, t002, t003] = p.features[0].phases[0].tasks;
+    // Set on the model directly: the parser already drops unknown IDs.
+    t002.dependsOn = ["T999", "T001"];
+    t003.dependsOn = ["T999"];
+    applyTaskStates(p);
+    assert.equal(t002.display, "blocked");
+    assert.deepEqual(t002.waitingOn, ["T001"]);
+    assert.equal(t003.display, "open");
+    assert.deepEqual(t003.waitingOn, []);
+  });
+
+  test("a done task and a task whose dependencies are done wait on nothing", async () => {
+    const p = await model({
+      "specs/001-x/tasks.md": ["## Phase 1: A", "- [ ] T001 a", "- [x] T002 depends on T001", "- [x] T003 c", "- [ ] T004 depends on T003"].join("\n"),
+    });
+    const tasks = p.features[0].phases[0].tasks;
+    assert.deepEqual(tasks.map((t) => [t.id, t.display, t.waitingOn]), [
+      ["T001", "next", []],
+      ["T002", "done", []],
+      ["T003", "done", []],
+      ["T004", "open", []],
+    ]);
+  });
+
+  test("DISPLAY_LABEL names each display state", () => {
+    assert.deepEqual(DISPLAY_LABEL, { done: "Done", next: "Next", blocked: "Blocked", open: "Open" });
+    assert.ok(Object.isFrozen(DISPLAY_LABEL));
   });
 });

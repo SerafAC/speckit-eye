@@ -1,11 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { createHandler, routeKey, contentTypeFor, CSP } from "../../src/serve/handler.js";
+import { createHandler, routeKey, contentTypeFor, stampVersion, CSP } from "../../src/serve/handler.js";
 
 const SITE = new Map([
   ["index.html", { type: "text/html", body: "<!doctype html><p>hi ✓</p>" }],
   ["assets/styles.css", { type: "text/css", body: "body{}" }],
-  ["assets/overview.js", { type: "text/javascript", body: "export {};" }],
+  ["assets/app.js", { type: "text/javascript", body: "export {};" }],
   ["features/001-a/spec.html", { type: "text/html", body: "<p>spec</p>" }],
 ]);
 
@@ -71,7 +71,9 @@ describe("contentTypeFor", () => {
   test("by extension", () => {
     assert.equal(contentTypeFor("index.html"), "text/html; charset=utf-8");
     assert.equal(contentTypeFor("assets/styles.css"), "text/css; charset=utf-8");
-    assert.equal(contentTypeFor("assets/overview.js"), "text/javascript; charset=utf-8");
+    assert.equal(contentTypeFor("assets/app.js"), "text/javascript; charset=utf-8");
+    assert.equal(contentTypeFor("assets/fonts/geist-latin-wght-normal.woff2"), "font/woff2");
+    assert.equal(contentTypeFor("assets/fonts/OFL-geist.txt"), "text/plain; charset=utf-8");
     assert.equal(contentTypeFor("x.unknown"), "application/octet-stream");
     assert.equal(contentTypeFor("noext"), "application/octet-stream");
   });
@@ -90,7 +92,7 @@ describe("createHandler", () => {
     assert.equal(text(res), "body{}");
     assert.equal(res.headers["Content-Type"], "text/css; charset=utf-8");
 
-    res = request("/assets/overview.js");
+    res = request("/assets/app.js");
     assert.equal(res.headers["Content-Type"], "text/javascript; charset=utf-8");
 
     res = request("/features/001-a/spec.html");
@@ -163,6 +165,36 @@ describe("createHandler: defaults", () => {
   });
 });
 
+describe("createHandler: binary font bodies (research D12)", () => {
+  // A view into a larger buffer: only its own bytes may be sent.
+  const backing = new Uint8Array([0xaa, 0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80, 0xc3, 0xbb]);
+  const font = backing.subarray(1, 9);
+  const fontSite = new Map([["assets/fonts/geist-latin-wght-normal.woff2", { type: "font/woff2", body: font }]]);
+  const h = createHandler({ getSite: () => fontSite });
+
+  test("a Uint8Array body is sent byte-exact with its own length and the font type", () => {
+    const res = fakeRes();
+    h({ method: "GET", url: "/assets/fonts/geist-latin-wght-normal.woff2" }, res);
+    assert.equal(res.status, 200);
+    assert.equal(res.body, font);
+    assert.deepEqual([...res.body], [0x77, 0x4f, 0x46, 0x32, 0x00, 0xff, 0x80, 0xc3]);
+    assert.equal(res.headers["Content-Length"], 8);
+    assert.equal(res.headers["Content-Type"], "font/woff2");
+  });
+
+  test("the CSP and the other 001 headers are unchanged on binary responses", () => {
+    for (const method of ["GET", "HEAD"]) {
+      const res = fakeRes();
+      h({ method, url: "/assets/fonts/geist-latin-wght-normal.woff2" }, res);
+      assert.equal(res.headers["Content-Security-Policy"], "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:");
+      assert.equal(res.headers["Cache-Control"], "no-store");
+      assert.equal(res.headers["X-Content-Type-Options"], "nosniff");
+      assert.equal(res.headers["Content-Length"], 8);
+      if (method === "HEAD") assert.equal(res.body, undefined);
+    }
+  });
+});
+
 describe("createHandler: GET /__events (US2)", () => {
   function withEvents() {
     const added = [];
@@ -220,5 +252,43 @@ describe("createHandler: GET /__events (US2)", () => {
       assert.equal(res.status, 404, url);
     }
     assert.equal(added.length, 0);
+  });
+});
+
+describe("createHandler: model version stamp (live updates)", () => {
+  const site = new Map([
+    ["index.html", { type: "text/html", body: '<!doctype html>\n<html><body data-mode="serve" data-page="overview"><main>x</main></body></html>' }],
+    ["assets/app.js", { type: "text/javascript", body: 'document.body; "<body "' }],
+  ]);
+
+  test("stampVersion adds data-model-version to the first <body> only", () => {
+    assert.equal(stampVersion('<body data-a="1"><p>&lt;body </p>', 3), '<body data-model-version="3" data-a="1"><p>&lt;body </p>');
+    assert.equal(stampVersion("<p>no body</p>", 3), "<p>no body</p>");
+  });
+
+  test("HTML pages carry the version of the site they were served from", () => {
+    let version = 0;
+    const h = createHandler({ getSite: () => site, getVersion: () => version });
+    let res = fakeRes();
+    h({ method: "GET", url: "/" }, res);
+    let body = text(res);
+    assert.match(body, /<body data-model-version="0" data-mode="serve"/);
+    assert.equal(res.headers["Content-Length"], Buffer.byteLength(body));
+
+    version = 7;
+    res = fakeRes();
+    h({ method: "GET", url: "/index.html" }, res);
+    assert.match(text(res), /<body data-model-version="7" /);
+  });
+
+  test("other types and handlers without getVersion are unchanged", () => {
+    const h = createHandler({ getSite: () => site, getVersion: () => 5 });
+    const res = fakeRes();
+    h({ method: "GET", url: "/assets/app.js" }, res);
+    assert.equal(text(res), 'document.body; "<body "');
+    const plain = createHandler({ getSite: () => site });
+    const res2 = fakeRes();
+    plain({ method: "GET", url: "/" }, res2);
+    assert.doesNotMatch(text(res2), /data-model-version/);
   });
 });

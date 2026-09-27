@@ -1,8 +1,10 @@
 /**
  * Shared helpers for the Playwright suites: fixture copies, spawning the real
- * CLI, and hashing a folder to prove it was not modified (FR-006).
+ * CLI, hashing a folder to prove it was not modified (FR-006), and the page
+ * shell selectors of spec 002 (contracts/routes.md "Page shell").
  */
 
+import { expect } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cp, mkdtemp, readdir, readFile, stat } from "node:fs/promises";
@@ -16,6 +18,64 @@ export const BIN = path.join(REPO_ROOT, "bin", "speckit-eye.js");
 export const FIXTURES = path.join(REPO_ROOT, "tests", "fixtures", "projects");
 export const E2E_PORT = 4747;
 const START_TIMEOUT_MS = 15_000;
+
+/** @typedef {import("@playwright/test").Page} Page */
+
+/** The dark sidebar of overview and feature pages. @param {Page} page */
+export const sidebar = (page) => page.locator('[data-region="sidebar"]');
+
+/** The icon rail of document pages. @param {Page} page */
+export const rail = (page) => page.locator('[data-region="rail"]');
+
+/**
+ * The site navigation of any page: the sidebar or, on document pages, the rail
+ * (not the mobile menu copy, which is hidden on desktop).
+ * @param {Page} page
+ */
+export const siteNav = (page) => page.locator('[data-region="sidebar"], [data-region="rail"]');
+
+/**
+ * The link to a main destination ("Overview", "Constitution",
+ * "Assessment: <slug>") in the sidebar or rail.
+ * @param {Page} page
+ * @param {string} name
+ */
+export const navLink = (page, name) => siteNav(page).getByRole("link", { name, exact: true });
+
+/** The sidebar entry of a feature. @param {Page} page @param {string} dir */
+export const sidebarFeature = (page, dir) => sidebar(page).locator(`a[data-key="side:${dir}"]`);
+
+/**
+ * The page path of a feature page, without the base.
+ * @param {string} dir
+ */
+export const featurePagePath = (dir) => `features/${dir}/index.html`;
+
+/**
+ * A file's text as the browser holds it once it is inside an HTML page: the
+ * HTML parser turns every CR LF pair and every lone CR into LF, so a file
+ * checked out with Windows line endings reads back with LF from the DOM
+ * (for example the raw markdown `<pre>`).
+ * @param {string} text
+ * @returns {string}
+ */
+export const asInPage = (text) => text.replace(/\r\n?/g, "\n");
+
+/**
+ * Presses the search shortcut the page itself advertises: its search entry
+ * shows "⌘K" when the page runs on macOS and "Ctrl K" elsewhere
+ * (src/client/search.js decides from the browser's platform, which the
+ * emulated device sets; it is not always the platform of the machine running
+ * the tests, so Playwright's `ControlOrMeta` can pick the other key).
+ * Waits until the search script has wired the entry.
+ * @param {Page} page
+ */
+export async function pressSearchShortcut(page) {
+  const entry = page.locator('button[data-part="search"]:not([hidden])').first();
+  await expect(entry).toBeAttached();
+  const hint = await entry.evaluate((el) => `${el.querySelector("kbd")?.textContent ?? ""} ${el.getAttribute("title") ?? ""}`);
+  await page.keyboard.press(hint.includes("⌘") ? "Meta+k" : "Control+k");
+}
 
 /**
  * Copies `tests/fixtures/projects/<name>` into a fresh temporary folder.
@@ -172,6 +232,9 @@ const STATIC_TYPES = /** @type {Record<string, string>} */ ({
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".woff2": "font/woff2",
 });
 
 /**
@@ -236,4 +299,65 @@ export async function serveStatic(rootDir, mountPath = "/") {
         server.close(() => resolve());
       }),
   };
+}
+
+/** Pages of every type in the `mixed` fixture, for page-wide checks. */
+const HIT_MIXED_PAGES = [
+  "",
+  featurePagePath("002-beta"),
+  featurePagePath("004-delta"),
+  "features/002-beta/spec.html",
+  "features/002-beta/plan.html",
+  "features/002-beta/tasks.html",
+  "constitution.html",
+  "assessments/speckit-dashboard/intake.html",
+];
+
+/** Pages of this repository with long tables, code, links in text and many documents. */
+const HIT_REPO_PAGES = [
+  featurePagePath("002-dashboard-redesign"),
+  "features/002-dashboard-redesign/spec.html",
+  "features/002-dashboard-redesign/plan.html",
+  "features/002-dashboard-redesign/tasks.html",
+  "features/002-dashboard-redesign/contracts/routes.html",
+];
+
+/**
+ * FR-050: on every page type, every visible link, button, summary and input
+ * (links in running document text included) has a hit target at least 36 px
+ * tall; only task map squares are excepted. Every `<details>` is opened first
+ * so hidden parts are checked too.
+ * @param {import("@playwright/test").Page} page
+ * @param {{ serve: (fixture: string) => Promise<{url: string}>, serveRepo: () => Promise<{url: string}>, stop: () => Promise<void> | undefined }} servers
+ */
+export async function checkHitTargets(page, { serve, serveRepo, stop }) {
+  const small = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("a, button, summary, input:not([type='checkbox'])")]
+        .filter((el) => {
+          const box = el.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) return false;
+          if (el.closest('[data-region="taskmap"] [data-part="grid"]')) return false;
+          // Layout rounding: 35.5 px or more counts as 36.
+          return box.height < 35.5;
+        })
+        .map((el) => `${el.tagName.toLowerCase()} ${Math.round(el.getBoundingClientRect().height)} px "${el.textContent?.trim().slice(0, 30)}"`),
+    );
+  const openAll = () =>
+    page.evaluate(() => {
+      for (const d of document.querySelectorAll("details")) if (d.getAttribute("data-part") !== "raw") d.open = true;
+    });
+  const check = async (url, pages, label) => {
+    for (const p of pages) {
+      await page.goto(`${url}${p}`);
+      await openAll();
+      expect(await small(), `${label} ${p || "overview"}`).toEqual([]);
+    }
+  };
+
+  await check((await serve("mixed")).url, HIT_MIXED_PAGES, "mixed");
+  await stop();
+  await check((await serve("nonstandard")).url, ["", featurePagePath("001-odd")], "nonstandard");
+  await stop();
+  await check((await serveRepo()).url, HIT_REPO_PAGES, "repo");
 }

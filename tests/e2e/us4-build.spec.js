@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 import { mkdtemp, readdir, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { BIN, REPO_ROOT, copyFixture, hashTree, runBuild, serveStatic, startServe } from "./helpers.js";
+import { BIN, REPO_ROOT, copyFixture, featurePagePath, hashTree, navLink, pressSearchShortcut, runBuild, serveStatic, sidebar, startServe } from "./helpers.js";
 import { spawn } from "node:child_process";
 
 const BASE = "/my-repo/";
@@ -28,6 +28,7 @@ const PAGES = [
   "features/003-gamma/plan.html",
   "features/003-gamma/tasks.html",
   "features/004-delta/spec.html",
+  ...["001-alpha", "002-beta", "003-gamma", "004-delta"].map(featurePagePath),
 ];
 
 /** @type {(() => Promise<unknown>)[]} */
@@ -77,7 +78,9 @@ test("US4 AC1 FR-003 build writes the overview and one page per artifact and exi
   const files = await listFiles(out);
   expect(files.filter((f) => f.endsWith(".html")).sort()).toEqual([...PAGES].sort());
   expect(files).toContain("assets/styles.css");
-  expect(files).toContain("assets/overview.js");
+  expect(files).toContain("assets/taskmap.js");
+  expect(files).toContain("assets/app.js");
+  expect(files).toContain("assets/theme.js");
   expect(files).toContain(".speckit-eye-build");
   expect(files).not.toContain("assets/live.js");
   expect(result.stdout).toMatch(/^speckit-eye \S+ — building .+ → .+ \(base \/my-repo\/\)\n/);
@@ -95,7 +98,7 @@ test("US4 AC2 FR-004 FR-032 a deep link under the base loads with styles and wor
 
   const res = await page.goto(`${host.url}features/001-alpha/plan.html`);
   expect(res?.status()).toBe(200);
-  await expect(page.locator('article[data-region="artifact"]')).toHaveAttribute("data-key", "specs/001-alpha/plan.md");
+  await expect(page.locator('article[data-region="doc"]')).toHaveAttribute("data-key", "specs/001-alpha/plan.md");
   // The stylesheet loaded and applies (the prose article is styled by it).
   const rules = await page.evaluate(() => [...document.styleSheets].reduce((n, s) => n + s.cssRules.length, 0));
   expect(rules).toBeGreaterThan(10);
@@ -118,9 +121,12 @@ test("US4 AC2 FR-004 FR-032 a deep link under the base loads with styles and wor
     expect(r?.status(), p).toBe(200);
   }
   await page.goto(host.url);
-  await page.locator('header [data-region="menu"] summary').click();
-  await page.locator('header [data-region="menu"]').getByRole("link", { name: "Constitution" }).click();
+  await navLink(page, "Constitution").click();
   await expect(page).toHaveURL(`${host.url}constitution.html`);
+  await page.goto(host.url);
+  await sidebar(page).locator('a[data-key="side:002-beta"]').click();
+  await expect(page).toHaveURL(`${host.url}${featurePagePath("002-beta")}`);
+  await expect(page.locator('[data-region="feature-head"] h1')).toBeVisible();
   expect(failed).toEqual([]);
 });
 
@@ -133,16 +139,16 @@ test("US4 AC3 FR-031 the overview matches serve mode, shows the generated time a
   await page.goto(host.url);
   await page.waitForLoadState("networkidle");
   const snapshot = async () => ({
-    progress: await page.locator('[data-region="progress"]').innerText(),
+    progress: await page.locator('[data-region="stats"]').innerText(),
     tree: await tree(page).evaluate((el) => el.textContent),
-    grid: await page.locator('[data-region="grid"]').evaluate((el) => ({
+    grid: await page.locator('[data-region="taskmap"] [data-part="grid"]').evaluate((el) => ({
       text: el.textContent,
       squares: [...el.querySelectorAll("a[data-key]")].map((a) => `${a.dataset.key}=${a.dataset.state}|${a.title}`),
     })),
   });
   const built = await snapshot();
   await expect(page.locator("body")).toHaveAttribute("data-mode", "static");
-  await expect(page.locator("footer")).toContainText(/generated at \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/);
+  await expect(page.locator("footer")).toContainText(/generated \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/);
   await expect(page.locator('[data-region="live-status"]')).toHaveCount(0);
 
   const server = await startServe(dir, { anyPort: true });
@@ -191,7 +197,7 @@ test("US4 FR-037 expand and collapse work with JavaScript disabled", async ({ br
   await expect(details(page, "002-beta")).toHaveAttribute("open", "");
   // Grid colors come from the stylesheet alone.
   const colors = await page
-    .locator('[data-region="grid"] a[data-state]')
+    .locator('[data-region="taskmap"] [data-part="grid"] a[data-state]')
     .evaluateAll((els) => new Set(els.map((el) => getComputedStyle(el).backgroundColor)).size);
   expect(colors).toBeGreaterThanOrEqual(3);
 });
@@ -289,7 +295,157 @@ test("US4 AC4 FR-039 the build command of the documented GitHub Pages workflow w
   const res = await page.goto(host.url);
   expect(res?.status()).toBe(200);
   await expect(page.locator("body")).toHaveAttribute("data-mode", "static");
-  await expect(page.locator('[data-region="progress"]')).toContainText("40 / 65 tasks");
+  await expect(page.locator('[data-region="stats"]')).toContainText("40 of 65 tasks");
   const css = await page.request.get(`${host.origin}${base}assets/styles.css`);
   expect(css.status()).toBe(200);
+});
+
+// ---------------------------------------------------------------------------
+// Spec 002: the redesign in a static build (FR-052, FR-004, FR-005, D6)
+// ---------------------------------------------------------------------------
+
+test("FR-052 static build under a sub-path has the same pages as serve mode, including feature pages, fonts and search index", async ({ request }) => {
+  const { dir, out, host } = await buildAndServe();
+  const files = (await listFiles(out)).filter((f) => f !== ".speckit-eye-build");
+  for (const dirName of ["001-alpha", "002-beta", "003-gamma", "004-delta"]) expect(files).toContain(featurePagePath(dirName));
+  expect(files).toContain("assets/search-index.json");
+  const fonts = (await readdir(path.join(REPO_ROOT, "dist", "fonts"))).map((f) => `assets/fonts/${f}`);
+  expect(fonts.some((f) => f.endsWith(".woff2"))).toBe(true);
+  for (const f of fonts) expect(files, f).toContain(f);
+
+  // Every built file is a page or asset of serve mode too, with the same type.
+  const server = await startServe(dir, { anyPort: true });
+  cleanup.push(() => server.stop());
+  for (const f of files) {
+    const built = await request.get(`${host.url}${f}`);
+    const served = await request.get(`${server.url}${f}`);
+    expect(built.status(), f).toBe(200);
+    expect(served.status(), f).toBe(200);
+    expect(built.headers()["content-type"], f).toBe(served.headers()["content-type"]);
+  }
+  // Serve mode has no page the build lacks: its live client is the only extra asset.
+  expect((await request.get(`${server.url}assets/live.js`)).status()).toBe(200);
+  expect(files).not.toContain("assets/live.js");
+
+  // Both search indexes list the same entries; the built one links under the base.
+  const builtIndex = await (await request.get(`${host.url}assets/search-index.json`)).json();
+  const servedIndex = await (await request.get(`${server.url}assets/search-index.json`)).json();
+  expect(builtIndex.entries.length).toBeGreaterThan(65);
+  expect(builtIndex.entries.map((e) => e.label)).toEqual(servedIndex.entries.map((e) => e.label));
+});
+
+test("FR-004 D6 data-driven widths and bundled fonts work under the sub-path", async ({ page }) => {
+  const { host } = await buildAndServe();
+  /** @type {string[]} */
+  const fontUrls = [];
+  page.on("response", (r) => {
+    if (r.url().endsWith(".woff2") && r.status() === 200) fontUrls.push(new URL(r.url()).pathname);
+  });
+  await page.goto(host.url);
+
+  // A segment of the stats card is as wide as its w-pct-N class says.
+  const segment = page.locator('[data-region="stats"] [data-part="segments"] a[data-key="seg:001-alpha"]');
+  await expect(segment).toHaveClass(/\bw-pct-46\b/);
+  const share = await segment.evaluate((el) => el.getBoundingClientRect().width / /** @type {Element} */ (el.parentElement).getBoundingClientRect().width);
+  expect(share).toBeGreaterThan(0.4);
+  expect(share).toBeLessThan(0.5);
+
+  // Fonts: Geist and Instrument Serif are loaded, from the base's assets/fonts/.
+  const loaded = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return {
+      geist: document.fonts.check('16px "Geist Variable"'),
+      serif: document.fonts.check('16px "Instrument Serif"'),
+      families: [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family.replace(/"/g, "")),
+    };
+  });
+  expect(loaded.geist).toBe(true);
+  expect(loaded.serif).toBe(true);
+  expect(loaded.families).toContain("Geist Variable");
+  expect(loaded.families).toContain("Instrument Serif");
+  expect(fontUrls.length).toBeGreaterThan(0);
+  for (const u of fontUrls) expect(u).toMatch(/^\/my-repo\/assets\/fonts\/[^/]+\.woff2$/);
+
+  // A phase-rail block of a feature page has a non-zero width from its class.
+  await page.goto(`${host.url}${featurePagePath("002-beta")}`);
+  const blocks = page.locator('[data-region="tasks"] [data-part="rail"] [data-part="block"]');
+  await expect(blocks).toHaveCount(4);
+  const rail = await blocks.evaluateAll((els) => els.map((el) => ({ cls: el.className, width: el.getBoundingClientRect().width })));
+  for (const b of rail) {
+    expect(b.cls).toMatch(/\bw-pct-\d+\b/);
+    expect(b.width).toBeGreaterThan(20);
+  }
+  // Phase 4 (7 tasks) is wider than phase 2 (3 tasks).
+  expect(rail[3].width).toBeGreaterThan(rail[1].width);
+});
+
+test("FR-052 theme, map mode, filters, reader and search work in the static build", async ({ page }) => {
+  const { host } = await buildAndServe();
+  await page.goto(host.url);
+
+  // Theme: the choice applies at once and on the next page.
+  const theme = sidebar(page).locator('[data-part="theme"]');
+  await expect(theme).toBeVisible();
+  await theme.locator('button[data-theme-choice="dark"]').click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  // Map mode, remembered after a reload.
+  const mode = page.locator('[data-region="taskmap"] button[data-part="map-mode"]');
+  await mode.click();
+  await expect(page.locator('[data-region="taskmap"]')).toHaveAttribute("data-layout", "grouped");
+  // Overview filter.
+  await page.locator('[data-part="view-filter"] button[data-filter="open"]').click();
+  await expect(tree(page)).toHaveAttribute("data-filter", "open");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator('[data-region="taskmap"]')).toHaveAttribute("data-layout", "grouped");
+  await expect(tree(page)).toHaveAttribute("data-filter", "open");
+
+  // Feature page filters and selection.
+  await page.goto(`${host.url}${featurePagePath("002-beta")}`);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const tasks = page.locator('[data-region="tasks"]');
+  await tasks.locator('button[data-filter-chip="open"]').click();
+  await expect(tasks.locator('details[data-part="task"]:not([data-filtered-out])')).toHaveCount(10);
+  await tasks.locator('details[data-part="task"][data-id="T018"] > summary').click();
+  await expect(tasks.locator('[data-region="detail"] [data-part="waiting"]')).toHaveText("Waiting on T011");
+
+  // Reader: the raw view replaces the formatted view; the contents progress shows.
+  await page.goto(`${host.url}features/002-beta/plan.html`);
+  const article = page.locator('article[data-region="doc"]');
+  await article.locator('details[data-part="raw"] > summary').click();
+  await expect(article.locator('[data-part="formatted"]')).toBeHidden();
+  await expect(article.locator('details[data-part="raw"] pre')).toBeVisible();
+  await expect(page.locator('[data-region="toc"] [data-part="progress"]')).toBeVisible();
+
+  // Search opens a result under the base.
+  await pressSearchShortcut(page);
+  const dialog = page.locator('dialog[data-region="search"]');
+  await expect(dialog).toHaveJSProperty("open", true);
+  // 001-alpha has a T018 too; its text tells them apart.
+  await dialog.locator('input[data-part="query"]').fill("T018 search box");
+  const first = dialog.locator('[data-group="Tasks"] [data-part="result"]').first();
+  await expect(first.locator('[data-part="id"]')).toHaveText("T018");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(`${host.url}${featurePagePath("002-beta")}#task-002-beta-T018`);
+  await expect(tasks.locator('details[data-part="task"][data-id="T018"]')).toHaveAttribute("data-selected", "");
+});
+
+test("FR-005 static footer shows the generation time", async ({ page }) => {
+  const { host } = await buildAndServe();
+  for (const p of ["", featurePagePath("002-beta"), "features/002-beta/plan.html", "constitution.html"]) {
+    await page.goto(`${host.url}${p}`);
+    const time = page.locator("footer time").first();
+    await expect(time, p || "overview").toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/);
+    const stamp = await time.getAttribute("datetime");
+    expect(Math.abs(Date.now() - Date.parse(stamp)), p).toBeLessThan(10 * 60_000);
+    await expect(page.locator("footer").first(), p).toContainText(`generated ${stamp}`);
+  }
+  // Serve mode has no generation time.
+  const dir = await copyFixture("mixed");
+  const server = await startServe(dir, { anyPort: true });
+  cleanup.push(() => server.stop());
+  await page.goto(server.url);
+  await expect(page.locator("footer time")).toHaveCount(0);
+  await expect(page.locator("footer").first()).not.toContainText("generated");
 });
