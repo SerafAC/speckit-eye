@@ -5,31 +5,46 @@ projects. Point it at a project folder and open the printed address: you see
 how far along the project is, which feature and phase are being worked on, and
 which task comes next, without reading a single `tasks.md` by hand.
 
-![The speckit-eye overview: an overall progress bar with counters, a feature tree with the active feature expanded, and a grid with one square per task](docs/screenshot.png)
+![The speckit-eye overview: a dark sidebar with the features, a stats card with the overall percentage and a bar per feature, the Up next bar naming the next task, the feature tree with the active phase open, and the task map with one square per task](docs/screenshot.png)
 
 speckit-eye only reads your project. It never creates, changes, or deletes a
 file in it; a static build writes only to the output folder you name.
 
 ## Features
 
-- **Overview at a glance**: one progress bar for the whole project, counters
-  for completed specs, phases and tasks, and the next task to work on
-- **Feature tree**: every feature with its stage, phases, user stories and
-  tasks; the feature being worked on is expanded, finished ones are collapsed
-- **Task grid**: one square per task, colored by state (done, current,
-  blocked, not started); hover a square to see which feature and phase it
-  belongs to
+- **Overview at a glance**: the overall percentage, features, phases and open
+  tasks, a bar with one segment per feature, and an Up next bar naming the
+  next task to work on
+- **Feature tree**: every feature with its status, phases, user stories and
+  tasks, in the order you choose (in progress first, number, least complete,
+  name), opened to the depth you choose, with "Open tasks only" and warnings
+  for `tasks.md` lines that do not follow the Spec Kit template
+- **Task map**: one square per task, colored done, open, blocked or next;
+  hover a square for its task, click it to find the task in the tree, or
+  group the squares by feature
+- **Feature pages**: one page per feature with tabs for its documents, a
+  phase rail, task filters (open, tests, kind of file, text), and a detail
+  panel with the task's files, what it is waiting on, "Copy ID" and a link to
+  its line in `tasks.md`
+- **Document reader**: every spec, plan, research note, contract, checklist,
+  the constitution and assessments in a reading layout with a document list
+  and "On this page"; specs following the Spec Kit template get a structured
+  view with user stories, clarifications and requirements; "Raw markdown"
+  shows the source
+- **Light, dark or system theme**: switch in the sidebar; your choice is
+  remembered
+- **Search**: press ⌘K (Ctrl+K) to find tasks, features, documents and
+  section headings
 - **Live updates**: in serve mode, open pages follow changes to your files
-  within about 2 seconds and keep your scroll position and expanded items
-- **Every artifact readable**: specs, plans, research, contracts, checklists,
-  the constitution and assessments open as rendered pages, at most two clicks
-  from the overview
+  within about 2 seconds and stay as you left them
 - **Static snapshot**: build the same pages as a static site, for example for
   GitHub Pages
-- **Read-only and local**: it never changes your project, and serve mode
-  listens only on your own machine
-- **Works without JavaScript**: the overview, including expand and collapse,
-  works with scripts turned off
+- **Read-only and local**: it never changes your project, serve mode listens
+  only on your own machine, and nothing is loaded from other servers
+- **Works without JavaScript**: every page stays readable, and the tree,
+  phases, tasks and document sections open and close with scripts turned
+  off
+- **Works on phones**: on a narrow screen the sidebar moves behind a menu
 
 ## Prerequisites
 
@@ -46,9 +61,10 @@ npx speckit-eye --serve .
 Then open the `Local:` address it prints (normally http://127.0.0.1:4747/).
 Press Ctrl+C to stop.
 
-The overview shows an overall progress bar with counters for specs, phases,
-and tasks, a tree of every feature with its phases and stories, and a grid
-with one square per task.
+The overview shows how far the project is, the next task, a tree of every
+feature with its phases and tasks, and a task map with one square per task.
+Open a feature from the sidebar to work through its tasks and read its
+documents.
 
 ## Publish a snapshot
 
@@ -71,8 +87,8 @@ workflow and notes for other hosts.
 
 ## Documentation
 
-- [Usage](docs/usage.md): what the overview shows, stage labels, colors, and
-  how the active feature is chosen
+- [Usage](docs/usage.md): the overview, task map, feature pages, document
+  reader, theme, search, and how the active feature is chosen
 - [Hosting a snapshot](docs/hosting.md): static build options and a sample
   GitHub Pages workflow
 - [Architecture](docs/architecture.md): how the tool is put together

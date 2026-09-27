@@ -5,7 +5,7 @@ import { createHandler, routeKey, contentTypeFor, CSP } from "../../src/serve/ha
 const SITE = new Map([
   ["index.html", { type: "text/html", body: "<!doctype html><p>hi ✓</p>" }],
   ["assets/styles.css", { type: "text/css", body: "body{}" }],
-  ["assets/overview.js", { type: "text/javascript", body: "export {};" }],
+  ["assets/app.js", { type: "text/javascript", body: "export {};" }],
   ["features/001-a/spec.html", { type: "text/html", body: "<p>spec</p>" }],
 ]);
 
@@ -71,7 +71,7 @@ describe("contentTypeFor", () => {
   test("by extension", () => {
     assert.equal(contentTypeFor("index.html"), "text/html; charset=utf-8");
     assert.equal(contentTypeFor("assets/styles.css"), "text/css; charset=utf-8");
-    assert.equal(contentTypeFor("assets/overview.js"), "text/javascript; charset=utf-8");
+    assert.equal(contentTypeFor("assets/app.js"), "text/javascript; charset=utf-8");
     assert.equal(contentTypeFor("assets/fonts/geist-latin-wght-normal.woff2"), "font/woff2");
     assert.equal(contentTypeFor("assets/fonts/OFL-geist.txt"), "text/plain; charset=utf-8");
     assert.equal(contentTypeFor("x.unknown"), "application/octet-stream");
@@ -92,7 +92,7 @@ describe("createHandler", () => {
     assert.equal(text(res), "body{}");
     assert.equal(res.headers["Content-Type"], "text/css; charset=utf-8");
 
-    res = request("/assets/overview.js");
+    res = request("/assets/app.js");
     assert.equal(res.headers["Content-Type"], "text/javascript; charset=utf-8");
 
     res = request("/features/001-a/spec.html");

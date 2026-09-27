@@ -205,6 +205,6 @@ describe("squareTitle", () => {
     const feature = { title: "Beta" };
     assert.equal(squareTitle({ id: "T001", description: "Do it", display: "done" }, feature), "T001 · Done — Do it — Beta");
     assert.equal(squareTitle({ id: null, description: "Loose", display: "open" }, feature), "No ID · Open — Loose — Beta");
-    assert.equal(squareTitle({ id: "T002", description: "Wait", state: "blocked" }, feature), "T002 · Blocked — Wait — Beta");
+    assert.equal(squareTitle({ id: "T002", description: "Wait", display: "blocked" }, feature), "T002 · Blocked — Wait — Beta");
   });
 });

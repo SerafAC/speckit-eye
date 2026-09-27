@@ -1,10 +1,14 @@
 # Hosting a snapshot
 
-`speckit-eye --build` writes the same overview and artifact pages as serve
-mode, as plain static files. Any static host can serve them: there is no
-server-side logic, pages open directly by their address, the tree opens and
-closes without JavaScript, and nothing is loaded from other servers. A hosted
-snapshot has no live updates; each page footer shows when it was generated.
+`speckit-eye --build` writes the same overview, feature pages and document
+pages as serve mode, as plain static files. Any static host can serve them:
+there is no server-side logic, pages open directly by their address, the tree,
+phases, task rows and document sections open and close without JavaScript,
+and nothing is loaded from other servers. The stylesheet, the bundled fonts,
+the browser scripts and the search index are written into `assets/` beside the
+pages, so the theme switch, task map, filters, reader and search work the same
+as in serve mode. A hosted snapshot has no live updates; each page footer
+shows when it was generated.
 
 ```sh
 npx speckit-eye --build . --out _site --base /my-repo/
@@ -13,7 +17,9 @@ npx speckit-eye --build . --out _site --base /my-repo/
 - `--out` is the folder to write. It is created if missing. It must not be the
   project folder itself or lie inside `specs/` or `.specify/`.
 - `--base` is the URL path the site is served under (default `/`). For GitHub
-  Pages project sites this is `/<repository name>/`.
+  Pages project sites this is `/<repository name>/`. Every link, script and
+  the search index use this path; the fonts are referenced relative to the
+  stylesheet, so they load under any base.
 - A second build into the same folder replaces the previous one, with no stale
   pages left behind. The tool recognizes its own output by the
   `.speckit-eye-build` file it writes there. It refuses to write into any other
@@ -25,13 +31,13 @@ If you build locally into a folder inside your repository, add that folder
 ## What a hosted build exposes
 
 > [!WARNING]
-> **A hosted build publishes every artifact of the project.** The site contains
+> **A hosted build publishes every document of the project.** The site contains
 > every spec, plan, research note, data model, contract, checklist, the
 > constitution and every idea assessment under `.specify/assessments/`.
 > **Anyone who can reach the site can read all of it, unless your host
 > restricts access.** GitHub Pages sites of public repositories are public;
 > check your host's access settings before you publish a private project.
-> There is no option to leave artifacts out.
+> There is no option to leave documents out.
 
 The build prints the same reminder when it finishes.
 
