@@ -6,7 +6,7 @@ or deletes a file in it. A static build writes only to the output folder you
 name with `--out`.
 
 For every option and exit code, see the CLI contract:
-[contracts/cli.md](../specs/001-speckit-eye-dashboard/contracts/cli.md).
+[contracts/cli.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/contracts/cli.md).
 
 ## Serve mode
 
@@ -379,8 +379,9 @@ checkboxes are never counted as tasks), code blocks, block quotes and links
 are rendered. Headings get anchors, so a link such as `cli.md#synopsis` lands
 on the "Synopsis" heading.
 
-- **Links to other documents** (relative links such as `[plan](./plan.md)` or
-  `[cli](contracts/cli.md#synopsis)`) open that document's page.
+- **Links to other documents** (relative links whose target is another
+  document, such as `./plan.md` or `contracts/cli.md#synopsis`) open that
+  document's page.
 - **Links to other files** in the repository (for example `../../src/index.js`)
   are shown as plain text: the tool never serves files that are not
   documents.

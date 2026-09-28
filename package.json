@@ -45,6 +45,7 @@
   },
   "scripts": {
     "build:assets": "tailwindcss -i src/styles/input.css -o dist/styles.css --minify && node scripts/copy-assets.js",
+    "docs:build": "node scripts/build-site.js",
     "prepack": "pnpm run build:assets",
     "test": "node --test \"tests/unit/**/*.test.js\"",
     "test:coverage": "node --test --experimental-test-coverage \"tests/unit/**/*.test.js\"",

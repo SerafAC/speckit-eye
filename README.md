@@ -6,8 +6,8 @@ how far along the project is, which feature and phase are being worked on, and
 which task comes next, without reading a single `tasks.md` by hand.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
-  <img src="docs/screenshot.png" width="1440" alt="The speckit-eye overview: a dark sidebar with the features, a stats card with the overall percentage and a bar per feature, the Up next bar naming the next task, the feature tree with the active phase open, and the task map with one square per task">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshot-dark.png">
+  <img src="docs/assets/screenshot.png" width="1440" alt="The speckit-eye overview: a dark sidebar with the features, a stats card with the overall percentage and a bar per feature, the Up next bar naming the next task, the feature tree with the active phase open, and the task map with one square per task">
 </picture>
 
 speckit-eye only reads your project. It never creates, changes, or deletes a
@@ -90,10 +90,13 @@ workflow and notes for other hosts.
 
 ## Documentation
 
+- [Documentation website](https://serafac.github.io/speckit-eye/): all the
+  guides below, online
 - [Usage](docs/usage.md): the overview, task map, feature pages, document
   reader, theme, search, and how the active feature is chosen
 - [Hosting a snapshot](docs/hosting.md): static build options and a sample
   GitHub Pages workflow
 - [Architecture](docs/architecture.md): how the tool is put together
+- [Releasing](docs/releasing.md): how a new version is published to npm
 - [Development](DEVELOPMENT.md): building, testing, and contributing
 - [Changelog](CHANGELOG.md): what changed in each release

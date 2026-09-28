@@ -246,14 +246,16 @@ const STATIC_TYPES = /** @type {Record<string, string>} */ ({
  */
 
 /**
- * A test-only plain static file server on 127.0.0.1 and port 0: maps
- * `<mountPath>*` to files under `rootDir` (a folder → its `index.html`),
- * anything else → 404. Like a static host, it has no server-side logic.
+ * A test-only plain static file server on 127.0.0.1 (port 0 unless `port`
+ * is given): maps `<mountPath>*` to files under `rootDir` (a folder → its
+ * `index.html`), anything else → 404. Like a static host, it has no
+ * server-side logic.
  * @param {string} rootDir
  * @param {string} [mountPath] with leading and trailing `/`
+ * @param {{ port?: number }} [options]
  * @returns {Promise<StaticHandle>}
  */
-export async function serveStatic(rootDir, mountPath = "/") {
+export async function serveStatic(rootDir, mountPath = "/", { port: listenPort = 0 } = {}) {
   const root = path.resolve(rootDir);
   /** @type {string[]} */
   const requests = [];
@@ -285,7 +287,7 @@ export async function serveStatic(rootDir, mountPath = "/") {
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => resolve(undefined));
+    server.listen(listenPort, "127.0.0.1", () => resolve(undefined));
   });
   const { port } = /** @type {import("node:net").AddressInfo} */ (server.address());
   const origin = `http://127.0.0.1:${port}`;

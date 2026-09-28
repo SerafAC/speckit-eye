@@ -4,23 +4,23 @@ This page gives an overview of how speckit-eye is put together. The exact
 interfaces are defined in the feature's contracts, and this page links to them
 instead of repeating them:
 
-- [contracts/](../specs/001-speckit-eye-dashboard/contracts/) of 001: the CLI
-  ([cli.md](../specs/001-speckit-eye-dashboard/contracts/cli.md)), the
+- [contracts/](https://github.com/SerafAC/speckit-eye/tree/main/specs/001-speckit-eye-dashboard/contracts/) of 001: the CLI
+  ([cli.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/contracts/cli.md)), the
   live-update protocol
-  ([routes.md](../specs/001-speckit-eye-dashboard/contracts/routes.md)), and the
+  ([routes.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/contracts/routes.md)), and the
   recognized `tasks.md` format
-  ([tasks-md-format.md](../specs/001-speckit-eye-dashboard/contracts/tasks-md-format.md))
-- [contracts/](../specs/002-dashboard-redesign/contracts/) of 002: page paths,
+  ([tasks-md-format.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/contracts/tasks-md-format.md))
+- [contracts/](https://github.com/SerafAC/speckit-eye/tree/main/specs/002-dashboard-redesign/contracts/) of 002: page paths,
   the DOM of every page, the browser modules and the view state they keep
-  ([routes.md](../specs/002-dashboard-redesign/contracts/routes.md)), the
+  ([routes.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/002-dashboard-redesign/contracts/routes.md)), the
   structured `spec.md` view
-  ([spec-md-structure.md](../specs/002-dashboard-redesign/contracts/spec-md-structure.md))
+  ([spec-md-structure.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/002-dashboard-redesign/contracts/spec-md-structure.md))
   and the search index
-  ([search-index.md](../specs/002-dashboard-redesign/contracts/search-index.md))
+  ([search-index.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/002-dashboard-redesign/contracts/search-index.md))
 - the data models of
-  [001](../specs/001-speckit-eye-dashboard/data-model.md) (the project model,
+  [001](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/data-model.md) (the project model,
   counting and state rules, and how the active item is chosen) and
-  [002](../specs/002-dashboard-redesign/data-model.md) (statuses, ranks,
+  [002](https://github.com/SerafAC/speckit-eye/blob/main/specs/002-dashboard-redesign/data-model.md) (statuses, ranks,
   shares, warning groups, documents and task files)
 
 ## Data flow
@@ -69,7 +69,7 @@ never depend on them for content or navigation.
 | `src/parse/` | `lines.js` | Line iteration that skips fenced code blocks and HTML comments |
 | | `tasks.js` | `tasks.md` parser: phases, tasks, markers, dependencies and warnings |
 | | `spec.js` | `spec.md` parser: title and user stories |
-| | `spec-structure.js` | `spec.md` → blocks with line ranges for the structured view (metadata, input, clarifications, stories, requirements, entities, plain); the blocks cover every line of the file ([spec-md-structure.md](../specs/002-dashboard-redesign/contracts/spec-md-structure.md)) |
+| | `spec-structure.js` | `spec.md` → blocks with line ranges for the structured view (metadata, input, clarifications, stories, requirements, entities, plain); the blocks cover every line of the file ([spec-md-structure.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/002-dashboard-redesign/contracts/spec-md-structure.md)) |
 | `src/model/` | `build-model.js` | Builds the `Project` model from the scan result, including statuses, feature numbers, overview stats, document groups and tabs |
 | | `task-state.js` | Task states (done, next, blocked, open), their display names, `waitingOn`, and change signatures |
 | | `task-files.js` | The file paths, kind ("Go test", "Vue") and FR/SC references of a task, from its text |
@@ -87,7 +87,7 @@ never depend on them for content or navigation.
 | | `feature.js` | Feature page body: header, ring, document tabs, phase rail, warnings banner, task list, detail panel host |
 | | `reader.js` | Document page body: document list, header with "Raw markdown", reading column, "On this page" |
 | | `spec-view.js` | The structured `spec.md` blocks → HTML |
-| | `search-index.js` | Model → `assets/search-index.json` ([search-index.md](../specs/002-dashboard-redesign/contracts/search-index.md)) |
+| | `search-index.js` | Model → `assets/search-index.json` ([search-index.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/002-dashboard-redesign/contracts/search-index.md)) |
 | | `theme-script.js` | The text of `assets/theme.js`, generated from `applyStoredTheme` in `src/client/prefs.js` |
 | | `site.js` | Model → site map; decides which pages and assets exist |
 | `src/serve/` | `handler.js` | Pure `(req, res)` handler: route lookup, headers, CSP, 404s, `/__events` dispatch; sends text and binary bodies |
@@ -214,7 +214,7 @@ package instead of being loaded from a font service, which the CSP and the
 ## Live updates
 
 In serve mode, a change on disk reaches open pages in these steps (details in
-[routes.md](../specs/001-speckit-eye-dashboard/contracts/routes.md#live-update-protocol-serve-mode)):
+[routes.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/contracts/routes.md#live-update-protocol-serve-mode)):
 
 1. **Watcher**: `watcher.js` sees a file event under `specs/` or `.specify/`
    (or a branch switch in the git `HEAD`) and calls `onChange` once after a
