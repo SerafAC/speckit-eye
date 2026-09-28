@@ -18,6 +18,8 @@ privately through GitHub's private vulnerability reporting:
 
 <https://github.com/SerafAC/speckit-eye/security/advisories/new>
 
+If you cannot use GitHub, email <seraf_ac@hotmail.com> instead.
+
 Include as much of the following as you can:
 
 - the speckit-eye version, Node.js version and operating system;

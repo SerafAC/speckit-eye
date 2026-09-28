@@ -61,7 +61,7 @@ never depend on them for content or navigation.
 | Folder | Module | Responsibility |
 |---|---|---|
 | `bin/` | `speckit-eye.js` | One-line entry point: calls `run()` from `src/cli/main.js` |
-| `src/cli/` | `args.js` | Parses the command line into a mode and options, or a usage error |
+| `src/cli/` | `args.js` | Parses the command line into a mode and options (`--base`, `--home`), or a usage error; see [Command line](#command-line) |
 | | `main.js` | Connects reader, model, renderer, server, watcher and build; reads the packaged assets (stylesheet, browser modules, fonts as bytes); handles exit codes and console output |
 | `src/project/` | `reader.js` | `ProjectReader`: all reads of input files, limited to the project root |
 | | `scan.js` | Finds features, artifacts, assessments, `feature.json` and the git branch, and returns the raw files |
@@ -105,6 +105,31 @@ never depend on them for content or navigation.
 | | `live.js` | Serve mode only: swaps in new content and keeps the viewer's state on each change |
 | `src/styles/` | `input.css` | Tailwind CSS source: theme tokens, `@font-face` rules, `w-pct` utilities and the components, compiled to `dist/styles.css` |
 | `scripts/` | `copy-assets.js` | Copies the bundled fonts and their licences from the `@fontsource` packages into `dist/fonts/` (`pnpm run build:assets`) |
+| | `build-site.js` | Builds the documentation site into `site/`: docmd from `docs/`, then this repository's dashboard into `site/status/` (`pnpm run docs:build`; see [Documentation site](#documentation-site)) |
+| `scripts/release/` | `release.js` | Release rules for the Bump version and Release workflows: `bump`, `verify`, `notes`, `release-commit`, `pack-check` (see [Release automation](#release-automation)) |
+
+The files under `scripts/` and `docmd.config.js` are development tools: they
+are not part of the published package.
+
+## Command line
+
+`src/cli/args.js` turns the command line into one of four modes: `help`,
+`version`, `serve` (`--serve <dir>`) and `build` (`--build <dir> --out
+<folder>`). Two options only apply to a build:
+
+- `--base <path>` is the URL path the build will be served under; every link,
+  stylesheet, script and font address starts with it.
+- `--home <url>` must be an absolute `http://` or `https://` address. It is
+  passed to `render/layout.js`, which adds a "Home" link to it under the
+  project name in the sidebar, in the icon rail of document pages and in the
+  mobile menu. Without it the pages have no Home link. Serve mode refuses it,
+  because a local dashboard is not part of another site.
+
+The full list of options and messages is in the
+[cli.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/contracts/cli.md)
+contract of 001 and the
+[cli-home.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/003-npm-release-docs-site/contracts/cli-home.md)
+contract of 003; [Usage](usage.md) describes them for users.
 
 ## Why `render/site.js` decides which pages exist
 
@@ -239,3 +264,81 @@ In serve mode, a change on disk reaches open pages in these steps (details in
 
 Static builds skip all of this: they include neither `live.js` nor
 `/__events`.
+
+## Release automation
+
+A release goes through three steps, each run by a GitHub Actions workflow
+(details in [Releasing](releasing.md) and the
+[workflows.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/003-npm-release-docs-site/contracts/workflows.md)
+contract):
+
+```text
+Bump version (bump.yml)  →  pull request "Release vX.Y.Z"  →  Release (release.yml)
+ manual, on main            reviewed and merged by hand        tag, npm, GitHub release
+```
+
+1. **Bump**: the maintainer runs **Bump version** on `main`. It computes the
+   new version, updates `package.json` and moves the `CHANGELOG.md`
+   Unreleased entries under a dated section, pushes the result to
+   `release/next` and opens or updates the pull request.
+2. **Pull request**: the change is reviewed like any other and merged into
+   `main`.
+3. **Release**: the merge starts `release.yml`. It decides whether the commit
+   is a release commit, runs the full CI (`ci.yml`, reused through
+   `workflow_call`) and the release checks, waits for the owner's approval in
+   the `npm` environment, then tags the commit `vX.Y.Z`, publishes the packed
+   tarball to npm with provenance and creates the GitHub release.
+
+All release rules live in `scripts/release/release.js`, a script with pure,
+unit-tested functions and a `main(argv, io)` with injected I/O
+([release-cli.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/003-npm-release-docs-site/contracts/release-cli.md)).
+The workflow YAML only calls it:
+
+| Command | Used by | What it does |
+|---|---|---|
+| `bump <kind> [--preid <id>]`, `bump --version <X.Y.Z>` | `bump.yml` | Computes the next version, writes `package.json` and the new changelog section; refuses an empty Unreleased section |
+| `release-commit --version … --head-ref … --tag-exists …` | `release.yml` (prepare) | Decides whether a push to `main` is a release: merged from `release/next`, tag not there yet, changelog section present |
+| `verify --tag <vX.Y.Z>` | `release.yml` (verify) | Checks that the tag, `package.json` and the changelog's latest section name the same version, and prints the npm dist-tag (`latest`, or `next` for a pre-release) |
+| `notes --version <X.Y.Z>` | `bump.yml`, `release.yml` | Prints that version's changelog section: the pull request body and the GitHub release notes |
+| `pack-check <file-list.json>` | `release.yml` (verify), E2E | Compares the files of `pnpm pack` with the allowed list |
+
+Where each release requirement of 003 is enforced:
+
+| Requirement | Where |
+|---|---|
+| FR-009 tag created on merge, only from `main` | `release.yml`: `release-commit` in the prepare job; the "commit belongs to main" step of the verify job; the tag is created by the publish job after approval |
+| FR-010 versions agree, not yet on npm | `release.yml` verify job: `verify --tag`, then `npm view` |
+| FR-011 tests and package check before publishing | `release.yml`: the `ci` job (`ci.yml`) and `pack-check`; `publish` needs both |
+| FR-012 owner approval | `release.yml` publish job: `environment: npm` |
+| FR-013 short-lived credentials, provenance | `release.yml` publish job: `id-token: write`, `npm publish --provenance` |
+| FR-014 least privilege, pinned actions | Every workflow: `permissions: {}` at the top, per-job permissions, actions pinned to a commit SHA |
+| FR-015 GitHub release from the changelog | `release.yml` publish job: `gh release create --notes-file` with the output of `notes` |
+| FR-016 pre-releases on a separate channel | `verify` prints the dist-tag; the publish job passes it to `npm publish --tag` |
+| FR-017 locked installs | Every workflow installs with `pnpm install --frozen-lockfile` |
+
+`npm publish` from a working copy is refused by the `prepublishOnly` script
+of `package.json`.
+
+## Documentation site
+
+The documentation website is generated from the Markdown files in `docs/`,
+which stay the only source of the documentation
+([site.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/003-npm-release-docs-site/contracts/site.md)):
+
+1. **docmd** (`@docmd/core`, a pinned dev dependency) builds `docs/` into
+   `site/`, with the navigation and settings in `docmd.config.js`.
+2. **Dashboard**: `scripts/build-site.js` (`pnpm run docs:build`) runs docmd
+   and then this repository's own `bin/speckit-eye.js --build` over the
+   repository, writing its dashboard to `site/status/` with
+   `--base <path>/status/` and `--home <site URL>`, so the dashboard links
+   back to the docs. The dashboard is built from the same commit as the docs,
+   with the tool's code of that commit.
+3. **Addresses**: the site URL is defined once, as `homepage` in
+   `package.json`; `docmd.config.js` and `build-site.js` derive the base path,
+   the dashboard's `--base` and its `--home` from it.
+4. **Deploy**: `.github/workflows/pages.yml` builds the site and checks its
+   links (`docmd validate`) on pull requests that touch it, and on `main` (or
+   on demand) also deploys `site/` to GitHub Pages. Deploys never overlap, and
+   a failed build leaves the previous site online.
+
+`site/` is generated and gitignored.

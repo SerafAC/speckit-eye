@@ -24,6 +24,17 @@ pnpm run build:assets   # stylesheet and fonts:
 
 `dist/` is generated and gitignored. `prepack` runs `build:assets`, so the published package always contains a fresh `dist/styles.css` and `dist/fonts/`. The fonts come from the `@fontsource*` dev dependencies (Geist, Geist Mono, Instrument Serif; Latin and Latin-extended `woff2` files plus their OFL licence texts).
 
+## Documentation site
+
+```sh
+pnpm run docs:build        # builds the site into site/: docmd from docs/, then this
+                           # repository's dashboard into site/status/ (scripts/build-site.js)
+pnpm exec docmd validate   # checks docs/ for broken relative links
+pnpm exec docmd dev        # previews docs/ with live reload while you edit
+```
+
+`site/` is generated and gitignored. The site's settings and navigation are in `docmd.config.js`; its URL is `homepage` in `package.json`. `docmd dev` shows the documentation only; to see the `/status/` dashboard as it will be deployed, run `pnpm run docs:build` and serve `site/` under the base path. The Pages workflow builds and validates the site on pull requests and deploys it from `main` (see [docs/architecture.md](docs/architecture.md#documentation-site)).
+
 ## Tests
 
 ```sh
@@ -35,13 +46,14 @@ pnpm run test:e2e --project chromium   # one Playwright project only
 
 - Unit tests never touch the real file system, network, or a browser. All I/O is injected (see Conventions).
 - Unit tests of the browser modules in `src/client/` run against [happy-dom](https://github.com/capricorn86/happy-dom) (a fresh `new Window()` per test), in files named `tests/unit/client-<module>.test.js`. Layout-dependent code is tested with stubbed `getBoundingClientRect` values.
-- E2E tests drive the real CLI, one worker at a time (all servers use port 4747), in five Playwright projects (`playwright.config.js`):
+- E2E tests drive the real CLI, one worker at a time (all servers use port 4747), in six Playwright projects (`playwright.config.js`):
   - `chromium`, `firefox`, `webkit`: desktop, 1440 × 900, every suite except `nojs.spec.js` and `mobile.spec.js`;
   - `chromium-nojs`: JavaScript disabled, runs only `nojs.spec.js`;
-  - `chromium-mobile`: 375 × 812 with touch, runs only `mobile.spec.js`.
+  - `chromium-mobile`: 375 × 812 with touch, runs only `mobile.spec.js`;
+  - `tooling`: Chromium, runs only the suites of feature 003 that test packaging, the release script, the docs site and the repository files (`release-package.spec.js`, `release-flow.spec.js`, `site.spec.js`, `repo-health.spec.js`); the desktop projects skip them. Run it with `pnpm run test:e2e --project tooling`. These suites need registry access: `release-package.spec.js` installs the packed tarball with `npm install`, which fetches `markdown-it`.
 
   CI installs all three browsers. The cloud development container has Chromium only, so run `--project chromium` (and the two Chromium variants) there.
-- **E2E naming rule**: every E2E test name starts with the story and requirement ids it covers, `USn FR-xxx …`, for example `US2 FR-027 keeps scroll and expanded items on live update` (constitution §V traceability).
+- **E2E naming rule**: every E2E test name starts with the story and requirement ids it covers, `USn FR-xxx …`, for example `US2 FR-027 keeps scroll and expanded items on live update` (constitution §V traceability). Tests of feature 003 start with the feature number as well, `003 USn FR-xxx …`, for example `003 US1 FR-002 the package contains only runtime files, README, CHANGELOG and LICENSE`, because their story numbers restart at US1.
 
 ## Conventions
 
@@ -74,9 +86,14 @@ tests/
   fixtures/             sample projects (projects/README.md) and generate-large.js
 scripts/
   copy-assets.js        build-time only: copies the fonts into dist/fonts/ (not in the package)
+  build-site.js         docs:build: docmd site plus this repository's dashboard under
+                        site/status/ (not in the package)
   release/release.js    release rules for the workflows: bump, verify, notes,
                         release-commit, pack-check (not in the package; docs/releasing.md)
-docs/                   user docs (usage.md, hosting.md), architecture.md and releasing.md
+docs/                   user docs (index.md, usage.md, hosting.md), architecture.md,
+                        releasing.md and assets/ (screenshots); the source of the website
+docmd.config.js         documentation site settings and navigation (not in the package)
+site/                   generated website (pnpm run docs:build), gitignored
 ```
 
 Data flows one way: `project → parse → model → render → serve/build`. See
