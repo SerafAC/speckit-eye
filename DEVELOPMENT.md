@@ -74,7 +74,9 @@ tests/
   fixtures/             sample projects (projects/README.md) and generate-large.js
 scripts/
   copy-assets.js        build-time only: copies the fonts into dist/fonts/ (not in the package)
-docs/                   user docs (usage.md, hosting.md) and architecture.md
+  release/release.js    release rules for the workflows: bump, verify, notes,
+                        release-commit, pack-check (not in the package; docs/releasing.md)
+docs/                   user docs (usage.md, hosting.md), architecture.md and releasing.md
 ```
 
 Data flows one way: `project → parse → model → render → serve/build`. See
@@ -83,26 +85,21 @@ Data flows one way: `project → parse → model → render → serve/build`. Se
 
 ## Release process
 
-The version lives only in `package.json` (§III). To release version `X.Y.Z`:
+Releases are automated with GitHub Actions; the full guide, including the
+one-time setup, pre-releases and recovery, is
+[docs/releasing.md](docs/releasing.md). The maintainer does three things:
 
-1. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`
-   and add a new, empty `## [Unreleased]` above it.
-2. Set `"version": "X.Y.Z"` in `package.json`. Do not write the version
-   anywhere else.
-3. Run `pnpm test` and `pnpm run test:e2e`, then work through the release
-   checklist below.
-4. Commit, then tag: `git tag vX.Y.Z` and `git push origin vX.Y.Z`.
-5. Publish: `npm publish` (runs `prepack`, which builds `dist/styles.css` and `dist/fonts/`).
+1. Actions → **Bump version** on `main` (kind `patch`, `minor`, `major`, a
+   pre-release kind, or `explicit` with a version). It updates `package.json`
+   and `CHANGELOG.md` and opens the pull request **Release vX.Y.Z**.
+2. Review and merge that pull request.
+3. Approve the waiting **Release** run (environment `npm`). By then the full
+   test suites, the version checks and the package contents check have
+   passed; the run tags the merge commit, publishes to npm with provenance
+   and creates the GitHub release.
 
-### Release checklist
-
-- [ ] **Package contents and installed tarball**: both are now automated.
-  `node scripts/release/release.js pack-check` checks the packed file list, and
-  `tests/e2e/release-package.spec.js` (`tooling` project, part of
-  `pnpm run test:e2e`) packs, installs and runs the tarball.
-
-Last verified on 2026-09-25 with version 0.1.0 (Node 24.11.1, npm 11.6.2):
-30 files, 43.4 kB packed, 156.1 kB unpacked. The installed CLI served the
-`mixed` fixture, and the runtime tree was `markdown-it@15.0.2` with its own
-dependencies (`argparse`, `entities`, `linkify-it`, `mdurl`, `punycode.js`,
-`uc.micro`).
+The version lives only in `package.json` (§III), and every user-visible change
+adds a line under `## [Unreleased]` in `CHANGELOG.md`; **Bump version** refuses
+to release an empty Unreleased section. `npm publish` from a working copy is
+refused by the `prepublishOnly` script: publish only through the Release
+workflow.

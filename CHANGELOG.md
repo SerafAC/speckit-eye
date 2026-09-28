@@ -164,3 +164,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   feature.
 - The feature's list of documents inside the overview tree: the feature page
   tabs and the reader's document list replace it.
+
+[Unreleased]: https://github.com/SerafAC/speckit-eye/commits/main

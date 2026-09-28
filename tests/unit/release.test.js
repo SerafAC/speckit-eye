@@ -467,6 +467,69 @@ describe("releaseChangelog", () => {
   });
 });
 
+/**
+ * Inline copy of the real CHANGELOG.md's shape before the first release: its
+ * head, its first entries (wrapped over several lines, with inline code), its
+ * sub-headings and the trailing link line. Kept inline so the test never reads
+ * the real file (§IV) and keeps passing after real releases.
+ */
+const REAL_SHAPE = `# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- Serve mode: \`speckit-eye --serve <dir>\` serves the dashboard of a Spec Kit
+  project on your own machine (\`127.0.0.1\`), with the overview, a page per
+  feature and a page per document.
+- Live updates in serve mode: open pages follow file changes within
+  about 2 seconds, keep scroll position and expanded items, highlight what
+  changed, and show a banner while the connection to the tool is lost.
+
+### Changed
+
+- Redesigned every page: a dark sidebar replaces the header, a stats card,
+  Up next bar and task map replace the progress bar, counters and task grid,
+  and documents open in a reader layout.
+
+### Removed
+
+- The feature's list of documents inside the overview tree: the feature page
+  tabs and the reader's document list replace it.
+
+[Unreleased]: ${REPO}/commits/main
+`;
+
+describe("the real CHANGELOG.md shape (T020)", () => {
+  test("parses: no released sections, the commits/main link line", () => {
+    const log = parseChangelog(REAL_SHAPE);
+    assert.deepEqual(log.sections, []);
+    assert.deepEqual(log.links, [`[Unreleased]: ${REPO}/commits/main`]);
+    assert.equal(hasEntries(log.unreleased.body), true);
+    assert.ok(!log.unreleased.body.includes("[Unreleased]:"));
+  });
+
+  test("first release 1.0.0: wrapped entries and sub-headings move intact, links rewritten", () => {
+    const before = parseChangelog(REAL_SHAPE);
+    const text = releaseChangelog(REAL_SHAPE, { version: "1.0.0", date: "2026-09-28", repoUrl: REPO });
+    const after = parseChangelog(text);
+    assert.equal(after.head, before.head);
+    assert.equal(after.unreleased.body.trim(), "");
+    assert.equal(after.sections.length, 1);
+    assert.equal(after.sections[0].heading, "## [1.0.0] - 2026-09-28");
+    assert.equal(after.sections[0].body.trim(), before.unreleased.body.trim());
+    assert.equal(sectionNotes(text, "1.0.0"), before.unreleased.body.trim());
+    assert.deepEqual(after.links, [`[Unreleased]: ${REPO}/compare/v1.0.0...HEAD`, `[1.0.0]: ${REPO}/releases/tag/v1.0.0`]);
+    assert.ok(!text.includes("commits/main"));
+    assert.ok(text.endsWith(`[1.0.0]: ${REPO}/releases/tag/v1.0.0\n`));
+  });
+});
+
 describe("sectionNotes", () => {
   const released = releaseChangelog(FIRST, { version: "1.0.0", date: "2026-09-28", repoUrl: REPO });
 
