@@ -1,5 +1,9 @@
 # speckit-eye
 
+[![CI](https://github.com/SerafAC/speckit-eye/actions/workflows/ci.yml/badge.svg)](https://github.com/SerafAC/speckit-eye/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/speckit-eye)](https://www.npmjs.com/package/speckit-eye)
+[![License](https://img.shields.io/npm/l/speckit-eye)](LICENSE)
+
 A zero-setup progress dashboard for [GitHub Spec Kit](https://github.com/github/spec-kit)
 projects. Point it at a project folder and open the printed address: you see
 how far along the project is, which feature and phase are being worked on, and
@@ -104,3 +108,10 @@ workflow and notes for other hosts.
 - [Releasing](docs/releasing.md): how a new version is published to npm
 - [Development](DEVELOPMENT.md): building, testing, and contributing
 - [Changelog](CHANGELOG.md): what changed in each release
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Read the
+[contributing guide](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md) first. Please report security
+vulnerabilities privately, as described in the [security policy](SECURITY.md).
