@@ -1,0 +1,124 @@
+name: Bump version
+
+# Starts a release (docs/releasing.md): bumps the version in package.json,
+# moves the CHANGELOG.md Unreleased entries under the new version, commits to
+# the fixed branch release/next and opens (or updates) the "Release vX.Y.Z"
+# pull request. Merging that PR starts the Release workflow (research R9).
+
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "Version bump (explicit = use the version below, e.g. 1.0.0 for the first release)"
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+          - prepatch
+          - preminor
+          - premajor
+          - prerelease
+          - explicit
+      version:
+        description: "Explicit version X.Y.Z (only with kind = explicit)"
+        type: string
+        required: false
+        default: ""
+      preid:
+        description: "Pre-release id (pre* kinds only)"
+        type: string
+        required: false
+        default: rc
+
+permissions: {}
+
+concurrency: bump
+
+jobs:
+  bump:
+    name: Bump version and open the release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::Run Bump version on main, not on $REF"
+          exit 1
+
+      # This job pushes release/next, so it keeps the checkout credentials.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 11
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      # Inputs reach the shell only through env (no ${{ inputs.* }} in scripts).
+      - name: Bump version and changelog
+        id: bump
+        env:
+          KIND: ${{ inputs.kind }}
+          VERSION: ${{ inputs.version }}
+          PREID: ${{ inputs.preid }}
+        run: |
+          set -euo pipefail
+          if [ "$KIND" = "explicit" ]; then
+            if [ -z "$VERSION" ]; then
+              echo "::error::kind = explicit needs a version"
+              exit 1
+            fi
+            new_version="$(node scripts/release/release.js bump --version "$VERSION")"
+          else
+            new_version="$(node scripts/release/release.js bump "$KIND" --preid "$PREID")"
+          fi
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "Bumped to $new_version"
+
+      - name: Commit and push release/next
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json CHANGELOG.md
+          git commit -m "chore(release): v$VERSION"
+          git push --force origin HEAD:release/next
+
+      - name: Open or update the release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          {
+            node scripts/release/release.js notes --version "$VERSION"
+            echo
+            echo "---"
+            echo
+            echo "Merging this PR tags v$VERSION and starts the Release workflow, which waits for the repository owner's approval."
+          } > "$RUNNER_TEMP/pr-body.md"
+          existing="$(gh pr list --head release/next --base main --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --title "Release v$VERSION" --body-file "$RUNNER_TEMP/pr-body.md"
+          else
+            gh pr create --base main --head release/next --title "Release v$VERSION" --body-file "$RUNNER_TEMP/pr-body.md"
+          fi
+
+      # Pushes made with GITHUB_TOKEN start no workflows; a dispatch does.
+      - name: Run CI on release/next
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref release/next
