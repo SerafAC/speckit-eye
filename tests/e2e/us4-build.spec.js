@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 import { mkdtemp, readdir, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { BIN, REPO_ROOT, copyFixture, featurePagePath, hashTree, navLink, pressSearchShortcut, runBuild, serveStatic, sidebar, startServe } from "./helpers.js";
+import { BIN, REPO_ROOT, copyFixture, featurePagePath, hashTree, navLink, pressSearchShortcut, runBuild, runCli, serveStatic, sidebar, startServe } from "./helpers.js";
 import { spawn } from "node:child_process";
 
 const BASE = "/my-repo/";
@@ -448,4 +448,56 @@ test("FR-005 static footer shows the generation time", async ({ page }) => {
   await page.goto(server.url);
   await expect(page.locator("footer time")).toHaveCount(0);
   await expect(page.locator("footer").first()).not.toContainText("generated");
+});
+
+// ---- 003 US4: the --home build option (003 contracts/cli-home.md) ----
+
+const HOME = "https://example.com/docs/";
+
+/**
+ * Builds a copy of `mixed` under BASE, with `extra` CLI arguments, and serves it.
+ * @param {string[]} extra
+ */
+async function buildMixed(extra) {
+  const dir = await copyFixture("mixed");
+  const out = path.join(await tempDir(), "site");
+  const result = await runCli(["--build", dir, "--out", out, "--base", BASE, ...extra], { timeout: 30_000 });
+  expect(result.code, result.stderr).toBe(0);
+  const host = await serveStatic(out, BASE);
+  cleanup.push(() => host.close());
+  return { out, host };
+}
+
+/** The Home link of the visible navigation: the sidebar, or the rail on document pages. */
+const homeLink = (page) => page.locator('[data-region="sidebar"] [data-part="home"], [data-region="rail"] [data-part="home"]');
+
+test("003 US4 FR-027 --home adds a Home link to every page of a build", async ({ page }) => {
+  const { out, host } = await buildMixed(["--home", HOME]);
+  for (const file of PAGES) {
+    const body = await readFile(path.join(out, file), "utf8");
+    expect(body, file).toContain(`<a href="${HOME}" data-part="home"`);
+  }
+  for (const pathname of ["", featurePagePath("002-beta"), "features/002-beta/spec.html"]) {
+    await page.goto(`${host.url}${pathname}`);
+    const link = homeLink(page);
+    await expect(link, pathname).toBeVisible();
+    await expect(link, pathname).toHaveAttribute("href", HOME);
+    await expect(link, pathname).toHaveAccessibleName("Home");
+    await expect(link.locator("svg"), pathname).toHaveCount(1);
+    await expect(link, pathname).not.toHaveAttribute("target");
+  }
+  // The rail link sits directly after the brand on document pages.
+  await expect(page.locator('[data-region="rail"] > [data-part="brand"] + [data-part="home"]')).toHaveCount(1);
+});
+
+test("003 US4 FR-027 a build without --home has no Home link", async ({ page }) => {
+  const { out, host } = await buildMixed([]);
+  for (const file of PAGES) {
+    const body = await readFile(path.join(out, file), "utf8");
+    expect(body, file).not.toContain('data-part="home"');
+  }
+  for (const pathname of ["", featurePagePath("002-beta"), "features/002-beta/spec.html"]) {
+    await page.goto(`${host.url}${pathname}`);
+    await expect(page.locator('[data-part="home"]'), pathname).toHaveCount(0);
+  }
 });

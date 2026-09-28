@@ -49,6 +49,7 @@ or sharing, and exits:
 ```sh
 npx speckit-eye --build . --out _site
 npx speckit-eye --build . --out _site --base /my-repo/
+npx speckit-eye --build . --out _site --base /my-repo/status/ --home https://example.com/my-repo/
 ```
 
 | Option | Required | Default | Meaning |
@@ -56,6 +57,7 @@ npx speckit-eye --build . --out _site --base /my-repo/
 | `--build <dir>` | yes | — | The Spec Kit project to read. |
 | `--out <folder>` | yes | — | Where to write the site. Created if missing. Must not be the project folder itself or lie inside `specs/` or `.specify/`. |
 | `--base <path>` | no | `/` | The URL path the site is served under. `repo`, `/repo` and `/repo/` all mean `/repo/`. |
+| `--home <url>` | no | none | Adds a "Home" link to `<url>` on every page: under the project name in the sidebar, in the icon rail of document pages and in the mobile menu. Use it to link back to the site the dashboard is part of, such as your docs. Must be an absolute `http://` or `https://` address; not available in serve mode. Without it the pages have no Home link. |
 
 It prints a summary:
 

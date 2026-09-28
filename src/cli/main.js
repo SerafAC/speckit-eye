@@ -240,6 +240,7 @@ export async function run(argv, deps = {}) {
         version: VERSION,
         generatedAt: now().toISOString(),
         assets,
+        home: args.home,
       });
       const result = await writeSite({ site, out, projectRoot: root, fs });
       if ("error" in result) {

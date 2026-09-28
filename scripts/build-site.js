@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import pkg from "../package.json" with { type: "json" };
 
 /** Output folder, relative to the repository root. */
 export const SITE_DIR = "site";
@@ -15,6 +16,12 @@ export const SITE_DIR = "site";
  * node_modules/.bin/docmd, whose shim is a .cmd file on Windows.
  */
 export const DOCMD_BIN = path.join("node_modules", "@docmd", "core", "dist", "bin", "docmd.js");
+
+/** The speckit-eye CLI of this repository, which builds the dashboard. */
+export const DASHBOARD_BIN = path.join("bin", "speckit-eye.js");
+
+/** Output folder of the dashboard (this repository's own specs), under site/. */
+export const STATUS_DIR = path.join(SITE_DIR, "status");
 
 /**
  * Derives the site addresses from package.json `homepage` (data-model
@@ -42,26 +49,38 @@ export function sitePaths(homepage) {
 }
 
 /**
- * Removes site/ and runs `docmd build` (config docmd.config.js).
+ * Removes site/, runs `docmd build` (config docmd.config.js), then builds
+ * this repository's speckit-eye dashboard into site/status/ with a Home link
+ * back to the docs (contracts/site.md steps 1–4). A failing step stops the
+ * build: nothing is deployed unless both builds succeed (FR-024).
  *
  * @param {string[]} argv command-line arguments (none are used)
- * @param {{rm: (p: string) => void, run: (cmd: string, args: string[]) => number | null,
- *   stderr: (s: string) => void}} io
- * @returns {number} the exit code: 0, or the failing step's code (1 when a
- *   step ended without one).
+ * @param {{homepage: string, rm: (p: string) => void,
+ *   run: (cmd: string, args: string[]) => number | null,
+ *   stderr: (s: string) => void}} io `homepage` is package.json `homepage`
+ * @returns {number} the exit code: 0, or the first failing step's code (1
+ *   when a step ended without one).
  */
 export function main(argv, io) {
+  const { home, statusBase } = sitePaths(io.homepage);
   io.rm(SITE_DIR);
-  const code = io.run(process.execPath, [DOCMD_BIN, "build"]);
-  if (code !== 0) {
-    io.stderr(`docs:build: docmd build failed (exit code ${code})\n`);
-    return code || 1;
+  const steps = [
+    ["docmd build", [DOCMD_BIN, "build"]],
+    ["dashboard build", [DASHBOARD_BIN, "--build", ".", "--out", STATUS_DIR, "--base", statusBase, "--home", home]],
+  ];
+  for (const [name, args] of steps) {
+    const code = io.run(process.execPath, args);
+    if (code !== 0) {
+      io.stderr(`docs:build: ${name} failed (exit code ${code})\n`);
+      return code || 1;
+    }
   }
   return 0;
 }
 
 /** Real I/O, relative to the current directory. */
 export const nodeIo = {
+  homepage: pkg.homepage,
   rm: (p) => fs.rmSync(p, { recursive: true, force: true }),
   run: (cmd, args) => spawnSync(cmd, args, { stdio: "inherit" }).status,
   stderr: (s) => process.stderr.write(s),

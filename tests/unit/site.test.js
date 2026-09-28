@@ -6,6 +6,9 @@ import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
 import { themeScript } from "../../src/render/theme-script.js";
 import { buildSearchIndex } from "../../src/render/search-index.js";
+import { createHash } from "node:crypto";
+import { SNAPSHOT_FILES, SNAPSHOT_ASSETS, siteCases } from "../fixtures/snapshots/no-home-cases.js";
+import NO_HOME_SITE from "../fixtures/snapshots/no-home-site.json" with { type: "json" };
 
 async function model(files) {
   return buildModel(await scan(createFakeReader(files), "proj"));
@@ -375,5 +378,36 @@ describe("renderSite: artifact pages (T050, US3)", () => {
     const serve = [...(await artifactSite()).keys()].filter((k) => k.endsWith(".html"));
     const stat = [...(await artifactSite({ mode: "static", base: "/repo/" })).keys()].filter((k) => k.endsWith(".html"));
     assert.deepEqual(stat, serve);
+  });
+});
+
+describe("renderSite: Home link (003 US4, contracts/cli-home.md)", () => {
+  const sha = (/** @type {string} */ body) => createHash("sha256").update(body).digest("hex");
+
+  test("without home every HTML page equals the output from before --home (snapshot)", async () => {
+    const project = buildModel(await scan(createFakeReader(SNAPSHOT_FILES), "my-proj"));
+    /** @type {Record<string, string>} */
+    const got = {};
+    for (const [name, opts] of Object.entries(siteCases())) {
+      for (const [key, entry] of renderSite(project, { ...opts, assets: SNAPSHOT_ASSETS })) {
+        if (key.endsWith(".html")) got[`${name}:${key}`] = sha(entry.body);
+      }
+      const withNull = renderSite(project, { ...opts, assets: SNAPSHOT_ASSETS, home: null });
+      for (const [key, entry] of withNull) {
+        if (key.endsWith(".html")) assert.equal(sha(entry.body), NO_HOME_SITE[`${name}:${key}`], `${name}:${key} (home: null)`);
+      }
+    }
+    assert.deepEqual(got, NO_HOME_SITE);
+  });
+
+  test("with home every page (overview, feature, document) links to it", async () => {
+    const s = await site({ mode: "static", base: "/repo/", home: "https://example.com/docs/" });
+    const pages = [...s.keys()].filter((key) => key.endsWith(".html"));
+    assert.ok(pages.includes("index.html") && pages.includes("features/001-a/index.html") && pages.includes("constitution.html"));
+    for (const key of pages) {
+      const body = s.get(key).body;
+      assert.match(body, /<a href="https:\/\/example\.com\/docs\/" data-part="home">/, key);
+    }
+    assert.match(s.get("constitution.html").body, /<a href="https:\/\/example\.com\/docs\/" data-part="home" aria-label="Home" title="Home">/);
   });
 });

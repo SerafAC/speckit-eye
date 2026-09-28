@@ -23,6 +23,7 @@ const NAMES = [
   "sort",
   "menu",
   "file-text",
+  "house",
 ];
 
 describe("icons (research D5)", () => {
@@ -48,6 +49,13 @@ describe("icons (research D5)", () => {
       assert.doesNotMatch(icon(name).value, /style=/i, name);
       assert.doesNotMatch(icon(name, { label: "x" }).value, /style=/i, name);
     }
+  });
+
+  test("house (003 US4, the Home link) renders the Lucide house shapes", () => {
+    const out = icon("house").value;
+    assert.match(out, /^<svg viewBox="0 0 24 24" [^>]*aria-hidden="true">/);
+    assert.ok(out.includes('<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>'));
+    assert.ok(out.includes('<path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'));
   });
 
   test("size sets width and height", () => {

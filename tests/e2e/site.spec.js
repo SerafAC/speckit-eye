@@ -1,14 +1,15 @@
 // 003 US3 — Read the documentation on a website (spec 003, User Story 3).
+// 003 US4 — See the project's own status and a live demo (User Story 4).
 // Builds the site with `pnpm run docs:build`, serves `site/` under
 // /speckit-eye/ as GitHub Pages would, and checks the home page, the
-// navigation, the guide pages and every internal link (quickstart §4).
-// The /status/ dashboard is covered by the US4 part of this suite.
+// navigation, the guide pages and every internal link (quickstart §4), then
+// this repository's own dashboard under /status/ (the US4 part below).
 
 import { test, expect } from "@playwright/test";
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { E2E_PORT, REPO_ROOT, serveStatic } from "./helpers.js";
+import { E2E_PORT, REPO_ROOT, countCheckboxes, featurePagePath, pressSearchShortcut, serveStatic } from "./helpers.js";
 
 const WINDOWS = process.platform === "win32";
 const SITE_DIR = path.join(REPO_ROOT, "site");
@@ -141,4 +142,150 @@ test("003 US3 FR-020 a guide page shows the text of its docs/ file", async ({ pa
 test("003 US3 FR-023 docmd validate passes", async () => {
   const validate = await run("pnpm", ["exec", "docmd", "validate"]);
   expect(validate.code, `${validate.stdout}\n${validate.stderr}`).toBe(0);
+});
+
+// ---- US4: the dashboard of this repository under /status/ ----
+
+/** The production address of the docs site, as package.json `homepage` has it. */
+const SITE_URL = "https://serafac.github.io/speckit-eye/";
+
+/**
+ * Answers requests for the production site from the local copy, so links to
+ * `SITE_URL` (the dashboard's Home link) can be followed offline.
+ * @param {import("@playwright/test").Page} page
+ */
+async function routeProductionToLocal(page) {
+  await page.route(`${SITE_URL}**`, async (route) => {
+    const local = new URL(route.request().url().slice(SITE_URL.length), `${host.origin}${BASE}`);
+    route.fulfill({ response: await page.request.fetch(local.href) });
+  });
+}
+
+/**
+ * This repository's features with their checkbox counts, computed the way
+ * self-counts.spec.js does (independently of src/parse).
+ * @returns {Promise<{ dir: string, done: number, total: number }[]>}
+ */
+async function repositoryCounts() {
+  const specsDir = path.join(REPO_ROOT, "specs");
+  const dirs = (await readdir(specsDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
+  const out = [];
+  for (const dir of dirs) {
+    let text;
+    try {
+      text = await readFile(path.join(specsDir, dir, "tasks.md"), "utf8");
+    } catch {
+      continue;
+    }
+    out.push({ dir, ...countCheckboxes(text) });
+  }
+  return out;
+}
+
+test("003 US4 FR-025 the dashboard of this repository is served at /status/", async ({ page }) => {
+  await page.goto(`${host.origin}${STATUS}`);
+  await expect(page.locator("main h1", { hasText: "Project overview" })).toBeVisible();
+  const side = page.locator('[data-region="sidebar"]');
+  await expect(side).toBeVisible();
+  await expect(side.locator('[data-part="project-name"]')).toHaveText("speckit-eye");
+  // This repository's features, including this one, are listed.
+  await expect(side.locator('a[data-key="side:003-npm-release-docs-site"]')).toHaveCount(1);
+  await expect(page.locator("body")).toHaveAttribute("data-base", STATUS);
+});
+
+test("003 US4 FR-025 the dashboard counts match this repository's tasks.md checkboxes", async ({ page }) => {
+  const counts = await repositoryCounts();
+  expect(counts.length).toBeGreaterThan(0);
+  const sum = counts.reduce((acc, c) => ({ done: acc.done + c.done, total: acc.total + c.total }), { done: 0, total: 0 });
+  await page.goto(`${host.origin}${STATUS}`);
+  const stats = page.locator('[data-region="stats"]');
+  // SC-007: the published status equals the repository's checkboxes.
+  await expect(stats.locator('[data-stat="percent"] [data-part="detail"]')).toHaveText(`${sum.done} of ${sum.total} tasks`);
+  await expect(stats.locator('[data-stat="open"] [data-part="value"]')).toHaveText(String(sum.total - sum.done));
+  for (const { dir, done, total } of counts) {
+    const count = page.locator(`[data-region="tree"] details[data-key="${dir}"] > summary [data-part="count"]`);
+    if (total > 0) await expect(count, dir).toHaveText(`${done}/${total}`);
+  }
+});
+
+test("003 US4 FR-027 every link, style, font and script of the dashboard loads under /status/", async ({ page, request }) => {
+  /** @type {string[]} */
+  const failed = [];
+  /** @type {Set<string>} */
+  const loaded = new Set();
+  page.on("response", (response) => {
+    const url = new URL(response.url());
+    if (url.origin !== host.origin) return;
+    loaded.add(url.pathname);
+    if (response.status() !== 200) failed.push(`${url.pathname} → ${response.status()}`);
+  });
+  page.on("requestfailed", (req) => failed.push(`${req.url()} → ${req.failure()?.errorText}`));
+
+  const pages = [STATUS, `${STATUS}${featurePagePath("003-npm-release-docs-site")}`, `${STATUS}features/003-npm-release-docs-site/spec.html`];
+  /** @type {Set<string>} */
+  const targets = new Set();
+  for (const pathname of pages) {
+    await page.goto(`${host.origin}${pathname}`);
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => document.fonts.ready);
+    const urls = await page.evaluate(() =>
+      [...document.querySelectorAll("[href], [src]")].map((el) => new URL(el.getAttribute("href") ?? el.getAttribute("src") ?? "", document.baseURI).href),
+    );
+    for (const target of urls) {
+      const url = new URL(target);
+      if (url.origin === host.origin) targets.add(url.pathname);
+    }
+  }
+  // Every same-origin link stays under /status/ and answers 200.
+  /** @type {string[]} */
+  const broken = [];
+  for (const pathname of targets) {
+    if (!pathname.startsWith(STATUS)) broken.push(`${pathname} is outside ${STATUS}`);
+    const response = await request.get(`${host.origin}${pathname}`);
+    if (response.status() !== 200) broken.push(`${pathname} → ${response.status()}`);
+  }
+  expect(broken).toEqual([]);
+  expect(failed).toEqual([]);
+  for (const asset of ["assets/styles.css", "assets/theme.js", "assets/app.js"]) expect(loaded).toContain(`${STATUS}${asset}`);
+  expect([...loaded].some((p) => p.startsWith(`${STATUS}assets/fonts/`) && p.endsWith(".woff2"))).toBe(true);
+
+  // The scripts work under the sub-path: search finds a task, the theme switch switches.
+  await page.goto(`${host.origin}${STATUS}`);
+  await pressSearchShortcut(page);
+  const dialog = page.locator('dialog[data-region="search"]');
+  await expect(dialog).toHaveJSProperty("open", true);
+  await dialog.locator('input[data-part="query"]').fill("T029");
+  await expect(dialog.locator('[data-part="group"][data-group="Tasks"] [data-part="result"]').first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveJSProperty("open", false);
+
+  const html = page.locator("html");
+  for (const theme of ["dark", "light"]) {
+    await page.locator(`[data-region="sidebar"] [data-theme-choice="${theme}"]`).click();
+    await expect(html).toHaveAttribute("data-theme", theme);
+  }
+});
+
+test("003 US4 FR-027 the Home link returns to the documentation home", async ({ page }) => {
+  await routeProductionToLocal(page);
+  for (const pathname of [STATUS, `${STATUS}features/003-npm-release-docs-site/spec.html`]) {
+    await page.goto(`${host.origin}${pathname}`);
+    const home = page.locator('[data-region="sidebar"] [data-part="home"], [data-region="rail"] [data-part="home"]');
+    await expect(home).toHaveCount(1);
+    await expect(home).toHaveAttribute("href", SITE_URL);
+    await home.click();
+    await expect(page).toHaveURL(SITE_URL);
+    await expect(page.locator("main").getByRole("link", { name: "Project status & live demo" }).first()).toBeVisible();
+  }
+});
+
+test("003 US4 FR-026 the docs home and README link to the dashboard", async ({ page }) => {
+  await page.goto(`${host.origin}${BASE}`);
+  const link = page.locator("main").getByRole("link", { name: "Project status & live demo" }).first();
+  const href = /** @type {string} */ (await link.getAttribute("href"));
+  expect(new URL(href, page.url()).pathname).toBe(STATUS);
+  const readme = await readFile(path.join(REPO_ROOT, "README.md"), "utf8");
+  expect(readme).toContain(`${SITE_URL}status/`);
+  expect(readme).toContain(`[Project status & live demo](${SITE_URL}status/)`);
+  expect(readme).toContain(`[Documentation](${SITE_URL})`);
 });

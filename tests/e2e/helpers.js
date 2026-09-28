@@ -363,3 +363,38 @@ export async function checkHitTargets(page, { serve, serveRepo, stop }) {
   await stop();
   await check((await serveRepo()).url, HIT_REPO_PAGES, "repo");
 }
+
+const TASK_LINE = /^\s*[-*]\s+\[( |x|X)\]\s+(.*)$/;
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+
+/**
+ * Counts checkboxes outside fenced code blocks and HTML comments, independently
+ * of src/parse, with the task-line regex from contracts/tasks-md-format.md
+ * (self-counts.spec.js, and the /status/ part of site.spec.js).
+ * @param {string} text
+ * @returns {{ done: number, total: number }}
+ */
+export function countCheckboxes(text) {
+  // Blank out comments but keep their line breaks, so line structure survives.
+  const visible = text.replace(/<!--[\s\S]*?(?:-->|$)/g, (m) => m.replace(/[^\n]/g, ""));
+  let fence = null;
+  let done = 0;
+  let total = 0;
+  for (const raw of visible.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    const f = FENCE.exec(line);
+    if (fence) {
+      if (f && f[1][0] === fence[0] && f[1].length >= fence.length && line.trim() === f[1]) fence = null;
+      continue;
+    }
+    if (f) {
+      fence = f[1];
+      continue;
+    }
+    const m = TASK_LINE.exec(line);
+    if (!m) continue;
+    total++;
+    if (m[1] !== " ") done++;
+  }
+  return { done, total };
+}

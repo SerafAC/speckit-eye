@@ -204,6 +204,21 @@ describe("run: project checks", () => {
 });
 
 describe("run: serve mode", () => {
+  test("serve mode renders no Home link and refuses --home (003 US4, contracts/cli-home.md)", async () => {
+    const refused = fakes();
+    assert.equal(await run(["--serve", "proj", "--home", "https://example.com/"], refused.deps), 2);
+    assert.match(refused.deps.stderr.text, /--home can only be used with --build/);
+    assert.equal(refused.calls.startServer.length, 0);
+
+    const f = fakes();
+    const pending = startServe(["--serve", "proj"], f);
+    await new Promise((r) => setImmediate(r));
+    const { handler } = f.calls.startServer[0];
+    assert.doesNotMatch(get(handler, "/").body, /data-part="home"/);
+    f.calls.signalHandler();
+    assert.equal(await pending, 0);
+  });
+
   test("serves the rendered site and prints the start lines", async () => {
     const f = fakes();
     const pending = startServe(["--serve", "proj"], f);
@@ -466,6 +481,24 @@ describe("run: build mode (US4, T055)", () => {
     assert.equal(await result, 2);
     assert.match(f.deps.stderr.text, /folder not found/);
     assert.deepEqual(fs.writes, []);
+  });
+
+  test("--home is passed to every page of the build (003 US4, FR-027)", async () => {
+    const { fs, result } = build(["--build", "proj", "--out", "site", "--home", "https://example.com/docs/"]);
+    assert.equal(await result, 0);
+    const pages = [...fs.files.keys()].filter((file) => file.endsWith(".html"));
+    assert.ok(pages.length >= 3);
+    for (const file of pages) {
+      assert.match(fs.files.get(file), /<a href="https:\/\/example\.com\/docs\/" data-part="home"/, file);
+    }
+  });
+
+  test("without --home the build has no Home link (003 US4)", async () => {
+    const { fs, result } = build(["--build", "proj", "--out", "site"]);
+    assert.equal(await result, 0);
+    for (const [file, body] of fs.files) {
+      if (file.endsWith(".html")) assert.doesNotMatch(body, /data-part="home"/, file);
+    }
   });
 
   test("a missing asset returns 1", async () => {

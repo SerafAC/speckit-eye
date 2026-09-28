@@ -167,9 +167,23 @@ function footer({ mode, version, generatedAt }) {
  * @param {string} options.version
  * @param {string | null} [options.generatedAt] ISO time of the build, shown in
  *   the static mode footer (FR-031)
+ * @param {string | null} [options.home] absolute URL of the "Home" link
+ *   (`--home`, 003 contracts/cli-home.md); `null` renders no link and leaves
+ *   the page exactly as before the option existed
  * @returns {string} a complete HTML document
  */
-export function renderPage({ title, base, mode, project, page = "overview", current = null, main, version, generatedAt = null }) {
+export function renderPage({
+  title,
+  base,
+  mode,
+  project,
+  page = "overview",
+  current = null,
+  main,
+  version,
+  generatedAt = null,
+  home = null,
+}) {
   const link = (/** @type {string} */ url) => `${base}${url}`;
   const serve = mode === "serve";
   const here = current ?? (page === "overview" ? "overview" : null);
@@ -177,12 +191,18 @@ export function renderPage({ title, base, mode, project, page = "overview", curr
   const foot = footer({ mode, version, generatedAt });
 
   const brand = html`<a href="${link("index.html")}" data-part="brand">${icon("eye")}<span>speckit-eye</span></a>`;
+  // The "Home" link of `--home`: each placement brings its own line break, so
+  // pages without it are unchanged.
+  const homeLink = home ? html`<a href="${home}" data-part="home">${icon("house")}<span>Home</span></a>\n` : "";
+  const homeIcon = home
+    ? html`<a href="${home}" data-part="home" aria-label="Home" title="Home">${icon("house")}</a>\n`
+    : "";
 
   const side =
     page === "document"
       ? html`<nav data-region="rail" class="always-dark" aria-label="Rail">
 <a href="${link("index.html")}" data-part="brand" aria-label="speckit-eye" title="speckit-eye">${icon("eye")}</a>
-${searchButton(true)}
+${homeIcon}${searchButton(true)}
 <ul>${mainDestinations(project).map(
           (d) =>
             html`<li><a href="${link(d.url)}" aria-label="${d.label}" title="${d.label}"${ariaCurrent(here === d.key)}>${icon(
@@ -194,7 +214,7 @@ ${themeGroup()}
       : html`<aside data-region="sidebar" class="always-dark">
 ${brand}
 <p data-part="project-name">${project.name}</p>
-${searchButton(false)}
+${homeLink}${searchButton(false)}
 ${mainNav(nav)}
 ${featuresNav(nav)}
 ${themeGroup()}
@@ -214,7 +234,7 @@ ${serve ? html`<script type="module" src="${link("assets/live.js")}"></script>\n
 <body data-mode="${mode}" data-version="${version}" data-page="${page}" data-base="${base}">
 <details data-region="mobile-menu">
 <summary aria-label="Menu">${icon("menu")}<span>${project.name}</span></summary>
-${mainNav(nav)}
+${homeLink}${mainNav(nav)}
 ${featuresNav({ ...nav, mobile: true })}
 </details>
 ${side}

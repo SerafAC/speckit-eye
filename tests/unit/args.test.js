@@ -4,11 +4,11 @@ import { parseCliArgs, normalizeBase, USAGE } from "../../src/cli/args.js";
 
 describe("parseCliArgs: valid", () => {
   test("--serve <dir>", () => {
-    assert.deepEqual(parseCliArgs(["--serve", "."]), { mode: "serve", dir: ".", out: null, base: "/" });
+    assert.deepEqual(parseCliArgs(["--serve", "."]), { mode: "serve", dir: ".", out: null, base: "/", home: null });
   });
 
   test("--serve=<dir>", () => {
-    assert.deepEqual(parseCliArgs(["--serve=proj"]), { mode: "serve", dir: "proj", out: null, base: "/" });
+    assert.deepEqual(parseCliArgs(["--serve=proj"]), { mode: "serve", dir: "proj", out: null, base: "/", home: null });
   });
 
   test("--build with --out, default base", () => {
@@ -17,6 +17,7 @@ describe("parseCliArgs: valid", () => {
       dir: "proj",
       out: "site",
       base: "/",
+      home: null,
     });
   });
 
@@ -31,6 +32,39 @@ describe("parseCliArgs: valid", () => {
     test(`${flag} → version`, () => assert.equal(parseCliArgs([flag]).mode, "version"));
   }
   test("help wins over a mode", () => assert.equal(parseCliArgs(["--serve", ".", "--help"]).mode, "help"));
+});
+
+describe("parseCliArgs: --home (003 contracts/cli-home.md)", () => {
+  test("an https URL is accepted in build mode and kept as given", () => {
+    const r = parseCliArgs(["--build", "p", "--out", "o", "--home", "https://example.com/docs/"]);
+    assert.equal(r.mode, "build");
+    assert.equal(r.home, "https://example.com/docs/");
+  });
+
+  test("an http URL is accepted", () => {
+    assert.equal(parseCliArgs(["--build", "p", "--out", "o", "--home=http://localhost:3000/"]).home, "http://localhost:3000/");
+  });
+
+  test("home defaults to null in every mode", () => {
+    assert.equal(parseCliArgs(["--build", "p", "--out", "o"]).home, null);
+    assert.equal(parseCliArgs(["--serve", "."]).home, null);
+    assert.equal(parseCliArgs(["--help"]).home, null);
+    assert.equal(parseCliArgs(["--version"]).home, null);
+  });
+
+  for (const value of ["javascript:alert(1)", "/relative", "ftp://x", "example.com", ""]) {
+    test(`${JSON.stringify(value)} is rejected`, () => {
+      assert.deepEqual(parseCliArgs(["--build", "p", "--out", "o", `--home=${value}`]), {
+        error: "--home must be an http or https URL",
+      });
+    });
+  }
+
+  test("--home with --serve is rejected", () => {
+    assert.deepEqual(parseCliArgs(["--serve", ".", "--home", "https://example.com/"]), {
+      error: "--home can only be used with --build",
+    });
+  });
 });
 
 describe("parseCliArgs: errors", () => {
@@ -83,11 +117,17 @@ describe("USAGE", () => {
   test("contains the synopsis", () => {
     for (const line of [
       "speckit-eye --serve <dir>",
-      "speckit-eye --build <dir> --out <folder> [--base <path>]",
+      "speckit-eye --build <dir> --out <folder> [--base <path>] [--home <url>]",
       "speckit-eye --help",
       "speckit-eye --version",
     ]) {
       assert.ok(USAGE.includes(line), line);
     }
+  });
+
+  test("lists the --home option", () => {
+    assert.ok(
+      USAGE.includes("  --home <url>      Link back to <url> from every page, for --build (for example your docs site)"),
+    );
   });
 });

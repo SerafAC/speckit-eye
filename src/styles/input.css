@@ -260,6 +260,25 @@
   @apply m-0 truncate px-2 font-mono text-xs text-(--muted);
 }
 
+/* The "Home" link of `--home` (003 FR-027): under the project name in the
+   sidebar and at the top of the mobile menu; the rail styles its icon link
+   like the other rail links. */
+[data-region="sidebar"] > [data-part="home"],
+[data-region="mobile-menu"] > [data-part="home"] {
+  @apply flex items-center gap-2 rounded-md px-2;
+  min-height: var(--hit);
+}
+
+[data-region="mobile-menu"] > [data-part="home"] {
+  @apply mx-2;
+}
+
+[data-region="sidebar"] > [data-part="home"]:hover,
+[data-region="mobile-menu"] > [data-part="home"]:hover {
+  @apply text-(--text);
+  background-color: var(--subtle);
+}
+
 [data-region="sidebar"] nav[aria-label="Main"] a,
 [data-region="mobile-menu"] nav[aria-label="Main"] a {
   @apply flex items-center gap-2 rounded-md px-2;
