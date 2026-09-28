@@ -62,7 +62,7 @@ how broken or wrong versions reach users. The first release and every later one
 must go through the same guarded path.
 
 **Independent Test**: A maintainer who has not released before follows only the
-guide to produce a pre-release (or a dry run) and succeeds without outside help;
+guide to take a release up to the approval step (the rehearsal) and succeeds without outside help;
 deliberately broken inputs (failing test, mismatched version, empty changelog
 section) each stop the release before anything is published.
 
@@ -261,5 +261,5 @@ templates.
 - docmd is used as-is with its default theme and minimal configuration; it is a development-only dependency and is never part of the published package.
 - The dashboard in the site is built from the current commit's code, not from the published npm version, so it doubles as a preview of unreleased behavior.
 - Existing docs (`usage.md`, `hosting.md`, `architecture.md`) keep their content; they may gain front-matter or small navigation adjustments needed by the site. The sample GitHub Pages workflow in `hosting.md` stays as guidance for other projects.
-- Verifying the automations end to end is done with a rehearsal (a pre-release or dry run through the real automation) plus automated tests for any scripts they use (changelog and version handling, package-contents check), in line with the constitution's testing principles.
+- Verifying the automations end to end is done with a rehearsal: the real release run up to the approval step, where every check has already run and rejecting publishes nothing (there is no separate dry-run mode), plus automated tests for any scripts they use (changelog and version handling, package-contents check), in line with the constitution's testing principles.
 - Contribution guidelines point to `DEVELOPMENT.md` for build and test instructions rather than repeating them; the code of conduct uses the Contributor Covenant.

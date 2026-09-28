@@ -50,7 +50,7 @@ for docmd.
   `linkify: true`) turn every hard-wrapped line of our docs into a `<br>` and turn prose like
   "spec.md" into a link to `https://spec.md` (`.md` is a country domain).
 - `navigation`: explicit order — Home, Usage, Hosting a snapshot, Architecture, Releasing,
-  Contributing, plus external entries "Project status & demo" (`/status/`), "npm", "GitHub".
+  plus external entries "Contributing" (`CONTRIBUTING.md`), "Development" (`DEVELOPMENT.md`), "Project status & live demo" (`/status/`), "npm", "GitHub".
 - The `ai` and `analytics` plugins are turned off: no chat widget, no tracking, nothing loaded
   from other servers. The default search, sitemap, SEO, `llms.txt` outputs stay (zero config).
 
@@ -187,7 +187,9 @@ script (KISS). A GitHub App token for the PR: more setup than the dispatch fix.
 
 1. `push` to `main` touching `package.json` or `CHANGELOG.md` (the automatic path, clarified);
 2. `push` of a `v*` tag (a tag pushed by hand, recovery path);
-3. `workflow_dispatch` run on a tag ref, with a `dry-run` input (rehearsal / re-run).
+3. `workflow_dispatch` run on a tag ref, no inputs (re-run for an existing tag). There is no dry-run
+   mode: the rehearsal is the real run up to the approval step, where every check has already run
+   and rejecting publishes nothing (clarified after analysis).
 
 Jobs:
 
@@ -205,9 +207,8 @@ Jobs:
   release notes extracted from the changelog; tarball and notes uploaded as an artifact.
 - **publish** (needs ci + verify; `environment: npm`, which requires the repository owner's
   approval, FR-012): creates and pushes the annotated tag if it does not exist yet, then
-  `npm publish <tarball> --access public --provenance --tag <latest|next>` (`--dry-run` for a
-  rehearsal). The tag is created only after approval, so a rejected or failed check leaves no tag.
-- **github-release** (needs publish, not in dry run): `gh release create vX.Y.Z --verify-tag
+  `npm publish <tarball> --access public --provenance --tag <latest|next>`. The tag is created only after approval, so a rejected or failed check leaves no tag.
+- **github-release** (needs publish): `gh release create vX.Y.Z --verify-tag
   --notes-file notes.md` (`--prerelease` for pre-releases, FR-015). Kept as its own job so that
   "Re-run failed jobs" retries only it, never the publish (edge case).
 
@@ -289,7 +290,8 @@ The Code of Conduct needs an enforcement contact. It is left for the maintainer 
     home links, navigation to every guide, crawl for broken internal links (SC-006), open
     `/status/`, see the overview with counts matching `specs/` (SC-007), follow "Home" back.
   - `repo-health.spec.js` (US5): community files, templates, README badges and links exist.
-- **Workflow rehearsal** (manual, quickstart): a `dry-run` release dispatch before the real 1.0.0.
+- **Workflow rehearsal** (manual, quickstart): the real 1.0.0 release run, reviewed at the approval
+  step before it publishes anything; plus the negative checks of quickstart §7.
 
 **Rationale**: Workflow YAML itself cannot be unit tested; keeping every decision in tested
 scripts leaves the YAML as wiring. The `tooling` project runs these suites once, not in every

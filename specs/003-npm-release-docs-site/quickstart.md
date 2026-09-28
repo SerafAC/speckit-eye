@@ -30,7 +30,8 @@ serving the overview (`40 / 65 tasks (62 %)`).
 
 ## 3. The release scripts on a scratch copy (US2)
 
-In a temporary copy of `package.json` and `CHANGELOG.md`:
+In a temporary copy of `tests/fixtures/release/package.json` and `tests/fixtures/release/CHANGELOG.md`
+(a frozen sample, so this keeps working after real releases):
 
 | Run | Expected |
 |---|---|
@@ -77,3 +78,6 @@ releases, private vulnerability reporting.
   published; delete the tag afterwards.
 - Dispatch **Release** on tag `v1.0.0` again: `verify` fails ("already on npm").
 - Start **Bump version** with an empty Unreleased: the run fails, no PR.
+- On a scratch branch (not `main`), run `release.js bump --version 9.9.9-rc.0` locally, break one
+  unit test, commit, and push the tag `v9.9.9-rc.0` on that commit: `ci` fails (failing test) and
+  `verify` fails ("not on main"); nothing is published. Delete the tag and the branch afterwards.

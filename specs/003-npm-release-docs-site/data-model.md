@@ -25,7 +25,7 @@ enforced by `scripts/release/release.js` (see [contracts/release-cli.md](./contr
 | `preminor` | `1.3.0-rc.0` | `1.4.0-rc.0` |
 | `premajor` | `2.0.0-rc.0` | `2.0.0-rc.0` |
 | `prerelease` | `1.2.4-rc.0` | `1.3.0-rc.2` |
-| `--version X` | `X` (must be valid; may equal the current version only if no tag `vX` and no `## [X]` section exist — the first-release case, `1.0.0`) | same |
+| `--version X` | `X` (must be valid; may equal the current version only if there is no `## [X]` section — the first-release case, `1.0.0`; an existing tag `vX` is caught by the Release run's checks, not by the script) | same |
 
 Uniqueness: a value is released at most once — no existing git tag, no changelog section, not on
 npm (npm refuses reuse even after unpublish).
@@ -71,10 +71,9 @@ any failing check ────────────────────�
 
 | Field | Source |
 |---|---|
-| `trigger` | `push-main` / `push-tag` / `dispatch` |
+| `trigger` | `push-main` / `push-tag` / `dispatch` (on a tag, to re-run a release) |
 | `commit` | head commit (push) or tag target |
 | `version`, `tag`, `distTag` | `package.json` (push-main) or the tag name |
-| `dryRun` | dispatch input; publishes with `--dry-run`, skips tag and GitHub release |
 | `tarball` | artifact `speckit-eye-<version>.tgz` from `verify`, the only file published |
 | `notes` | artifact `notes.md` from `verify` |
 | `provenance` | attached by npm from the OIDC identity of the `publish` job |

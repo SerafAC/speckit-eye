@@ -35,15 +35,15 @@ the E2E job. Job permissions: `contents: read`.
 |---|---|
 | `push` to `main` | paths `package.json`, `CHANGELOG.md` |
 | `push` tags `v*` | tag pushed by hand (recovery) |
-| `workflow_dispatch` | must be run on a tag ref; input `dry-run` (boolean, default `true`) |
+| `workflow_dispatch` | must be run on a tag ref; no inputs (re-runs the release for that tag; there is no dry-run mode) |
 
 | Job | Needs | Permissions | Environment | Does |
 |---|---|---|---|---|
-| `prepare` | — | `contents: read`, `pull-requests: read` | — | `release.js release-commit` (push-main) or tag from ref; outputs `release`, `version`, `tag`, `sha`, `dist-tag`, `dry-run` |
+| `prepare` | — | `contents: read`, `pull-requests: read` | — | `release.js release-commit` (push-main) or tag from ref; outputs `release`, `version`, `tag`, `sha`, `dist-tag` |
 | `ci` | prepare (release) | `contents: read` | — | `uses: ./.github/workflows/ci.yml` |
 | `verify` | prepare (release) | `contents: read` | — | ancestor of `origin/main`; `release.js verify`; not on npm; `pnpm pack`; `release.js pack-check`; `release.js notes`; upload artifact `release` (tarball, notes) |
-| `publish` | ci, verify | `contents: write`, `id-token: write` | `npm` (owner approval) | create + push annotated tag if missing; Node 24; `npm publish <tgz> --access public --provenance --tag <dist-tag> [--dry-run]` |
-| `github-release` | publish (not dry run) | `contents: write` | — | `gh release create <tag> --verify-tag --title <tag> --notes-file notes.md [--prerelease]` |
+| `publish` | ci, verify | `contents: write`, `id-token: write` | `npm` (owner approval) | create + push annotated tag if missing; Node 24; `npm publish <tgz> --access public --provenance --tag <dist-tag>` |
+| `github-release` | publish | `contents: write` | — | `gh release create <tag> --verify-tag --title <tag> --notes-file notes.md [--prerelease]` |
 
 `concurrency: { group: release, cancel-in-progress: false }`.
 
