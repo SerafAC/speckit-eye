@@ -90,22 +90,16 @@ The version lives only in `package.json` (§III). To release version `X.Y.Z`:
 2. Set `"version": "X.Y.Z"` in `package.json`. Do not write the version
    anywhere else.
 3. Run `pnpm test` and `pnpm run test:e2e`, then work through the release
-   checklist below (`npm pack --dry-run` contents and the installed tarball).
+   checklist below.
 4. Commit, then tag: `git tag vX.Y.Z` and `git push origin vX.Y.Z`.
 5. Publish: `npm publish` (runs `prepack`, which builds `dist/styles.css` and `dist/fonts/`).
 
 ### Release checklist
 
-- [ ] **Package contents**: `npm pack --dry-run` (runs `prepack`, which builds
-  `dist/styles.css` and `dist/fonts/`) lists only `bin/`, `src/` without
-  `src/styles/`, `dist/styles.css`, `dist/fonts/` (the `woff2` files and the
-  `OFL-*.txt` licence texts), `README.md`, `CHANGELOG.md`, `LICENSE`, and the
-  `package.json` that npm always adds.
-- [ ] **Installed tarball runs**: `npm pack`, install the tarball in an empty
-  temporary folder, and run `npx speckit-eye --serve <copy of tests/fixtures/projects/mixed>`.
-  It must print a `Local:` address that serves the overview
-  (`40 / 65 tasks (62 %)`) and `assets/styles.css`. `npm ls --all --omit=dev`
-  must show `markdown-it` as the only direct dependency.
+- [ ] **Package contents and installed tarball**: both are now automated.
+  `node scripts/release/release.js pack-check` checks the packed file list, and
+  `tests/e2e/release-package.spec.js` (`tooling` project, part of
+  `pnpm run test:e2e`) packs, installs and runs the tarball.
 
 Last verified on 2026-09-25 with version 0.1.0 (Node 24.11.1, npm 11.6.2):
 30 files, 43.4 kB packed, 156.1 kB unpacked. The installed CLI served the

@@ -59,6 +59,92 @@ export function formatVersion(v) {
   return v.pre ? `${base}-${v.pre.id}.${v.pre.n}` : base;
 }
 
+/** Fixed files every package must contain (FR-002). */
+export const PACK_REQUIRED = ["package.json", "README.md", "CHANGELOG.md", "LICENSE", "bin/speckit-eye.js", "dist/styles.css"];
+
+/**
+ * Whether a packed path is allowed in the published package (FR-002):
+ * the fixed files, `src/**\/*.js` except `src/styles/**`, the fonts and
+ * their licences.
+ *
+ * @param {string} p a `/`-separated path relative to the package root
+ * @returns {boolean}
+ */
+function isAllowedPackPath(p) {
+  if (PACK_REQUIRED.includes(p)) return true;
+  if (p.startsWith("src/") && p.endsWith(".js") && !p.startsWith("src/styles/")) return true;
+  return /^dist\/fonts\/[^/]+\.woff2$/.test(p) || /^dist\/fonts\/OFL-[^/]+\.txt$/.test(p);
+}
+
+/**
+ * Checks the file list of a packed tarball against the allowed and required
+ * files (contracts/release-cli.md "pack-check").
+ *
+ * @param {string[]} paths the packed paths, relative to the package root
+ * @returns {{unexpected: string[], missing: string[]}} both sorted; empty when the package is right
+ */
+export function checkPackFiles(paths) {
+  const files = paths.map((p) => String(p).replace(/\\/g, "/").replace(/^package\//, ""));
+  const unexpected = files.filter((p) => !isAllowedPackPath(p)).sort();
+  const missing = PACK_REQUIRED.filter((p) => !files.includes(p));
+  if (!files.some((p) => p.startsWith("src/") && isAllowedPackPath(p))) missing.push("src/**/*.js");
+  if (!files.some((p) => /^dist\/fonts\/[^/]+\.woff2$/.test(p))) missing.push("dist/fonts/*.woff2");
+  return { unexpected, missing };
+}
+
+/**
+ * Reads the packed paths from `npm pack --dry-run --json` (an array of
+ * packages, `[{files: [{path}]}]`) or `pnpm pack --json` (one object,
+ * `{files: [{path}]}`). Lines that lifecycle scripts (`prepack`) print before
+ * the JSON on the same stdout are skipped.
+ *
+ * @param {string} text
+ * @returns {string[] | null} `null` when the text holds no such file list
+ */
+export function parsePackFileList(text) {
+  const lines = String(text).split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*[[{]/.test(lines[i])) continue;
+    let data;
+    try {
+      data = JSON.parse(lines.slice(i).join("\n"));
+    } catch {
+      continue;
+    }
+    const packs = Array.isArray(data) ? data : [data];
+    if (packs.length === 0 || !packs.every((pk) => pk && Array.isArray(pk.files))) return null;
+    const paths = packs.flatMap((pk) => pk.files.map((f) => f?.path));
+    return paths.every((p) => typeof p === "string") ? paths : null;
+  }
+  return null;
+}
+
+/** `pack-check <file-list.json>`: exit 1 and list every wrong path on stderr. */
+function packCheck(args, _options, io) {
+  if (args.length !== 1) {
+    io.stderr(`pack-check needs exactly one <file-list.json>\n${USAGE}`);
+    return 2;
+  }
+  let text;
+  try {
+    text = io.readFile(args[0]);
+  } catch (error) {
+    io.stderr(`pack-check: cannot read ${args[0]}: ${error.message}\n`);
+    return 1;
+  }
+  const paths = parsePackFileList(text);
+  if (!paths) {
+    io.stderr(`pack-check: ${args[0]} is not the JSON of npm pack --json or pnpm pack --json\n`);
+    return 1;
+  }
+  const { unexpected, missing } = checkPackFiles(paths);
+  for (const p of unexpected) io.stderr(`unexpected file in package: ${p}\n`);
+  for (const p of missing) io.stderr(`missing from package: ${p}\n`);
+  if (unexpected.length || missing.length) return 1;
+  io.stdout(`pack-check: ${paths.length} files OK\n`);
+  return 0;
+}
+
 /** Placeholder for a command whose story task has not been done yet. */
 function notImplemented(name) {
   return (_args, _options, io) => {
@@ -73,7 +159,7 @@ const COMMANDS = {
   verify: notImplemented("verify"),
   notes: notImplemented("notes"),
   "release-commit": notImplemented("release-commit"),
-  "pack-check": notImplemented("pack-check"),
+  "pack-check": packCheck,
 };
 
 /**
