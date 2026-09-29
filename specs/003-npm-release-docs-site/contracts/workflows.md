@@ -8,7 +8,7 @@ commit SHA (`# vN.N.N` comment); `pnpm install --frozen-lockfile`; `actions/chec
 
 | Trigger | Notes |
 |---|---|
-| `push`, `pull_request` | unchanged |
+| `push` (`main` only), `pull_request` | `push` limited to `main` so a PR branch is not tested twice per push |
 | `workflow_call` | **new**: `release.yml` runs the full suite on the release commit |
 | `workflow_dispatch` | **new**: `bump.yml` starts CI on `release/next` (GITHUB_TOKEN pushes start no workflows) |
 
