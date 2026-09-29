@@ -1,0 +1,6 @@
+# The CLI entry point must keep LF line endings on every checkout: a shebang
+# ending in CRLF breaks the installed command on Linux and macOS, and pnpm
+# refuses to pack it (ERR_PNPM_BIN_CRLF), for example on a Windows runner with
+# core.autocrlf=true. Other files follow the checkout's settings, so Windows CI
+# keeps exercising CRLF Spec Kit files.
+bin/** text eol=lf
