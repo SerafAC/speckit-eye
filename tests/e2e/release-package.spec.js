@@ -6,7 +6,7 @@
 
 import { test, expect } from "@playwright/test";
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { REPO_ROOT, copyFixture } from "./helpers.js";
@@ -48,10 +48,17 @@ let fileList = "";
 let tarball = "";
 
 test.beforeAll(async () => {
-  packDir = await mkdtemp(path.join(os.tmpdir(), "speckit-eye-pack-"));
+  // Pack next to the repository, not in os.tmpdir(): on the Windows runner the
+  // checkout is on D: and the temp folder on C:, and pnpm moves the tarball
+  // into --pack-destination, which fails across drives. test-results/ is
+  // ignored by git and outside the package's `files`.
+  const packParent = path.join(REPO_ROOT, "test-results");
+  await mkdir(packParent, { recursive: true });
+  packDir = await mkdtemp(path.join(packParent, "speckit-eye-pack-"));
   temps.push(packDir);
   const pack = await run("pnpm", ["pack", "--json", "--pack-destination", packDir], REPO_ROOT);
-  expect(pack.code, pack.stderr).toBe(0);
+  // With --json, pnpm reports its own errors on stdout.
+  expect(pack.code, `${pack.stderr}\n${pack.stdout}`).toBe(0);
   // `prepack` prints to the same stdout before the JSON; pack-check skips it.
   fileList = path.join(packDir, "files.json");
   await writeFile(fileList, pack.stdout);
