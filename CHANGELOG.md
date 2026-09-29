@@ -142,9 +142,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tool, so no page loads anything from another server.
 - Supported browsers: the last two major versions of Chrome, Edge, Firefox
   and Safari.
+- speckit-eye is published on npm: run it with `npx speckit-eye` or install
+  it with `npm install -g speckit-eye`. Every release is published by the
+  project's release workflow with npm build provenance, and its GitHub
+  release notes are the version's section of this changelog.
+- `--home <url>` build option: adds a "Home" link to `<url>` on every page
+  (sidebar, icon rail and mobile menu), for linking a hosted dashboard back to
+  the site it is part of.
+- A documentation website at https://serafac.github.io/speckit-eye/ with the
+  usage, hosting, architecture and releasing guides, and this project's own
+  live status dashboard (a speckit-eye build of its specs) under `/status/`,
+  linked from the README and the docs home page as the project's status and
+  live demo.
+- A contributing guide, a code of conduct and a security policy with a
+  private way to report vulnerabilities, plus issue and pull request
+  templates.
 
 ### Changed
 
+- The README screenshots moved to `docs/assets/`.
 - Redesigned every page: a dark sidebar replaces the header, a stats card,
   Up next bar and task map replace the progress bar, counters and task grid,
   and documents open in a reader layout.
@@ -164,3 +180,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   feature.
 - The feature's list of documents inside the overview tree: the feature page
   tabs and the reader's document list replace it.
+
+[Unreleased]: https://github.com/SerafAC/speckit-eye/commits/main

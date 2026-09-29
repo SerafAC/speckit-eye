@@ -1,4 +1,34 @@
 # @parcel/watcher (used by @tailwindcss/cli) ships prebuilt binaries as optional
 # dependencies; its install script only builds from source as a fallback.
+# esbuild and @docmd/engine-rust (used by @docmd/core) are not needed: docmd
+# falls back to its JavaScript engine when their install scripts do not run
+# (research R2).
 allowBuilds:
   '@parcel/watcher': false
+  esbuild: false
+  '@docmd/engine-rust': false
+minimumReleaseAgeExclude:
+  - '@docmd/api@0.9.7'
+  - '@docmd/core@0.9.7'
+  - '@docmd/deployer@0.9.7'
+  - '@docmd/engine-js@0.9.7'
+  - '@docmd/engine-python@0.9.7'
+  - '@docmd/engine-rust@0.9.7'
+  - '@docmd/live@0.9.7'
+  - '@docmd/parser@0.9.7'
+  - '@docmd/plugin-ai@0.9.7'
+  - '@docmd/plugin-analytics@0.9.7'
+  - '@docmd/plugin-git@0.9.7'
+  - '@docmd/plugin-installer@0.9.7'
+  - '@docmd/plugin-llms@0.9.7'
+  - '@docmd/plugin-math@0.9.7'
+  - '@docmd/plugin-mermaid@0.9.7'
+  - '@docmd/plugin-okf@0.9.7'
+  - '@docmd/plugin-openapi@0.9.7'
+  - '@docmd/plugin-search@0.9.7'
+  - '@docmd/plugin-seo@0.9.7'
+  - '@docmd/plugin-sitemap@0.9.7'
+  - '@docmd/themes@0.9.7'
+  - '@docmd/tui@0.9.7'
+  - '@docmd/ui@0.9.7'
+  - '@docmd/utils@0.9.7'

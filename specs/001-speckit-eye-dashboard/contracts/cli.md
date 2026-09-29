@@ -6,7 +6,7 @@ The binary is `speckit-eye`, installed from the npm package `speckit-eye`, typic
 
 ```text
 speckit-eye --serve <dir>
-speckit-eye --build <dir> --out <folder> [--base <path>]
+speckit-eye --build <dir> --out <folder> [--base <path>] [--home <url>]
 speckit-eye --help
 speckit-eye --version
 ```
@@ -19,6 +19,7 @@ Arguments are parsed with `util.parseArgs` in strict mode. The CLI accepts exact
 | `--build` | project dir | build | — | Writes the static site (FR-003). |
 | `--out` | folder | build (required) | — | The output folder, created if missing. Must not be the project folder itself or inside `specs/` or `.specify/`. |
 | `--base` | URL path | build | `/` | Normalized to a leading and trailing `/` (`repo` → `/repo/`) (FR-004). |
+| `--home` | absolute `http:`/`https:` URL | build | none | Adds a "Home" link to `<url>` on every page (feature 003, [contracts/cli-home.md](../../003-npm-release-docs-site/contracts/cli-home.md)). With `--serve` or a value that is not an `http:`/`https:` URL: usage error, exit 2. |
 | `--help`, `-h` | — | — | — | Prints usage to stdout and exits 0. |
 | `--version`, `-v` | — | — | — | Prints the version from `package.json` and exits 0. |
 

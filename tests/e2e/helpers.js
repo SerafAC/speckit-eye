@@ -21,6 +21,18 @@ const START_TIMEOUT_MS = 15_000;
 
 /** @typedef {import("@playwright/test").Page} Page */
 
+/**
+ * Latest moment, in ms after the pointer entered, at which a test accepts the
+ * hover tooltip (spec 002 FR-024, SC-006: 500 ± 100 ms). Firefox and WebKit on
+ * macOS CI runners fire the 500 ms timer up to about 170 ms late, so there
+ * only "not too early" and "does appear" are checked; Chromium and every
+ * other OS keep the spec's bound.
+ * @param {string} browserName
+ * @returns {number}
+ */
+export const tooltipLatestMs = (browserName) =>
+  process.platform === "darwin" && browserName !== "chromium" ? Infinity : 600;
+
 /** The dark sidebar of overview and feature pages. @param {Page} page */
 export const sidebar = (page) => page.locator('[data-region="sidebar"]');
 
@@ -246,14 +258,16 @@ const STATIC_TYPES = /** @type {Record<string, string>} */ ({
  */
 
 /**
- * A test-only plain static file server on 127.0.0.1 and port 0: maps
- * `<mountPath>*` to files under `rootDir` (a folder → its `index.html`),
- * anything else → 404. Like a static host, it has no server-side logic.
+ * A test-only plain static file server on 127.0.0.1 (port 0 unless `port`
+ * is given): maps `<mountPath>*` to files under `rootDir` (a folder → its
+ * `index.html`), anything else → 404. Like a static host, it has no
+ * server-side logic.
  * @param {string} rootDir
  * @param {string} [mountPath] with leading and trailing `/`
+ * @param {{ port?: number }} [options]
  * @returns {Promise<StaticHandle>}
  */
-export async function serveStatic(rootDir, mountPath = "/") {
+export async function serveStatic(rootDir, mountPath = "/", { port: listenPort = 0 } = {}) {
   const root = path.resolve(rootDir);
   /** @type {string[]} */
   const requests = [];
@@ -285,7 +299,7 @@ export async function serveStatic(rootDir, mountPath = "/") {
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => resolve(undefined));
+    server.listen(listenPort, "127.0.0.1", () => resolve(undefined));
   });
   const { port } = /** @type {import("node:net").AddressInfo} */ (server.address());
   const origin = `http://127.0.0.1:${port}`;
@@ -360,4 +374,39 @@ export async function checkHitTargets(page, { serve, serveRepo, stop }) {
   await check((await serve("nonstandard")).url, ["", featurePagePath("001-odd")], "nonstandard");
   await stop();
   await check((await serveRepo()).url, HIT_REPO_PAGES, "repo");
+}
+
+const TASK_LINE = /^\s*[-*]\s+\[( |x|X)\]\s+(.*)$/;
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+
+/**
+ * Counts checkboxes outside fenced code blocks and HTML comments, independently
+ * of src/parse, with the task-line regex from contracts/tasks-md-format.md
+ * (self-counts.spec.js, and the /status/ part of site.spec.js).
+ * @param {string} text
+ * @returns {{ done: number, total: number }}
+ */
+export function countCheckboxes(text) {
+  // Blank out comments but keep their line breaks, so line structure survives.
+  const visible = text.replace(/<!--[\s\S]*?(?:-->|$)/g, (m) => m.replace(/[^\n]/g, ""));
+  let fence = null;
+  let done = 0;
+  let total = 0;
+  for (const raw of visible.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    const f = FENCE.exec(line);
+    if (fence) {
+      if (f && f[1][0] === fence[0] && f[1].length >= fence.length && line.trim() === f[1]) fence = null;
+      continue;
+    }
+    if (f) {
+      fence = f[1];
+      continue;
+    }
+    const m = TASK_LINE.exec(line);
+    if (!m) continue;
+    total++;
+    if (m[1] !== " ") done++;
+  }
+  return { done, total };
 }

@@ -93,9 +93,11 @@ function fontFileType(file) {
  * @param {string} options.version
  * @param {string | null} [options.generatedAt] ISO time, static mode only
  * @param {SiteAssets} options.assets contents of the packaged assets
+ * @param {string | null} [options.home] URL of the "Home" link on every page
+ *   (`--home`, build only; 003 contracts/cli-home.md)
  * @returns {Site}
  */
-export function renderSite(project, { base, mode, version, generatedAt = null, assets }) {
+export function renderSite(project, { base, mode, version, generatedAt = null, assets, home = null }) {
   /** @type {Site} */
   const site = new Map();
 
@@ -109,6 +111,7 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
       main: renderOverview(project, { base }),
       version,
       generatedAt,
+      home,
     }),
   });
 
@@ -133,6 +136,7 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
         main: renderFeaturePage(feature, project, { base, markdown: renderMarkdown }),
         version,
         generatedAt,
+        home,
       }),
     });
   }
@@ -152,6 +156,7 @@ export function renderSite(project, { base, mode, version, generatedAt = null, a
         main: renderDocument(artifact, { base, project, feature, assessment, md: renderMarkdown }),
         version,
         generatedAt,
+        home,
       }),
     });
   }

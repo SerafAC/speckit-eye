@@ -1,13 +1,21 @@
 # speckit-eye
 
+[![CI](https://github.com/SerafAC/speckit-eye/actions/workflows/ci.yml/badge.svg)](https://github.com/SerafAC/speckit-eye/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/speckit-eye)](https://www.npmjs.com/package/speckit-eye)
+[![License](https://img.shields.io/npm/l/speckit-eye)](LICENSE)
+
 A zero-setup progress dashboard for [GitHub Spec Kit](https://github.com/github/spec-kit)
 projects. Point it at a project folder and open the printed address: you see
 how far along the project is, which feature and phase are being worked on, and
 which task comes next, without reading a single `tasks.md` by hand.
 
+[Documentation](https://serafac.github.io/speckit-eye/) ·
+[Project status & live demo](https://serafac.github.io/speckit-eye/status/)
+(this repository's own specs, shown by speckit-eye)
+
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
-  <img src="docs/screenshot.png" width="1440" alt="The speckit-eye overview: a dark sidebar with the features, a stats card with the overall percentage and a bar per feature, the Up next bar naming the next task, the feature tree with the active phase open, and the task map with one square per task">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshot-dark.png">
+  <img src="docs/assets/screenshot.png" width="1440" alt="The speckit-eye overview: a dark sidebar with the features, a stats card with the overall percentage and a bar per feature, the Up next bar naming the next task, the feature tree with the active phase open, and the task map with one square per task">
 </picture>
 
 speckit-eye only reads your project. It never creates, changes, or deletes a
@@ -90,10 +98,20 @@ workflow and notes for other hosts.
 
 ## Documentation
 
+- [Documentation website](https://serafac.github.io/speckit-eye/): all the
+  guides below, online
 - [Usage](docs/usage.md): the overview, task map, feature pages, document
   reader, theme, search, and how the active feature is chosen
 - [Hosting a snapshot](docs/hosting.md): static build options and a sample
   GitHub Pages workflow
 - [Architecture](docs/architecture.md): how the tool is put together
+- [Releasing](docs/releasing.md): how a new version is published to npm
 - [Development](DEVELOPMENT.md): building, testing, and contributing
 - [Changelog](CHANGELOG.md): what changed in each release
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Read the
+[contributing guide](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md) first. Please report security
+vulnerabilities privately, as described in the [security policy](SECURITY.md).

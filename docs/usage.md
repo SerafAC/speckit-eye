@@ -6,7 +6,7 @@ or deletes a file in it. A static build writes only to the output folder you
 name with `--out`.
 
 For every option and exit code, see the CLI contract:
-[contracts/cli.md](../specs/001-speckit-eye-dashboard/contracts/cli.md).
+[contracts/cli.md](https://github.com/SerafAC/speckit-eye/blob/main/specs/001-speckit-eye-dashboard/contracts/cli.md).
 
 ## Serve mode
 
@@ -49,6 +49,7 @@ or sharing, and exits:
 ```sh
 npx speckit-eye --build . --out _site
 npx speckit-eye --build . --out _site --base /my-repo/
+npx speckit-eye --build . --out _site --base /my-repo/status/ --home https://example.com/my-repo/
 ```
 
 | Option | Required | Default | Meaning |
@@ -56,6 +57,7 @@ npx speckit-eye --build . --out _site --base /my-repo/
 | `--build <dir>` | yes | — | The Spec Kit project to read. |
 | `--out <folder>` | yes | — | Where to write the site. Created if missing. Must not be the project folder itself or lie inside `specs/` or `.specify/`. |
 | `--base <path>` | no | `/` | The URL path the site is served under. `repo`, `/repo` and `/repo/` all mean `/repo/`. |
+| `--home <url>` | no | none | Adds a "Home" link to `<url>` on every page: under the project name in the sidebar, in the icon rail of document pages and in the mobile menu. Use it to link back to the site the dashboard is part of, such as your docs. Must be an absolute `http://` or `https://` address; not available in serve mode. Without it the pages have no Home link. |
 
 It prints a summary:
 
@@ -379,8 +381,9 @@ checkboxes are never counted as tasks), code blocks, block quotes and links
 are rendered. Headings get anchors, so a link such as `cli.md#synopsis` lands
 on the "Synopsis" heading.
 
-- **Links to other documents** (relative links such as `[plan](./plan.md)` or
-  `[cli](contracts/cli.md#synopsis)`) open that document's page.
+- **Links to other documents** (relative links whose target is another
+  document, such as `./plan.md` or `contracts/cli.md#synopsis`) open that
+  document's page.
 - **Links to other files** in the repository (for example `../../src/index.js`)
   are shown as plain text: the tool never serves files that are not
   documents.

@@ -5,10 +5,16 @@ import { defineConfig, devices } from "@playwright/test";
 // WebKit, plus a Chromium project without JavaScript (FR-053) and a Chromium
 // phone project (FR-009). The cloud container has Chromium only; Firefox and
 // WebKit run in CI.
+// The `tooling` project (feature 003, research R14) runs the release, docs-site
+// and repository-health suites once in Chromium: they test packaging, the
+// release scripts and the docs site, not browser engines, so the desktop
+// engine projects ignore them. It runs wherever `pnpm run test:e2e` runs,
+// including CI on Linux, macOS and Windows.
 // One worker: every E2E server uses the default port 4747, and US2 AC7
 // restarts the server on the same address.
 const DESKTOP_VIEWPORT = { width: 1440, height: 900 }; // SC-009
-const DESKTOP_IGNORE = [/nojs\.spec\.js/, /mobile\.spec\.js/];
+const TOOLING_MATCH = /(release-.*|site|repo-health)\.spec\.js/;
+const DESKTOP_IGNORE = [/nojs\.spec\.js/, /mobile\.spec\.js/, TOOLING_MATCH];
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -46,6 +52,11 @@ export default defineConfig({
         isMobile: true,
       },
       testMatch: /mobile\.spec\.js/,
+    },
+    {
+      name: "tooling",
+      use: { ...devices["Desktop Chrome"], viewport: DESKTOP_VIEWPORT },
+      testMatch: TOOLING_MATCH,
     },
   ],
 });

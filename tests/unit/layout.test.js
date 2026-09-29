@@ -6,6 +6,9 @@ import { renderOverview } from "../../src/render/overview.js";
 import { buildModel } from "../../src/model/build-model.js";
 import { scan } from "../../src/project/scan.js";
 import { createFakeReader } from "./fake-reader.js";
+import { icon } from "../../src/render/icons.js";
+import { SNAPSHOT_FILES, layoutCases } from "../fixtures/snapshots/no-home-cases.js";
+import NO_HOME_LAYOUT from "../fixtures/snapshots/no-home-layout.json" with { type: "json" };
 
 const tasks = (n, done) =>
   ["## Phase 1: P", ...Array.from({ length: n }, (_, i) => `- [${i < done ? "x" : " "}] T${String(i + 1).padStart(3, "0")} t`)].join("\n");
@@ -275,5 +278,57 @@ describe("renderPage", () => {
     assert.match(doc, /<title>&lt;script&gt;<\/title>/);
     assert.match(doc, /<p data-part="project-name">a&amp;b&lt;c&gt;<\/p>/);
     assert.match(doc, /Assessment: s&quot;x/);
+  });
+});
+
+describe("renderPage: Home link (003 US4, contracts/cli-home.md)", () => {
+  const HOME = "https://example.com/docs/?a=1&b=<2>";
+  const ESCAPED = "https://example.com/docs/?a=1&amp;b=&lt;2&gt;";
+
+  /** @type {import("../../src/model/build-model.js").Project} */
+  let snapProject;
+  before(async () => {
+    snapProject = buildModel(await scan(createFakeReader(SNAPSHOT_FILES), "my-proj"));
+  });
+
+  test("without home every page type equals the output from before --home (snapshot)", () => {
+    const cases = layoutCases(snapProject);
+    assert.deepEqual(Object.keys(cases).sort(), Object.keys(NO_HOME_LAYOUT).sort());
+    for (const [name, opts] of Object.entries(cases)) {
+      assert.equal(renderPage(opts), NO_HOME_LAYOUT[name], name);
+      assert.equal(renderPage({ ...opts, home: null }), NO_HOME_LAYOUT[name], `${name} (home: null)`);
+      assert.doesNotMatch(renderPage(opts), /data-part="home"/, name);
+    }
+  });
+
+  test("sidebar: the link comes directly after the project name, with the house icon and escaped URL", () => {
+    for (const kind of ["overview", "feature"]) {
+      const side = sidebar(page({ page: kind, current: kind === "feature" ? "002-beta" : null, home: HOME }));
+      const link = `<a href="${ESCAPED}" data-part="home">${icon("house").value}<span>Home</span></a>`;
+      assert.ok(side.includes(`<p data-part="project-name">my-proj</p>\n${link}\n<button`), kind);
+    }
+  });
+
+  test("mobile menu: the same link directly after the summary, on every page type", () => {
+    for (const kind of ["overview", "feature", "document"]) {
+      const menu = mobile(page({ page: kind, home: HOME }));
+      const link = `<a href="${ESCAPED}" data-part="home">${icon("house").value}<span>Home</span></a>`;
+      assert.ok(menu.includes(`</summary>\n${link}\n<nav aria-label="Main">`), kind);
+    }
+  });
+
+  test("document rail: an icon link with aria-label and title directly after the brand", () => {
+    const r = rail(page({ page: "document", home: HOME }));
+    const link = `<a href="${ESCAPED}" data-part="home" aria-label="Home" title="Home">${icon("house").value}</a>`;
+    assert.match(r, /data-part="brand"[^>]*>.*?<\/a>\n<a href="[^"]*" data-part="home"/s);
+    assert.ok(r.includes(`</a>\n${link}\n<button`));
+    assert.equal(sidebar(page({ page: "document", home: HOME })), "");
+  });
+
+  test("the link has no target and adds no script", () => {
+    const doc = page({ page: "overview", home: HOME });
+    assert.equal(doc.match(/data-part="home"/g)?.length, 2); // sidebar + mobile menu
+    assert.doesNotMatch(doc, /target=/);
+    assert.equal(doc.match(/<script/g)?.length, page().match(/<script/g)?.length);
   });
 });

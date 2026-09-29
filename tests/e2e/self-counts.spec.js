@@ -1,47 +1,15 @@
 // SC-004 (spec 002; 001 SC-005): every count speckit-eye shows for this
 // repository's own features (stats card, segments, sidebar, tree, map legend,
 // feature pages) equals the checkboxes in their tasks.md files. The expected counts are
-// computed here, independently of src/parse, with the task-line regex from
-// contracts/tasks-md-format.md, skipping fenced code blocks and HTML comments.
+// computed independently of src/parse by `countCheckboxes` (helpers.js), with
+// the task-line regex from contracts/tasks-md-format.md, skipping fenced code
+// blocks and HTML comments.
 
 import { test, expect } from "@playwright/test";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { REPO_ROOT, featurePagePath, runBuild, serveStatic, sidebarFeature } from "./helpers.js";
-
-const TASK_LINE = /^\s*[-*]\s+\[( |x|X)\]\s+(.*)$/;
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-
-/**
- * Counts checkboxes outside fenced code blocks and HTML comments.
- * @param {string} text
- * @returns {{ done: number, total: number }}
- */
-function countCheckboxes(text) {
-  // Blank out comments but keep their line breaks, so line structure survives.
-  const visible = text.replace(/<!--[\s\S]*?(?:-->|$)/g, (m) => m.replace(/[^\n]/g, ""));
-  let fence = null;
-  let done = 0;
-  let total = 0;
-  for (const raw of visible.split("\n")) {
-    const line = raw.replace(/\r$/, "");
-    const f = FENCE.exec(line);
-    if (fence) {
-      if (f && f[1][0] === fence[0] && f[1].length >= fence.length && line.trim() === f[1]) fence = null;
-      continue;
-    }
-    if (f) {
-      fence = f[1];
-      continue;
-    }
-    const m = TASK_LINE.exec(line);
-    if (!m) continue;
-    total++;
-    if (m[1] !== " ") done++;
-  }
-  return { done, total };
-}
+import { REPO_ROOT, countCheckboxes, featurePagePath, runBuild, serveStatic, sidebarFeature } from "./helpers.js";
 
 /** @type {(() => Promise<unknown>)[]} */
 let cleanup = [];

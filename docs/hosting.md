@@ -20,6 +20,18 @@ npx speckit-eye --build . --out _site --base /my-repo/
   Pages project sites this is `/<repository name>/`. Every link, script and
   the search index use this path; the fonts are referenced relative to the
   stylesheet, so they load under any base.
+- `--home <url>` (optional) adds a "Home" link to `<url>` on every page, for
+  a snapshot that is part of a larger site. It must be an absolute `http://`
+  or `https://` address. For example, a dashboard published under `status/`
+  of a docs site that links back to the docs home:
+
+  ```sh
+  npx speckit-eye --build . --out site/status --base /my-repo/status/ --home https://example.github.io/my-repo/
+  ```
+
+  speckit-eye's own documentation site does exactly this: its
+  [project status page](https://serafac.github.io/speckit-eye/status/) is this
+  repository's dashboard, with a Home link back to the docs.
 - A second build into the same folder replaces the previous one, with no stale
   pages left behind. The tool recognizes its own output by the
   `.speckit-eye-build` file it writes there. It refuses to write into any other
