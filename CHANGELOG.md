@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-29
+
 ### Added
 
 - Serve mode: `speckit-eye --serve <dir>` serves the dashboard of a Spec Kit
@@ -181,4 +183,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The feature's list of documents inside the overview tree: the feature page
   tabs and the reader's document list replace it.
 
-[Unreleased]: https://github.com/SerafAC/speckit-eye/commits/main
+[Unreleased]: https://github.com/SerafAC/speckit-eye/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/SerafAC/speckit-eye/releases/tag/v1.0.0
