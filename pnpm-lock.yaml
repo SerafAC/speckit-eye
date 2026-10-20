@@ -10,11 +10,11 @@ importers:
     dependencies:
       markdown-it:
         specifier: ^15
-        version: 15.0.2
+        version: 15.0.3
     devDependencies:
       '@docmd/core':
-        specifier: 0.9.7
-        version: 0.9.7
+        specifier: 0.9.8
+        version: 0.9.8
       '@fontsource-variable/geist':
         specifier: ^5.3.0
         version: 5.3.0
@@ -26,7 +26,7 @@ importers:
         version: 5.3.0
       '@playwright/test':
         specifier: ^1.63
-        version: 1.63.0
+        version: 1.64.1
       '@tailwindcss/cli':
         specifier: ^4.1
         version: 4.3.3
@@ -42,84 +42,84 @@ importers:
 
 packages:
 
-  '@docmd/api@0.9.7':
-    resolution: {integrity: sha512-t+uojlDgbijUTZTyqsoXGfoKY1UmmIDtgPeYbDcpnsRZFVArxgAcTp8chxyNj6D3zb5YWFadydKEgCQRVaL0pA==}
+  '@docmd/api@0.9.8':
+    resolution: {integrity: sha512-zFveI7FfLIskAgxAKPSNvss7ibiIf9HQ35OjiLyKbbrxYAqgzDXR49GgSKXIik6GrxmJCMssPPEsJBtvHi+lYw==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/core@0.9.7':
-    resolution: {integrity: sha512-/Ao/jsiIQXolRCPxFgylWw0RkhDOdj0p3i1i06hqMhadgazyNzyxav0ZTFRHioGNfFfdUvUkPgnE7aR9bh0yXg==}
-    engines: {node: '>=20.0.0'}
-    hasBin: true
-
-  '@docmd/deployer@0.9.7':
-    resolution: {integrity: sha512-3WLLwDnpk/+Lm7SXIlzSrYzRLsxoN2Fz0XhbCXFqTT1bK99KMJofWmyVet3BBGCkejBGceUSSCnXe4NLG+pPTg==}
-    engines: {node: '>=20.0.0'}
-
-  '@docmd/engine-js@0.9.7':
-    resolution: {integrity: sha512-n7+IsHSOeCEO2Bp5Owg9iQ7BlZd0Wu5BVkjEyIrV/8OW97FyoL1EJL2NWr/zEU8R9oO/eVgUknWLMHyYRiNYjQ==}
-    engines: {node: '>=20.0.0'}
-
-  '@docmd/engine-python@0.9.7':
-    resolution: {integrity: sha512-gXhasYfSS2wdMcCmPAahvEV4sEUVxnS3AT1ZzRJrV1KZ8anDCLoseZIsWbJSGODra0vcocqVfRNqK3/M2ySGsQ==}
-    engines: {node: '>=20.0.0'}
-
-  '@docmd/engine-rust@0.9.7':
-    resolution: {integrity: sha512-7oYVUmwCKkuEOH+8qI8C6OyVtmZapnkNWeQbsFCwYjDzjNL+z2prX68Vuo0+hJDxJ9jBYBvdipG0EUx3SgZQ9w==}
-    engines: {node: '>=20.0.0'}
-
-  '@docmd/live@0.9.7':
-    resolution: {integrity: sha512-5J1dBxUYFsTQFkWvljqUkn8YaKmCF5EKbTcQx2oQtnMOhNPWu3/K1pu2Pri/2jQ7n6NvT6EWKdPX9ky7Sg+o/A==}
+  '@docmd/core@0.9.8':
+    resolution: {integrity: sha512-yz1ujTM+gieqdO/Htpg52Fc4lBlPEB5xImoWo3gs7AE3M4ldntZdQ50+KTuf2Y1txi3/iznSAfqIe8giZ4JBqA==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
-  '@docmd/parser@0.9.7':
-    resolution: {integrity: sha512-8frG/R8LZnHlYwiHb+VU6fuFjubfJSQ/YojPjDi8Gdr+3xKSwE9vDHfABYZ/fZQCSCXqWfba1h1/boHmIfNPJg==}
+  '@docmd/deployer@0.9.8':
+    resolution: {integrity: sha512-1jvNEhMk0OskcfZElLEZGJBk807Ob8wRljp3+Yq2tF65C9NUz8bsC1xH0wSfhluzaeqXwIyqp/xIpkk1x/TIFw==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/plugin-ai@0.9.7':
-    resolution: {integrity: sha512-1CjUG77Z6lo0m0xPMnJeJy13dzNrvIVIMgH3r7yphZejhUlcBxJrrEO7aakdZ8xohjWZN2OeMfv+M3X0NTRbdg==}
+  '@docmd/engine-js@0.9.8':
+    resolution: {integrity: sha512-6WDN9IKb5Wkw7dtwPpRaj+qgsi5eKLqajC4SqiRNxCJl68yvCRVdtYBWb8rQPeGJ3GCauZVO4UrNuMFFF/Ui5w==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/plugin-analytics@0.9.7':
-    resolution: {integrity: sha512-D/iDIKVOki6nWlztYJ4phTUV8bP4Bl6KV9atrX4A0EENMLH4VWJkPX7ILLXorYRSrhlKxaJgVg71TG5lWY+wWQ==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      '@docmd/api': ^0.9.7
-
-  '@docmd/plugin-git@0.9.7':
-    resolution: {integrity: sha512-TH3hKnBu+whMRj1ehT5XBrJL0A6O33Vp0vGyPqEBj9WDKhE8Rjp1mqLjb4NLuwusKXkl+SkjlP94LjMhzcs8VA==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      '@docmd/api': ^0.9.7
-
-  '@docmd/plugin-installer@0.9.7':
-    resolution: {integrity: sha512-pS4sBNYrtMj2e6Cb5C8eLE85D362C9Yj144tpCLx3A4qOYQTyVshU0jCSgS7XG9NLnOpvj1lk2qWO0l7fh7hNg==}
+  '@docmd/engine-python@0.9.8':
+    resolution: {integrity: sha512-p+ggiacIQ3DkpSlUbTZhrH7ssqwVmXg1PmSdxjRu3NZyt3cQvXDLy1wZ0DqM7D4f71DH/e2DePMocwckSvA5Zw==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/plugin-llms@0.9.7':
-    resolution: {integrity: sha512-lVqySvUghZMrSvhQuh4/VF6323FKchEe2PUJKLXSWvR1cDVsqQ2FXzjRThJd3+o++2S9ZmDjMPrLbSXRr9yWfQ==}
+  '@docmd/engine-rust@0.9.8':
+    resolution: {integrity: sha512-wph3cuTZMYADBDAAAXfuM6Sz2itkC+lx4RwRcVYzdG9yDOFAYidzU552VO3plbuDzUaJUxUWnsj55x//0gLOFA==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/plugin-math@0.9.7':
-    resolution: {integrity: sha512-w9Au6di556dVkwfF/vSzg6/RncY1FpiGRQ80QH29A/QPGY9zw+mpxTLQS5uQOnOgKRECXLy2HQw+qAWii4O6vQ==}
+  '@docmd/live@0.9.8':
+    resolution: {integrity: sha512-0bdIN6WgBKOis1NQgqUm9re/ICFzFJuV3dUfizMYrrCKE/2gOWOKXzyWU4Qyy9t+w3+J8uRiMO9GvJISXkotaQ==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+
+  '@docmd/parser@0.9.8':
+    resolution: {integrity: sha512-l6e/nuXd/j58Hsx6Z3zzNTWkMXstQcyvSJ2jGMTFKwqRo1YCRFEPJE+gGpVsorlHinMFOWjBCvwQoBNM/KlE0w==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/plugin-mermaid@0.9.7':
-    resolution: {integrity: sha512-DiuCx7l866xNEpXCceT3CJ49my7gZZcHkgjwxsW0StNrrJVHzhb3CRa01GDNIVGBaghshPR8/s4pxC8tO7sFfg==}
+  '@docmd/plugin-ai@0.9.8':
+    resolution: {integrity: sha512-noA/NA0I34Y86oOBwkk6sdAJYxteLstd6l+1mN/g8Mh97W+HpO5JbEYUeke3YKJdrNd0Joudz+QA6ctRlKpqDg==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/plugin-okf@0.9.7':
-    resolution: {integrity: sha512-J/Glqneqo35IRAWQMvdxpHThAj/NZ56XuS61T9/D6Zv+jc9SruO/G1zUm8hVuQ0RDzZiRbSt1apDRN+C5OV6pA==}
-    engines: {node: '>=20.0.0'}
-
-  '@docmd/plugin-openapi@0.9.7':
-    resolution: {integrity: sha512-Wwc8Ek0HIi0Io+VW2GMsLgCAdZBQIwxjJxfve2dV++Wr48rF/2rDJqRlne9RruF222f7LcJqcL4WKxkfGQIr/w==}
+  '@docmd/plugin-analytics@0.9.8':
+    resolution: {integrity: sha512-7N9Z+9eEAfgTYWqYHa44z/oKPvU9ZcMs24j1liBKYeCZQ9j9QDa+Fd8nCXWhZOWINWD4hMxKXw0MadEEQLGm/w==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
-      '@docmd/api': ^0.9.7
+      '@docmd/api': ^0.9.8
 
-  '@docmd/plugin-search@0.9.7':
-    resolution: {integrity: sha512-ZP+VfK/RkOjMV/c6CLrSIMObvLw4uEbA9lBfKOqXWGtkokbOoz7MGx+OHPx3aJgUq4DmCnugCzBEH2Nbwe9ceQ==}
+  '@docmd/plugin-git@0.9.8':
+    resolution: {integrity: sha512-yb12MzNtEaRie4y+Ontr62nqNuqZXNp2Heq0KL9ajOEUwwtnp3pY+Qu1lTkUjpaLUUWJ4ZIUsUq0RZWImSIc5Q==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@docmd/api': ^0.9.8
+
+  '@docmd/plugin-installer@0.9.8':
+    resolution: {integrity: sha512-L/wZtekP1sNJzNR9d/Z6T2FcvJLRapyplLnI80l8x74aGqWY73cy47zE1a6CYuBPGDUfY3V0Le9+gPHpoM8e6w==}
+    engines: {node: '>=20.0.0'}
+
+  '@docmd/plugin-llms@0.9.8':
+    resolution: {integrity: sha512-4nhj75+du6AWmgmMK7FPuUZyX+XSJsQ8T9WFdoe0OA6p7twW/Ua0CJPVvjVXjxbd1855ZKDviPZgpGnMFTe0aA==}
+    engines: {node: '>=20.0.0'}
+
+  '@docmd/plugin-math@0.9.8':
+    resolution: {integrity: sha512-/D5S2qQau4CSMsg4oqdsjF6raovBp1jkPueQOBqjbkM1H+Wh+JnyUdw+rJR6A9Bh4Na1rI5cvTd1+C29tqUcQA==}
+    engines: {node: '>=20.0.0'}
+
+  '@docmd/plugin-mermaid@0.9.8':
+    resolution: {integrity: sha512-Hc4I53IsxnhfJrVhiVAGJOLD/FXm7lSG/lEH0mjgVKR8A1BTTE/OyilwzhCLiedEmsc84BoEnQ8COOTBOK9ePQ==}
+    engines: {node: '>=20.0.0'}
+
+  '@docmd/plugin-okf@0.9.8':
+    resolution: {integrity: sha512-kU3kcgULpKCSBuWfW7I75lC2mQC1fwVihfBDqhNDqD5DyP527+AB/OhyHpEQ4rdGY0q8U3Kbr5Rflj5kKmUMow==}
+    engines: {node: '>=20.0.0'}
+
+  '@docmd/plugin-openapi@0.9.8':
+    resolution: {integrity: sha512-Ddm/JK6HE0ZgSlbpHQ5TSr1QzF8CFV0Nx4SWhOBamquLIx5mT367Si9PZ6a+8VjeCAVra+NbnVFcNF7httuY4Q==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@docmd/api': ^0.9.8
+
+  '@docmd/plugin-search@0.9.8':
+    resolution: {integrity: sha512-+p9bOQao2wJD2X8ePZS3jh2HwjgViZldoQt751pJIC1qN+R5pzj0rSB8h30XRhDpHRcwwmSqUn6q5iW34i5O4g==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       docmd-search: '>=0.1.6'
@@ -127,30 +127,30 @@ packages:
       docmd-search:
         optional: true
 
-  '@docmd/plugin-seo@0.9.7':
-    resolution: {integrity: sha512-v5r3JHSXIlbwmf6toNKtGjQcbdSvMKk85pwcwcfe/Cm4uQopqlEcVfzZcses6x7ESNK2T9AviPKJ4oLCBA2iRA==}
+  '@docmd/plugin-seo@0.9.8':
+    resolution: {integrity: sha512-5KDw6OVQlwFjVFwQSvl6aZdPxdgRR0mKtFH4M9gqqV7frKHE8kHnEvfh1+QmxXM+NWnhrq7L1mlphWbjkYnHRA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
-      '@docmd/api': ^0.9.7
+      '@docmd/api': ^0.9.8
 
-  '@docmd/plugin-sitemap@0.9.7':
-    resolution: {integrity: sha512-RoW7yynd3aSg0xnt520r3ryMv7VT8S2byPYef1Ks9F8goxAmE0/Ba/DkZOkmMINMh6TGEAFWH71aOySQU9An2A==}
+  '@docmd/plugin-sitemap@0.9.8':
+    resolution: {integrity: sha512-WwFCPt4U+pTqNXeNEadiT6Rk5Q23jkao1vlJ7oyujh1nuvcaAaH9C1K33ExPn3jtb9kd5RYGrdnj0CDOafNURg==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/themes@0.9.7':
-    resolution: {integrity: sha512-OdtLoyGwJO6AZxHsZYEEy/pTPFvKRteGt9Jjh4zF3M1IyTTwBJgY4J2/6rXG1GUT7xZ60cBCzW+ExDfCd3G7oQ==}
+  '@docmd/themes@0.9.8':
+    resolution: {integrity: sha512-i5ZCHOLG3KHQix0KSOjDTVvK6F3bqrNrTqVj39pws3IzVFXSjX3IqIOso8JAKjCStIR4RM7GSSeCdEUGxeCa4A==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/tui@0.9.7':
-    resolution: {integrity: sha512-kh3O4T1aC6aluUBdAb29DWZfRN/lI/7eQukWJ7ydzD4jAUDTN4mIKex5XkeiMPDALWNObfVvaVOmiyQDNppCwg==}
+  '@docmd/tui@0.9.8':
+    resolution: {integrity: sha512-IBARxRqHiKu9fQWVUarrp/tUxMWvRoBSalB78SNZZEASAhxIGVooqwgju4o9ouNYrd8Hzw/RYjuT/MN76bGvyg==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/ui@0.9.7':
-    resolution: {integrity: sha512-XLevhXQVXciWqXeMhHNjBomcDCGOUTNoFwdqk/DgG4R8ADyVBy9GjuB8SAchD/TTtQyfq86nsCmJSRa3CI7G3g==}
+  '@docmd/ui@0.9.8':
+    resolution: {integrity: sha512-ierDbDohyhBwJHw2Cscb5yQMpvRpP00+VYmvtZQW3aaVasd8TZksdb2orNKvJdnD+5YyZT90e/XAt4QBm+II+g==}
     engines: {node: '>=20.0.0'}
 
-  '@docmd/utils@0.9.7':
-    resolution: {integrity: sha512-nNK1J7xh+DL7UQN1mi6cjwDhvn05k44+c7hGSVFrklaIw9BhAzJnt5LEqS42NLa6hFANybXu8TAzQV80t+qY0A==}
+  '@docmd/utils@0.9.8':
+    resolution: {integrity: sha512-j1YY2nW9H2bdGZ4pl0Y93KqGmrH3yOhV5LtAK/oB/WPKFriVPDOQIbv0/aj2k6VpwLvQpzikGQcBxHxOtaOjKg==}
     engines: {node: '>=20.0.0'}
 
   '@esbuild/aix-ppc64@0.28.2':
@@ -422,8 +422,8 @@ packages:
     resolution: {integrity: sha512-dfUnCxiN9H4ap84DvD2ubjw+3vUNpstxa0TneY/Paat8a3R4uQZDLSvWjmznAY/DoahqTHl9V46HF/Zs3F29pg==}
     engines: {node: '>= 10.0.0'}
 
-  '@playwright/test@1.63.0':
-    resolution: {integrity: sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==}
+  '@playwright/test@1.64.1':
+    resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -546,8 +546,8 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
-  argparse@3.0.2:
-    resolution: {integrity: sha512-mFdDM6WqWKraGLsVb+C9CahPnzTXOefAOLq3jYcca2YZ8bEWpr++Tzj+zSaKW9+X9L5uSxcm1AZ3Y6aZJ09OhQ==}
+  argparse@3.0.3:
+    resolution: {integrity: sha512-Sn98ftV3KfsO8xfLPHG6oT8y+b0yvbrLgZjgPDXsharNY15tTAjqIsIju4S32nl6/iEUNNE4v+yL2Zhm8ooP3w==}
 
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
@@ -654,8 +654,12 @@ packages:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
 
-  katex@0.18.9:
-    resolution: {integrity: sha512-8ad9RyoKsb/g8/yLFE+KAlP+DhbCTRUNi/V9XGsxn0R+trJJltNwzcDNo0q/DEkOy5fQUQTAQyCXCYSE+OakTQ==}
+  js-yaml@5.5.0:
+    resolution: {integrity: sha512-paNr4LFIFPjeeSmwNYdrb8FafLLG/Cr2Af3GjbsHJ5CxIjH4r0c2emlmRdAtpPAieP1gRVzk6buBbVP5gBMGAg==}
+    hasBin: true
+
+  katex@0.19.0:
+    resolution: {integrity: sha512-v6Tznz3zJ7u3niRCoDTsumM2+HA2XXcCu+WAacCeHD2z3p9A9Ks987o5FzfTGBN0e8A0vjEgIDvLbICrXpdw/Q==}
     hasBin: true
 
   lightningcss-android-arm64@1.32.0:
@@ -747,8 +751,8 @@ packages:
   lite-template@0.1.3:
     resolution: {integrity: sha512-JVN3BA0WMTjRshH1ljQd2ZF2019NhYpQgvi0VGLJ4TXc9kkfu6kx672DhUWPLlhFMfjZCirYY4emawXl3hEKPQ==}
 
-  lucide-static@1.48.0:
-    resolution: {integrity: sha512-ZUGgZ4rzlLfVbhN2Zi37TMrTaSpXAbWx6Y/xZxKSDLPiqxtTK7Mw2M+oBJa0gjV8p3+CWBHh48u+IC9+jKlUjA==}
+  lucide-static@1.59.0:
+    resolution: {integrity: sha512-MuHZYaXbHgzN2QO6D3OM19bj09A+8GJiFSdXIMlbnLLEGQQ9+NRH2KaCxuivevD3Y23vM74kV17XBifgtqhfEg==}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -777,12 +781,12 @@ packages:
   markdown-it-texmath@1.0.0:
     resolution: {integrity: sha512-4hhkiX8/gus+6e53PLCUmUrsa6ZWGgJW2XCW6O0ASvZUiezIK900ZicinTDtG3kAO2kon7oUA/ReWmpW2FByxg==}
 
-  markdown-it@14.3.2:
-    resolution: {integrity: sha512-sHHjZ5fJKlgrG4qns2YwVcdNep35h5fERrfkD2YNsb9UFk0UIHarbiTaHKVMlPuWAoiilyK8Fv/jAm11slsY7Q==}
+  markdown-it@14.3.3:
+    resolution: {integrity: sha512-L//tDAkjTjJCU6pBUSBTgs3Kg4InVaZuUZog/b6V12UKhcDQ7S78877ibbCanRExwPuYP1CZD7Gd2dxSy1GXRg==}
     hasBin: true
 
-  markdown-it@15.0.2:
-    resolution: {integrity: sha512-q4IGxMv56jCqT4OCRCADBoDP3LO4MhmTXjFbphHPXs4g3j9Xg5RDnxqN8IF/3vIWEU+VCnUq+7JUg/cfy2E6Qw==}
+  markdown-it@15.0.3:
+    resolution: {integrity: sha512-+Az7Ojz3iRGu8KYMvJ6xVhvrxP3eE+vEtJX75Ow88XBpcQNV/0lGX5ZynIIBftREo4DC2jsveAMDaeltmm8QvQ==}
     hasBin: true
 
   mdurl@2.1.0:
@@ -809,13 +813,13 @@ packages:
     resolution: {integrity: sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==}
     engines: {node: '>=8.6'}
 
-  playwright-core@1.63.0:
-    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.63.0:
-    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -893,37 +897,37 @@ packages:
 
 snapshots:
 
-  '@docmd/api@0.9.7':
+  '@docmd/api@0.9.8':
     dependencies:
-      '@docmd/parser': 0.9.7
-      '@docmd/tui': 0.9.7
-      '@docmd/utils': 0.9.7
+      '@docmd/parser': 0.9.8
+      '@docmd/tui': 0.9.8
+      '@docmd/utils': 0.9.8
     optionalDependencies:
-      '@docmd/engine-js': 0.9.7
-      '@docmd/engine-python': 0.9.7
-      '@docmd/engine-rust': 0.9.7
+      '@docmd/engine-js': 0.9.8
+      '@docmd/engine-python': 0.9.8
+      '@docmd/engine-rust': 0.9.8
 
-  '@docmd/core@0.9.7':
+  '@docmd/core@0.9.8':
     dependencies:
-      '@docmd/api': 0.9.7
-      '@docmd/deployer': 0.9.7
-      '@docmd/live': 0.9.7
-      '@docmd/parser': 0.9.7
-      '@docmd/plugin-ai': 0.9.7
-      '@docmd/plugin-analytics': 0.9.7(@docmd/api@0.9.7)
-      '@docmd/plugin-git': 0.9.7(@docmd/api@0.9.7)
-      '@docmd/plugin-installer': 0.9.7
-      '@docmd/plugin-llms': 0.9.7
-      '@docmd/plugin-mermaid': 0.9.7
-      '@docmd/plugin-okf': 0.9.7
-      '@docmd/plugin-openapi': 0.9.7(@docmd/api@0.9.7)
-      '@docmd/plugin-search': 0.9.7
-      '@docmd/plugin-seo': 0.9.7(@docmd/api@0.9.7)
-      '@docmd/plugin-sitemap': 0.9.7
-      '@docmd/themes': 0.9.7
-      '@docmd/tui': 0.9.7
-      '@docmd/ui': 0.9.7
-      '@docmd/utils': 0.9.7
+      '@docmd/api': 0.9.8
+      '@docmd/deployer': 0.9.8
+      '@docmd/live': 0.9.8
+      '@docmd/parser': 0.9.8
+      '@docmd/plugin-ai': 0.9.8
+      '@docmd/plugin-analytics': 0.9.8(@docmd/api@0.9.8)
+      '@docmd/plugin-git': 0.9.8(@docmd/api@0.9.8)
+      '@docmd/plugin-installer': 0.9.8
+      '@docmd/plugin-llms': 0.9.8
+      '@docmd/plugin-mermaid': 0.9.8
+      '@docmd/plugin-okf': 0.9.8
+      '@docmd/plugin-openapi': 0.9.8(@docmd/api@0.9.8)
+      '@docmd/plugin-search': 0.9.8
+      '@docmd/plugin-seo': 0.9.8(@docmd/api@0.9.8)
+      '@docmd/plugin-sitemap': 0.9.8
+      '@docmd/themes': 0.9.8
+      '@docmd/tui': 0.9.8
+      '@docmd/ui': 0.9.8
+      '@docmd/utils': 0.9.8
       esbuild: 0.28.2
       ws: 8.22.0
     transitivePeerDependencies:
@@ -931,108 +935,110 @@ snapshots:
       - docmd-search
       - utf-8-validate
 
-  '@docmd/deployer@0.9.7':
+  '@docmd/deployer@0.9.8':
     dependencies:
-      '@docmd/api': 0.9.7
+      '@docmd/api': 0.9.8
 
-  '@docmd/engine-js@0.9.7':
+  '@docmd/engine-js@0.9.8':
     optional: true
 
-  '@docmd/engine-python@0.9.7':
+  '@docmd/engine-python@0.9.8':
     optional: true
 
-  '@docmd/engine-rust@0.9.7':
+  '@docmd/engine-rust@0.9.8':
     optional: true
 
-  '@docmd/live@0.9.7':
+  '@docmd/live@0.9.8':
     dependencies:
-      '@docmd/parser': 0.9.7
-      '@docmd/plugin-math': 0.9.7
-      '@docmd/plugin-mermaid': 0.9.7
-      '@docmd/themes': 0.9.7
-      '@docmd/tui': 0.9.7
-      '@docmd/ui': 0.9.7
+      '@docmd/parser': 0.9.8
+      '@docmd/plugin-math': 0.9.8
+      '@docmd/plugin-mermaid': 0.9.8
+      '@docmd/themes': 0.9.8
+      '@docmd/tui': 0.9.8
+      '@docmd/ui': 0.9.8
       buffer: 6.0.3
       esbuild: 0.28.2
-      katex: 0.18.9
+      katex: 0.19.0
       markdown-it-texmath: 1.0.0
 
-  '@docmd/parser@0.9.7':
+  '@docmd/parser@0.9.8':
     dependencies:
-      '@docmd/tui': 0.9.7
-      '@docmd/utils': 0.9.7
+      '@docmd/tui': 0.9.8
+      '@docmd/utils': 0.9.8
       embed-lite: 0.1.6
       lite-hl: 0.2.1
       lite-matter: 0.1.2
       lite-template: 0.1.3
-      lucide-static: 1.48.0
-      markdown-it: 14.3.2
+      lucide-static: 1.59.0
+      markdown-it: 14.3.3
       markdown-it-abbr: 1.0.4
-      markdown-it-attrs: 4.5.0(markdown-it@14.3.2)
+      markdown-it-attrs: 4.5.0(markdown-it@14.3.3)
       markdown-it-deflist: 2.1.0
       markdown-it-emoji: 2.0.2
       markdown-it-footnote: 3.0.3
       markdown-it-task-lists: 2.1.1
 
-  '@docmd/plugin-ai@0.9.7':
+  '@docmd/plugin-ai@0.9.8':
     dependencies:
       docmd-assistant: 0.1.18
 
-  '@docmd/plugin-analytics@0.9.7(@docmd/api@0.9.7)':
+  '@docmd/plugin-analytics@0.9.8(@docmd/api@0.9.8)':
     dependencies:
-      '@docmd/api': 0.9.7
-      '@docmd/utils': 0.9.7
+      '@docmd/api': 0.9.8
+      '@docmd/utils': 0.9.8
 
-  '@docmd/plugin-git@0.9.7(@docmd/api@0.9.7)':
+  '@docmd/plugin-git@0.9.8(@docmd/api@0.9.8)':
     dependencies:
-      '@docmd/api': 0.9.7
+      '@docmd/api': 0.9.8
 
-  '@docmd/plugin-installer@0.9.7':
+  '@docmd/plugin-installer@0.9.8':
     dependencies:
-      '@docmd/api': 0.9.7
+      '@docmd/api': 0.9.8
 
-  '@docmd/plugin-llms@0.9.7': {}
+  '@docmd/plugin-llms@0.9.8': {}
 
-  '@docmd/plugin-math@0.9.7':
+  '@docmd/plugin-math@0.9.8':
     dependencies:
-      katex: 0.18.9
+      katex: 0.19.0
       markdown-it-texmath: 1.0.0
 
-  '@docmd/plugin-mermaid@0.9.7':
+  '@docmd/plugin-mermaid@0.9.8':
     dependencies:
-      '@docmd/parser': 0.9.7
+      '@docmd/parser': 0.9.8
 
-  '@docmd/plugin-okf@0.9.7': {}
+  '@docmd/plugin-okf@0.9.8': {}
 
-  '@docmd/plugin-openapi@0.9.7(@docmd/api@0.9.7)':
+  '@docmd/plugin-openapi@0.9.8(@docmd/api@0.9.8)':
     dependencies:
-      '@docmd/api': 0.9.7
-      '@docmd/utils': 0.9.7
+      '@docmd/api': 0.9.8
+      '@docmd/utils': 0.9.8
+      js-yaml: 5.5.0
+      markdown-it: 15.0.3
 
-  '@docmd/plugin-search@0.9.7':
+  '@docmd/plugin-search@0.9.8':
     dependencies:
-      markdown-it: 14.3.2
+      markdown-it: 14.3.3
       minisearch: 7.2.0
 
-  '@docmd/plugin-seo@0.9.7(@docmd/api@0.9.7)':
+  '@docmd/plugin-seo@0.9.8(@docmd/api@0.9.8)':
     dependencies:
-      '@docmd/api': 0.9.7
-      '@docmd/utils': 0.9.7
+      '@docmd/api': 0.9.8
+      '@docmd/utils': 0.9.8
 
-  '@docmd/plugin-sitemap@0.9.7': {}
+  '@docmd/plugin-sitemap@0.9.8': {}
 
-  '@docmd/themes@0.9.7': {}
+  '@docmd/themes@0.9.8': {}
 
-  '@docmd/tui@0.9.7':
+  '@docmd/tui@0.9.8':
     dependencies:
       chalk: 4.1.2
 
-  '@docmd/ui@0.9.7':
+  '@docmd/ui@0.9.8':
     dependencies:
-      '@docmd/api': 0.9.7
-      '@docmd/tui': 0.9.7
+      '@docmd/api': 0.9.8
+      '@docmd/tui': 0.9.8
 
-  '@docmd/utils@0.9.7': {}
+  '@docmd/utils@0.9.8': {}
 
   '@esbuild/aix-ppc64@0.28.2':
     optional: true
@@ -1197,9 +1203,9 @@ snapshots:
       '@parcel/watcher-win32-ia32': 2.5.1
       '@parcel/watcher-win32-x64': 2.5.1
 
-  '@playwright/test@1.63.0':
+  '@playwright/test@1.64.1':
     dependencies:
-      playwright: 1.63.0
+      playwright: 1.64.1
 
   '@tailwindcss/cli@4.3.3':
     dependencies:
@@ -1297,7 +1303,7 @@ snapshots:
 
   argparse@2.0.1: {}
 
-  argparse@3.0.2: {}
+  argparse@3.0.3: {}
 
   base64-js@1.5.1: {}
 
@@ -1412,7 +1418,11 @@ snapshots:
 
   jiti@2.7.0: {}
 
-  katex@0.18.9:
+  js-yaml@5.5.0:
+    dependencies:
+      argparse: 3.0.3
+
+  katex@0.19.0:
     dependencies:
       commander: 15.0.0
 
@@ -1481,7 +1491,7 @@ snapshots:
 
   lite-template@0.1.3: {}
 
-  lucide-static@1.48.0: {}
+  lucide-static@1.59.0: {}
 
   magic-string@0.30.21:
     dependencies:
@@ -1489,9 +1499,9 @@ snapshots:
 
   markdown-it-abbr@1.0.4: {}
 
-  markdown-it-attrs@4.5.0(markdown-it@14.3.2):
+  markdown-it-attrs@4.5.0(markdown-it@14.3.3):
     dependencies:
-      markdown-it: 14.3.2
+      markdown-it: 14.3.3
 
   markdown-it-deflist@2.1.0: {}
 
@@ -1503,7 +1513,7 @@ snapshots:
 
   markdown-it-texmath@1.0.0: {}
 
-  markdown-it@14.3.2:
+  markdown-it@14.3.3:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
@@ -1512,9 +1522,9 @@ snapshots:
       punycode.js: 2.3.1
       uc.micro: 2.1.0
 
-  markdown-it@15.0.2:
+  markdown-it@15.0.3:
     dependencies:
-      argparse: 3.0.2
+      argparse: 3.0.3
       entities: 8.1.0
       linkify-it: 6.1.0
       mdurl: 2.1.0
@@ -1538,11 +1548,11 @@ snapshots:
 
   picomatch@2.3.2: {}
 
-  playwright-core@1.63.0: {}
+  playwright-core@1.64.1: {}
 
-  playwright@1.63.0:
+  playwright@1.64.1:
     dependencies:
-      playwright-core: 1.63.0
+      playwright-core: 1.64.1
 
   postcss-selector-parser@6.0.10:
     dependencies:
